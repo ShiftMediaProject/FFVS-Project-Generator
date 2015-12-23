@@ -62,7 +62,7 @@ bool configGenerator::passConfigureFile()
 
     //Setup initial directories
     if (m_sRootDirectory.length() == 0) {
-        string sPathList[] = {"../../../", "./", "../", "../../ffmpeg", "../../libav"};
+        string sPathList[] = {"../../../", "./", "../", "../../ffmpeg/", "../../libav/"};
         uint uiPathCount = 0;
         uint uiNumPaths = sizeof(sPathList) / sizeof(string);
         for (uiPathCount; uiPathCount < uiNumPaths; uiPathCount++) {
