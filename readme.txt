@@ -54,8 +54,8 @@ However the following is a list of extra dependency options that require externa
     1) opengl (requires glext)
 		a) Download glext from the glext homepage.
 		b) Extract all the header files into OutputDir/include/gl/*.
-    2) opencl (requires Intel or AMD OpenCL SDK, NVIDIAs does not support required features)
-		a) Download either the "Intel OpenCL SDK" or the "AMD OpenCL SDK" from their respective suppliers.
+    2) opencl (requires latest Intel/AMD or NVIDIA OpenCL SDK)
+		a) Download either the "Intel OpenCL SDK", "AMD OpenCL SDK" or the "NVIDIA CUDA SDK" from their respective suppliers.
 		b) Install the downloaded SDK wherever desired.
     3) nvenc (requires NVIDIA CUDA SDK)
 		a) Download the "NVIDIA CUDA SDK" from the NVIDIA website.
@@ -63,6 +63,14 @@ However the following is a list of extra dependency options that require externa
 		c) Download the "NVIDIA Video Codec SDK" from the NVIDIA website.
 		d) Copy 'nvEncodeAPI.h' from the "NVIDIA Video Codec SDK" into the installed %CUDA%\include folder 
 			(where %CUDA% is the location that the CUDA SDK was installed).
+    4) decklink (requires Blackmagic DeckLink SDK)
+		a) Download the "Blackmagic DeckLink SDK" from the Blackmagic website.
+		b) Extract the downloaded SDK wherever desired.
+        c) Create a batch file in the extracted "Win/include" folder containing the following (Note: you may have to change 
+            the first line depending on the installed Visual Studio version and location):
+call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\vcvars32.bat"
+midl /win32 /h DeckLinkAPI.h DeckLinkAPI.idl
+        d) Copy the newly created "DeckLinkAPI.h" and "DeckLinkAPI_i.c" files to OutputDir/include/*.
 			
 *OutputDir is the "Output Directory" specified in the project properties. 
     Note: There is a different OutputDir for 32/64bit configurations. Lib's and DLL's should be placed in the correct directory.

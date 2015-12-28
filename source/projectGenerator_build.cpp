@@ -244,13 +244,13 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                     vLib32Dirs.push_back("$(INTELOCLSDKROOT)/lib/x86");
                     vLib64Dirs.push_back("$(INTELOCLSDKROOT)/lib/x64");
                 } else if (GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
-                    cout << "  Warning: NVIDIA OpenCl currently is only 1.1. OpenCl 1.2 is needed for FFMpeg support" << endl;
                     vIncludeDirs.push_back("$(CUDA_PATH)/include/");
                     vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
                     vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
                 } else {
                     cout << "  Warning: Could not find an OpenCl SDK environment variable." << endl;
                     cout << "    Either an OpenCL SDK is not installed or the environment variables are missing." << endl;
+                    cout << "    The location of the OpenCl files will have to be manually specified as otherwise the project will not compile." << endl;
                 }
             } else if (mitLib->first.compare("openal") == 0) {
                 if (!GetEnvironmentVariable("OPENAL_SDK", NULL, 0)) {
