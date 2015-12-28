@@ -260,7 +260,7 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 }
                 vIncludeDirs.push_back("$(OPENAL_SDK)/include/");
                 vLib32Dirs.push_back("$(OPENAL_SDK)/libs/Win32");
-                vLib64Dirs.push_back("$(CUDA_PATH)/lib/Win64");
+                vLib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
             } else if (mitLib->first.compare("nvenc") == 0) {
                 //Need to check for the existence of environment variables
                 if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
