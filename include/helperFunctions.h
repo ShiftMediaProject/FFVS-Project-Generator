@@ -33,8 +33,7 @@ typedef unsigned int uint;
 #endif
 
 namespace project_generate {
-
-bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary=false);
+bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary = false, bool bOutError = true);
 
 bool writeToFile(const string& sFileName, const string& sString);
 

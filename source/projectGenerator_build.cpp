@@ -23,26 +23,21 @@
 #include <iostream>
 #include <Windows.h>
 
-void projectGenerator::buildInterDependenciesHelper( const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs )
+void projectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
 {
     bool bFound = false;
-    for( StaticList::const_iterator itI = vConfigOptions.begin( ); itI < vConfigOptions.end( ); itI++ )
-    {
-        configGenerator::ValuesList::iterator itConfOpt = m_ConfigHelper.getConfigOption( *itI );
-        bFound = ( ( itConfOpt != m_ConfigHelper.m_vConfigValues.end( ) ) && ( m_ConfigHelper.getConfigOption( *itI )->m_sValue.compare( "1" ) == 0 ) );
-        if( !bFound )
-        {
+    for (StaticList::const_iterator itI = vConfigOptions.begin(); itI < vConfigOptions.end(); itI++) {
+        configGenerator::ValuesList::iterator itConfOpt = m_ConfigHelper.getConfigOption(*itI);
+        bFound = ((itConfOpt != m_ConfigHelper.m_vConfigValues.end()) && (m_ConfigHelper.getConfigOption(*itI)->m_sValue.compare("1") == 0));
+        if (!bFound) {
             break;
         }
     }
-    if( bFound )
-    {
-        for( StaticList::const_iterator itI = vAddDeps.begin( ); itI < vAddDeps.end( ); itI++ )
-        {
+    if (bFound) {
+        for (StaticList::const_iterator itI = vAddDeps.begin(); itI < vAddDeps.end(); itI++) {
             string sSearchTag = "lib" + *itI;
-            if( find( vLibs.begin( ), vLibs.end( ), sSearchTag ) == vLibs.end( ) )
-            {
-                vLibs.push_back( sSearchTag );
+            if (find(vLibs.begin(), vLibs.end(), sSearchTag) == vLibs.end()) {
+                vLibs.push_back(sSearchTag);
             }
         }
     }
@@ -63,6 +58,7 @@ void projectGenerator::buildInterDependencies(const string & sProjectName, Stati
 
     //Hard coded configuration checks for inter dependencies between different source libs.
     if (sProjectName.compare("libavfilter") == 0) {
+        buildInterDependenciesHelper({"afftfilt_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"amovie_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"aresample_filter"}, {"swresample"}, vLibs);
         buildInterDependenciesHelper({"asyncts_filter"}, {"avresample"}, vLibs);
@@ -83,6 +79,7 @@ void projectGenerator::buildInterDependencies(const string & sProjectName, Stati
         buildInterDependenciesHelper({"subtitles_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"scale2ref_filter"}, {"swscale"}, vLibs);
         buildInterDependenciesHelper({"sofalizer_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"showcqt_filter"}, {"avformat", "avcodec", "swscale"}, vLibs);
         buildInterDependenciesHelper({"showfreqs_filter"}, {"avcodec"}, vLibs);
     } else if (sProjectName.compare("libavdevice") == 0) {
         buildInterDependenciesHelper({"lavfi_indev"}, {"avfilter"}, vLibs);
@@ -91,121 +88,94 @@ void projectGenerator::buildInterDependencies(const string & sProjectName, Stati
     }
 }
 
-void projectGenerator::buildDependencies( const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs )
+void projectGenerator::buildDependencies(const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs)
 {
     //Add any forced dependencies
-    if( sProjectName.compare( "libavformat" ) == 0 )
-    {
-        vAddLibs.push_back( "ws2_32" ); //Add the additional required libs
+    if (sProjectName.compare("libavformat") == 0) {
+        vAddLibs.push_back("ws2_32"); //Add the additional required libs
     }
 
     //Determine only those dependencies that are valid for current project
-    map<string,bool> mProjectDeps;
-    buildProjectDependencies( sProjectName, mProjectDeps );
+    map<string, bool> mProjectDeps;
+    buildProjectDependencies(sProjectName, mProjectDeps);
 
     //Loop through each known configuration option and add the required dependencies
     vector<string> vExternLibs;
-    m_ConfigHelper.getConfigList( "EXTERNAL_LIBRARY_LIST", vExternLibs );
-    //Add extra external libraries
-    vExternLibs.push_back( "vfwcap_indev" );
-    vExternLibs.push_back( "dshow_indev" );
-    for( vector<string>::iterator vitLib=vExternLibs.begin(); vitLib<vExternLibs.end(); vitLib++ )
-    {
+    m_ConfigHelper.getConfigList("EXTERNAL_LIBRARY_LIST", vExternLibs);
+    for (vector<string>::iterator vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); vitLib++) {
         //Check if enabled
-        if( m_ConfigHelper.getConfigOption( *vitLib )->m_sValue.compare("1") == 0 )
-        {
+        if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
             //Check if this dependency is valid for this project (if the dependency is not known default to enable)
-            if( mProjectDeps.find( *vitLib ) == mProjectDeps.end() )
-            {
+            if (mProjectDeps.find(*vitLib) == mProjectDeps.end()) {
                 cout << "  Warning: Unknown dependency found (" << *vitLib << ")" << endl;
-            }
-            else if( !mProjectDeps[*vitLib] )
-            {
+            } else if (!mProjectDeps[*vitLib]) {
                 //This dependency is not valid for this project so skip it
                 continue;
             }
 
             string sLib;
-            if( vitLib->compare("avisynth") == 0 )
-            {
+            if (vitLib->compare("avisynth") == 0) {
                 //doesnt need any additional libs
-            }
-            else if( vitLib->compare("bzlib") == 0 )
-            {
+            } else if (vitLib->compare("bzlib") == 0) {
                 sLib = "libbz2";
-            }
-            else if( vitLib->compare( "libcdio" ) == 0 )
-            {
+            } else if (vitLib->compare("libcdio") == 0) {
                 sLib = "libcdio_paranoia";
-            }
-            else if( vitLib->compare("libfdk_aac") == 0 )
-            {
+            } else if (vitLib->compare("libfdk_aac") == 0) {
                 sLib = "libfdk-aac";
-            }
-            else if( vitLib->compare("libxvid") == 0 )
-            {
+            } else if (vitLib->compare("libxvid") == 0) {
                 sLib = "libxvidcore";
-            }
-            else if( vitLib->compare("openssl") == 0 )
-            {
+            } else if (vitLib->compare("openssl") == 0) {
                 //Needs ws2_32 but libavformat needs this even if not using openssl so it is already included
                 sLib = "libssl";
-            }
-            else if( vitLib->compare("vfwcap_indev") == 0 )
-            {
-                vAddLibs.push_back( "vfw32" ); //Add the additional required libs
-                vAddLibs.push_back( "shlwapi" );
-            }
-            else if( vitLib->compare("dshow_indev") == 0 )
-            {
-                vAddLibs.push_back( "strmiids" ); //Add the additional required libs
-            }
-            else if( vitLib->compare("decklink") == 0 )
-            {
+            } else if (vitLib->compare("decklink") == 0) {
                 //doesnt need any additional libs
-            }
-            else if( vitLib->compare( "opengl" ) == 0 )
-            {
-                vAddLibs.push_back( "Opengl32" ); //Add the additional required libs
-            }
-            else if( vitLib->compare( "opencl" ) == 0 )
-            {
-                vAddLibs.push_back( "OpenCL" ); //Add the additional required libs
-            }
-            else if( vitLib->compare( "openal" ) == 0 )
-            {
-                vAddLibs.push_back( "OpenAL32" ); //Add the additional required libs
-            }
-            else if( vitLib->compare( "nvenc" ) == 0 )
-            {
+            } else if (vitLib->compare("opengl") == 0) {
+                vAddLibs.push_back("Opengl32"); //Add the additional required libs
+            } else if (vitLib->compare("opencl") == 0) {
+                vAddLibs.push_back("OpenCL"); //Add the additional required libs
+            } else if (vitLib->compare("openal") == 0) {
+                vAddLibs.push_back("OpenAL32"); //Add the additional required libs
+            } else if (vitLib->compare("nvenc") == 0) {
                 //Doesnt require any additional libs
-            }
-            else
-            {
+            } else {
                 //By default just use the lib name and prefix with lib if not already
-                if( vitLib->find( "lib" ) == 0 )
-                {
+                if (vitLib->find("lib") == 0) {
                     sLib = *vitLib;
-                }
-                else
-                {
+                } else {
                     sLib = "lib" + *vitLib;
                 }
             }
-            if( sLib.length() > 0 )
-            {
+            if (sLib.length() > 0) {
                 //Check already not in list
-                vector<string>::iterator vitList=vLibs.begin();
-                for( vitList; vitList<vLibs.end(); vitList++ )
-                {
-                    if( vitList->compare( sLib ) == 0 )
-                    {
+                vector<string>::iterator vitList = vLibs.begin();
+                for (vitList; vitList < vLibs.end(); vitList++) {
+                    if (vitList->compare(sLib) == 0) {
                         break;
                     }
                 }
-                if( vitList == vLibs.end() )
-                {
-                    vLibs.push_back( sLib );
+                if (vitList == vLibs.end()) {
+                    vLibs.push_back(sLib);
+                }
+            }
+        }
+    }
+
+    //Add in extralibs used for various devices
+    if (sProjectName.compare("libavdevice") == 0) {
+        vExternLibs.resize(0);
+        m_ConfigHelper.getConfigList("OUTDEV_LIST", vExternLibs);
+        m_ConfigHelper.getConfigList("INDEV_LIST", vExternLibs);
+        for (vector<string>::iterator vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); vitLib++) {
+            //Check if enabled
+            if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
+                //Add the additional required libs
+                if (vitLib->compare("dshow_indev") == 0) {
+                    vAddLibs.push_back("strmiids");
+                } else if (vitLib->compare("vfwcap_indev") == 0) {
+                    vAddLibs.push_back("vfw32");
+                    vAddLibs.push_back("shlwapi");
+                } else if ((vitLib->compare("wasapi_indev") == 0) || (vitLib->compare("wasapi_outdev") == 0)) {
+                    vAddLibs.push_back("ksuser");
                 }
             }
         }
@@ -274,98 +244,94 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
     }
 }
 
-void projectGenerator::buildProjectDependencies( const string & sProjectName, map<string,bool> & mProjectDeps )
+void projectGenerator::buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps)
 {
     mProjectDeps["avisynth"] = false; //no dependencies ever needed
-    mProjectDeps["bzlib"] = ( sProjectName.compare("libavformat") == 0 ) || ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["crystalhd"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["bzlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["crystalhd"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["chromaprint"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["decklink"] = (sProjectName.compare("libavdevice") == 0);
-    mProjectDeps["libfontconfig"] = ( sProjectName.compare( "libavfilter" ) == 0 );
-    mProjectDeps["frei0r"] = ( sProjectName.compare("libavfilter") == 0 );
+    mProjectDeps["libfontconfig"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["frei0r"] = (sProjectName.compare("libavfilter") == 0);
     mProjectDeps["gcrypt"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["gmp"] = (sProjectName.compare("libavformat") == 0);
-    mProjectDeps["gnutls"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["iconv"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["ladspa"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libaacplus"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libass"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libbluray"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["libbs2b"] = ( sProjectName.compare( "libavfilter" ) == 0 );
-    mProjectDeps["libcaca"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["libcdio"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["libcelt"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libdc1394"] = ( sProjectName.compare("libavdevice") == 0 );
+    mProjectDeps["gnutls"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["iconv"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["ladspa"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libaacplus"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libass"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libbluray"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["libbs2b"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libcaca"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["libcdio"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["libcelt"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libdc1394"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libdcadec"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libfaac"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libfdk_aac"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libflite"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libfreetype"] = ( sProjectName.compare( "libavfilter" ) == 0 );
-    mProjectDeps["libfribidi"] = ( sProjectName.compare( "libavfilter" ) == 0 );
-    mProjectDeps["libgme"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["libgsm"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libiec61883"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["libilbc"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["libfaac"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libfdk_aac"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libflite"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libfreetype"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libfribidi"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libgme"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["libgsm"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libiec61883"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["libilbc"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libkvazaar"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libmfx"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
-    mProjectDeps["libmodplug"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["libmp3lame"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libnut"] = ( sProjectName.compare("libformat") == 0 );
-    mProjectDeps["libopencore_amrnb"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libopencore_amrwb"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libopencv"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libopenjpeg"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["libmodplug"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["libmp3lame"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libnut"] = (sProjectName.compare("libformat") == 0);
+    mProjectDeps["libopencore_amrnb"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libopencore_amrwb"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libopencv"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libopenjpeg"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libopenh264"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libopus"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libpulse"] = ( sProjectName.compare("libavdevice") == 0 );
+    mProjectDeps["libopus"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libpulse"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["librubberband"] = (sProjectName.compare("libavfilter") == 0);
-    mProjectDeps["libquvi"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["librtmp"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["libschroedinger"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libshine"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["libquvi"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["librtmp"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["libschroedinger"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libshine"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libsmbclient"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["libsnappy"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libsoxr"] = ( sProjectName.compare("libswresample") == 0 );
-    mProjectDeps["libspeex"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libssh"] = ( sProjectName.compare("libavformat") == 0 );
-    mProjectDeps["libstagefright_h264"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["libsoxr"] = (sProjectName.compare("libswresample") == 0);
+    mProjectDeps["libspeex"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libssh"] = (sProjectName.compare("libavformat") == 0);
+    mProjectDeps["libstagefright_h264"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libtesseract"] = (sProjectName.compare("libavfilter") == 0);
-    mProjectDeps["libtheora"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libtwolame"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libutvideo"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libv4l2"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["libvidstab"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libvo_aacenc"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libvo_amrwbenc"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libvorbis"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libvpx"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libwavpack"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libwebp"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libx264"] = ( sProjectName.compare( "libavcodec" ) == 0 );
-    mProjectDeps["libx265"] = ( sProjectName.compare( "libavcodec" ) == 0 );
-    mProjectDeps["libxavs"] = ( sProjectName.compare("libavcodec") == 0 );
-    mProjectDeps["libxvid"] = ( sProjectName.compare("libavcodec") == 0 );
+    mProjectDeps["libtheora"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libtwolame"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libutvideo"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libv4l2"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["libvidstab"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libvo_aacenc"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libvo_amrwbenc"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libvorbis"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libvpx"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libwavpack"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libwebp"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libx264"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libx265"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libxavs"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libxvid"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libzimg"] = (sProjectName.compare("libavfilter") == 0);
-    mProjectDeps["libzmq"] = ( sProjectName.compare("libavfilter") == 0 );
-    mProjectDeps["libzvbi"] = ( sProjectName.compare( "libavcodec" ) == 0 );
-    mProjectDeps["lzma"] = ( sProjectName.compare( "libavcodec" ) == 0 );
-    mProjectDeps["nvenc"] = ( sProjectName.compare( "libavcodec" ) == 0 );
-    mProjectDeps["openal"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["opencl"] = ( sProjectName.compare( "libavutil" ) == 0 ) || ( sProjectName.compare( "libavfilter" ) == 0 ) || ( sProjectName.compare( "ffmpeg" ) == 0 ) || ( sProjectName.compare( "avconv" ) == 0 )
+    mProjectDeps["libzmq"] = (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["libzvbi"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["lzma"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["nvenc"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["openal"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["opencl"] = (sProjectName.compare("libavutil") == 0) || (sProjectName.compare("libavfilter") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0)
         || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("avplay") == 0) || (sProjectName.compare("ffprobe") == 0) || (sProjectName.compare("avprobe") == 0);
-    mProjectDeps["opengl"] = ( sProjectName.compare( "libavdevice" ) == 0 );
-    mProjectDeps["openssl"] = ( sProjectName.compare( "libavformat" ) == 0 );
+    mProjectDeps["opengl"] = (sProjectName.compare("libavdevice") == 0);
+    mProjectDeps["openssl"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["schannel"] = (sProjectName.compare("libavformat") == 0);
-    mProjectDeps["sdl"] = ( sProjectName.compare( "libavdevice" ) == 0 ) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("avplay") == 0);
+    mProjectDeps["sdl"] = (sProjectName.compare("libavdevice") == 0) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("avplay") == 0);
     //mProjectDeps["x11grab"] = ( sProjectName.compare("libavdevice") == 0 );//Always disabled on Win32
-    mProjectDeps["zlib"] = ( sProjectName.compare("libavformat") == 0 ) || ( sProjectName.compare("libavcodec") == 0 );
-
-    //extras
-    mProjectDeps["vfwcap_indev"] = ( sProjectName.compare("libavdevice") == 0 );
-    mProjectDeps["dshow_indev"] = ( sProjectName.compare("libavdevice") == 0 );
+    mProjectDeps["zlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
 }
 
-void projectGenerator::buildProjectGUIDs( map<string, string> & mKeys )
+void projectGenerator::buildProjectGUIDs(map<string, string> & mKeys)
 {
     mKeys["libavcodec"] = "B4824EFF-C340-425D-A4A8-E2E02A71A7AE";
     mKeys["libavdevice"] = "6E165FA4-44EB-4330-8394-9F0D76D8E03E";
@@ -377,14 +343,11 @@ void projectGenerator::buildProjectGUIDs( map<string, string> & mKeys )
     mKeys["libswscale"] = "6D8A6330-8EBE-49FD-9281-0A396F9F28F2";
     mKeys["libpostproc"] = "4D9C457D-9ADA-4A12-9D06-42D80124C5AB";
 
-    if( !m_ConfigHelper.m_bLibav )
-    {
+    if (!m_ConfigHelper.m_bLibav) {
         mKeys["ffmpeg"] = "4081C77E-F1F7-49FA-9BD8-A4D267C83716";
         mKeys["ffplay"] = "E2A6865D-BD68-45B4-8130-EFD620F2C7EB";
         mKeys["ffprobe"] = "147A422A-FA63-4724-A5D9-08B1CAFDAB59";
-    }
-    else
-    {
+    } else {
         mKeys["avconv"] = "4081C77E-F1F7-49FA-9BD8-A4D267C83716";
         mKeys["avplay"] = "E2A6865D-BD68-45B4-8130-EFD620F2C7EB";
         mKeys["avprobe"] = "147A422A-FA63-4724-A5D9-08B1CAFDAB59";

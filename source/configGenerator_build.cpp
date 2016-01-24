@@ -22,210 +22,198 @@
 
 #include <algorithm>
 
-bool configGenerator::buildDefaultValues( )
+bool configGenerator::buildDefaultValues()
 {
     // configurable options
     vector<string> vList;
-    if( !getConfigList( "PROGRAM_LIST", vList ) )
-    {
+    if (!getConfigList("PROGRAM_LIST", vList)) {
         return false;
     }
     //Enable all programs
-    vector<string>::iterator vitValues = vList.begin( );
-    for( vitValues; vitValues < vList.end( ); vitValues++ )
-    {
-        toggleConfigValue( *vitValues, true );
+    vector<string>::iterator vitValues = vList.begin();
+    for (vitValues; vitValues < vList.end(); vitValues++) {
+        toggleConfigValue(*vitValues, true);
     }
     //Enable all libraries
-    vList.resize( 0 );
-    if( !getConfigList( "LIBRARY_LIST", vList ) )
-    {
+    vList.resize(0);
+    if (!getConfigList("LIBRARY_LIST", vList)) {
         return false;
     }
-    vitValues = vList.begin( );
-    for( vitValues; vitValues < vList.end( ); vitValues++ )
-    {
-        if( !m_bLibav && vitValues->compare( "avresample" ) != 0 )
-        {
-            toggleConfigValue( *vitValues, true );
+    vitValues = vList.begin();
+    for (vitValues; vitValues < vList.end(); vitValues++) {
+        if (!m_bLibav && vitValues->compare("avresample") != 0) {
+            toggleConfigValue(*vitValues, true);
         }
     }
     //Enable all components
-    vList.resize( 0 );
+    vList.resize(0);
     vector<string> vList2;
-    if( !getConfigList( "COMPONENT_LIST", vList ) )
-    {
+    if (!getConfigList("COMPONENT_LIST", vList)) {
         return false;
     }
-    vitValues = vList.begin( );
-    for( vitValues; vitValues < vList.end( ); vitValues++ )
-    {
-        toggleConfigValue( *vitValues, true );
+    vitValues = vList.begin();
+    for (vitValues; vitValues < vList.end(); vitValues++) {
+        toggleConfigValue(*vitValues, true);
         //Get the corresponding list and enable all member elements as well
-        vitValues->resize( vitValues->length( ) - 1 ); //Need to remove the s from end
-        transform( vitValues->begin( ), vitValues->end( ), vitValues->begin( ), ::toupper );
+        vitValues->resize(vitValues->length() - 1); //Need to remove the s from end
+        transform(vitValues->begin(), vitValues->end(), vitValues->begin(), ::toupper);
         //Get the specific list
-        vList2.resize( 0 );
-        getConfigList( *vitValues + "_LIST", vList2 );
-        for( vector<string>::iterator vitComponent = vList2.begin( ); vitComponent < vList2.end( ); vitComponent++ )
-        {
-            toggleConfigValue( *vitComponent, true );
+        vList2.resize(0);
+        getConfigList(*vitValues + "_LIST", vList2);
+        for (vector<string>::iterator vitComponent = vList2.begin(); vitComponent < vList2.end(); vitComponent++) {
+            toggleConfigValue(*vitComponent, true);
         }
     }
 
-
-    fastToggleConfigValue( "runtime_cpudetect", true );
-    fastToggleConfigValue( "safe_bitstream_reader", true );
-    fastToggleConfigValue( "static", true );
-    fastToggleConfigValue( "shared", true );
-    fastToggleConfigValue( "swscale_alpha", true );
+    fastToggleConfigValue("runtime_cpudetect", true);
+    fastToggleConfigValue("safe_bitstream_reader", true);
+    fastToggleConfigValue("static", true);
+    fastToggleConfigValue("shared", true);
+    fastToggleConfigValue("swscale_alpha", true);
 
     // Enable hwaccels by default.
-    fastToggleConfigValue( "d3d11va", true );
-    fastToggleConfigValue( "dxva2", true );
+    fastToggleConfigValue("d3d11va", true);
+    fastToggleConfigValue("dxva2", true);
 
     //Enable x86 hardware architectures
-    fastToggleConfigValue( "x86", true );
-    fastToggleConfigValue( "i686", true );
-    fastToggleConfigValue( "fast_cmov", true );
-    fastToggleConfigValue( "x86_32", true );
-    fastToggleConfigValue( "x86_64", true );
+    fastToggleConfigValue("x86", true);
+    fastToggleConfigValue("i686", true);
+    fastToggleConfigValue("fast_cmov", true);
+    fastToggleConfigValue("x86_32", true);
+    fastToggleConfigValue("x86_64", true);
     //Enable x86 extensions
-    vList.resize( 0 );
-    if( !getConfigList( "ARCH_EXT_LIST_X86", vList ) )
-    {
+    vList.resize(0);
+    if (!getConfigList("ARCH_EXT_LIST_X86", vList)) {
         return false;
     }
-    vitValues = vList.begin( );
-    for( vitValues; vitValues < vList.end( ); vitValues++ )
-    {
-        fastToggleConfigValue( *vitValues, true );
+    vitValues = vList.begin();
+    for (vitValues; vitValues < vList.end(); vitValues++) {
+        fastToggleConfigValue(*vitValues, true);
         //Also enable _EXTERNAL and _INLINE
-        fastToggleConfigValue( *vitValues + "_EXTERNAL", true );
-        fastToggleConfigValue( *vitValues + "_INLINE", true );
+        fastToggleConfigValue(*vitValues + "_EXTERNAL", true);
+        fastToggleConfigValue(*vitValues + "_INLINE", true);
     }
 
     //Default we enable yasm
-    fastToggleConfigValue( "yasm", true );
+    fastToggleConfigValue("yasm", true);
 
     //msvc specific options
-    fastToggleConfigValue( "w32threads", true );
-    fastToggleConfigValue( "atomics_win32", true );
+    fastToggleConfigValue("w32threads", true);
+    fastToggleConfigValue("atomics_win32", true);
 
     //math functions
-    vList.resize( 0 );
-    if( !getConfigList( "MATH_FUNCS", vList ) )
-    {
+    vList.resize(0);
+    if (!getConfigList("MATH_FUNCS", vList)) {
         return false;
     }
-    vitValues = vList.begin( );
-    for( vitValues; vitValues < vList.end( ); vitValues++ )
-    {
-        fastToggleConfigValue( *vitValues, true );
+    vitValues = vList.begin();
+    for (vitValues; vitValues < vList.end(); vitValues++) {
+        fastToggleConfigValue(*vitValues, true);
     }
 
-    fastToggleConfigValue( "access", true );
-    fastToggleConfigValue( "aligned_malloc", true );
+    fastToggleConfigValue("access", true);
+    fastToggleConfigValue("aligned_malloc", true);
 
-    fastToggleConfigValue( "closesocket", true );
-    fastToggleConfigValue( "CommandLineToArgvW", true );
-    fastToggleConfigValue( "CoTaskMemFree", true );
-    fastToggleConfigValue( "cpunop", true );
-    fastToggleConfigValue( "CryptGenRandom", true );
-    fastToggleConfigValue( "direct_h", true );
-    fastToggleConfigValue( "d3d11_h", true );
-    fastToggleConfigValue( "dxva_h", true );
-    fastToggleConfigValue( "ebp_available", true );
-    fastToggleConfigValue( "ebx_available", true );
-    fastToggleConfigValue( "fast_clz", true );
-    fastToggleConfigValue( "flt_lim", true );
-    fastToggleConfigValue( "getaddrinfo", true );
-    fastToggleConfigValue( "getopt", false );
-    fastToggleConfigValue( "GetProcessAffinityMask", true );
-    fastToggleConfigValue( "GetProcessMemoryInfo", true );
-    fastToggleConfigValue( "GetProcessTimes", true );
-    fastToggleConfigValue( "GetSystemTimeAsFileTime", true );
-    fastToggleConfigValue( "io_h", true );
-    fastToggleConfigValue( "inline_asm_labels", true );
+    fastToggleConfigValue("closesocket", true);
+    fastToggleConfigValue("CommandLineToArgvW", true);
+    fastToggleConfigValue("CoTaskMemFree", true);
+    fastToggleConfigValue("cpunop", true);
+    fastToggleConfigValue("CryptGenRandom", true);
+    fastToggleConfigValue("direct_h", true);
+    fastToggleConfigValue("d3d11_h", true);
+    fastToggleConfigValue("dxva_h", true);
+    fastToggleConfigValue("ebp_available", true);
+    fastToggleConfigValue("ebx_available", true);
+    fastToggleConfigValue("fast_clz", true);
+    fastToggleConfigValue("flt_lim", true);
+    fastToggleConfigValue("getaddrinfo", true);
+    fastToggleConfigValue("getopt", false);
+    fastToggleConfigValue("GetProcessAffinityMask", true);
+    fastToggleConfigValue("GetProcessMemoryInfo", true);
+    fastToggleConfigValue("GetProcessTimes", true);
+    fastToggleConfigValue("GetSystemTimeAsFileTime", true);
+    fastToggleConfigValue("io_h", true);
+    fastToggleConfigValue("inline_asm_labels", true);
     //Additional options set for Intel compiler specific inline asm
-    fastToggleConfigValue( "inline_asm_nonlocal_labels", false );
-    fastToggleConfigValue( "inline_asm_direct_symbol_refs", false );
-    fastToggleConfigValue( "inline_asm_non_intel_mnemonic", false );
-    fastToggleConfigValue( "isatty", true );
-    fastToggleConfigValue( "kbhit", true );
-    fastToggleConfigValue( "libc_msvcrt", true );
-    fastToggleConfigValue( "local_aligned_32", true );
-    fastToggleConfigValue( "local_aligned_16", true );
-    fastToggleConfigValue( "local_aligned_8", true );
-    fastToggleConfigValue( "malloc_h", true );
-    fastToggleConfigValue( "MapViewOfFile", true );
-    fastToggleConfigValue( "MemoryBarrier", true );
-    fastToggleConfigValue( "mm_empty", true );
-    fastToggleConfigValue( "PeekNamedPipe", true );
-    fastToggleConfigValue( "rdtsc", true );
-    fastToggleConfigValue( "rsync_contimeout", true );
-    fastToggleConfigValue( "SetConsoleTextAttribute", true );
-    fastToggleConfigValue( "SetConsoleCtrlHandler", true );
-    fastToggleConfigValue( "setmode", true );
-    fastToggleConfigValue( "Sleep", true );
-    fastToggleConfigValue( "CONDITION_VARIABLE_Ptr", true );
-    fastToggleConfigValue( "socklen_t", true );
-    fastToggleConfigValue( "struct_addrinfo", true );
-    fastToggleConfigValue( "struct_group_source_req", true );
-    fastToggleConfigValue( "struct_ip_mreq_source", true );
-    fastToggleConfigValue( "struct_ipv6_mreq", true );
-    fastToggleConfigValue( "struct_pollfd", true );
-    fastToggleConfigValue( "struct_sockaddr_in6", true );
-    fastToggleConfigValue( "struct_sockaddr_storage", true );
-    fastToggleConfigValue( "unistd_h", true );
-    fastToggleConfigValue( "VirtualAlloc", true );
-    fastToggleConfigValue( "windows_h", true );
-    fastToggleConfigValue( "winsock2_h", true );
-    fastToggleConfigValue( "wglgetprocaddress", true );
+    fastToggleConfigValue("inline_asm_nonlocal_labels", false);
+    fastToggleConfigValue("inline_asm_direct_symbol_refs", false);
+    fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
+    fastToggleConfigValue("isatty", true);
+    fastToggleConfigValue("kbhit", true);
+    fastToggleConfigValue("libc_msvcrt", true);
+    fastToggleConfigValue("local_aligned_32", true);
+    fastToggleConfigValue("local_aligned_16", true);
+    fastToggleConfigValue("local_aligned_8", true);
+    fastToggleConfigValue("malloc_h", true);
+    fastToggleConfigValue("MapViewOfFile", true);
+    fastToggleConfigValue("MemoryBarrier", true);
+    fastToggleConfigValue("mm_empty", true);
+    fastToggleConfigValue("PeekNamedPipe", true);
+    fastToggleConfigValue("rdtsc", true);
+    fastToggleConfigValue("rsync_contimeout", true);
+    fastToggleConfigValue("SetConsoleTextAttribute", true);
+    fastToggleConfigValue("SetConsoleCtrlHandler", true);
+    fastToggleConfigValue("setmode", true);
+    fastToggleConfigValue("Sleep", true);
+    fastToggleConfigValue("CONDITION_VARIABLE_Ptr", true);
+    fastToggleConfigValue("socklen_t", true);
+    fastToggleConfigValue("struct_addrinfo", true);
+    fastToggleConfigValue("struct_group_source_req", true);
+    fastToggleConfigValue("struct_ip_mreq_source", true);
+    fastToggleConfigValue("struct_ipv6_mreq", true);
+    fastToggleConfigValue("struct_pollfd", true);
+    fastToggleConfigValue("struct_sockaddr_in6", true);
+    fastToggleConfigValue("struct_sockaddr_storage", true);
+    fastToggleConfigValue("unistd_h", true);
+    fastToggleConfigValue("VirtualAlloc", true);
+    fastToggleConfigValue("Audioclient_h", true);
+    fastToggleConfigValue("windows_h", true);
+    fastToggleConfigValue("winsock2_h", true);
+    fastToggleConfigValue("wglgetprocaddress", true);
 
-    fastToggleConfigValue( "dos_paths", true );
-    fastToggleConfigValue( "dxva2api_cobj", true );
-    fastToggleConfigValue( "dxva2_lib", true );
+    fastToggleConfigValue("dos_paths", true);
+    fastToggleConfigValue("dxva2api_cobj", true);
+    fastToggleConfigValue("dxva2_lib", true);
 
-    fastToggleConfigValue( "aligned_stack", true );
-    fastToggleConfigValue( "pragma_deprecated", true );
-    fastToggleConfigValue( "inline_asm", true );
-    fastToggleConfigValue( "frame_thread_encoder", true );
-    fastToggleConfigValue( "xmm_clobbers", true );
+    fastToggleConfigValue("aligned_stack", true);
+    fastToggleConfigValue("pragma_deprecated", true);
+    fastToggleConfigValue("inline_asm", true);
+    fastToggleConfigValue("frame_thread_encoder", true);
+    fastToggleConfigValue("xmm_clobbers", true);
 
-    fastToggleConfigValue( "xlib", false ); //enabled by default but is linux only so we force disable
-    fastToggleConfigValue( "qtkit", false );
-    fastToggleConfigValue( "avfoundation", false );
+    fastToggleConfigValue("xlib", false); //enabled by default but is linux only so we force disable
+    fastToggleConfigValue("qtkit", false);
+    fastToggleConfigValue("avfoundation", false);
 
     //Additional (must be explicitly disabled)
-    fastToggleConfigValue( "dct", true );
-    fastToggleConfigValue( "dwt", true );
-    fastToggleConfigValue( "error_resilience", true );
-    fastToggleConfigValue( "faan", true );
-    fastToggleConfigValue( "faandct", true );
-    fastToggleConfigValue( "faanidct", true );
-    fastToggleConfigValue( "fast_unaligned", true );
-    fastToggleConfigValue( "lsp", true );
-    fastToggleConfigValue( "lzo", true );
-    fastToggleConfigValue( "mdct", true );
-    fastToggleConfigValue( "network", true );
-    fastToggleConfigValue( "rdft", true );
-    fastToggleConfigValue( "fft", true );
-    fastToggleConfigValue( "pixelutils", true );
+    fastToggleConfigValue("dct", true);
+    fastToggleConfigValue("dwt", true);
+    fastToggleConfigValue("error_resilience", true);
+    fastToggleConfigValue("faan", true);
+    fastToggleConfigValue("faandct", true);
+    fastToggleConfigValue("faanidct", true);
+    fastToggleConfigValue("fast_unaligned", true);
+    fastToggleConfigValue("lsp", true);
+    fastToggleConfigValue("lzo", true);
+    fastToggleConfigValue("mdct", true);
+    fastToggleConfigValue("network", true);
+    fastToggleConfigValue("rdft", true);
+    fastToggleConfigValue("fft", true);
+    fastToggleConfigValue("pixelutils", true);
 
-    fastToggleConfigValue( "bzlib", true );
-    fastToggleConfigValue( "iconv", true );
-    fastToggleConfigValue( "lzma", true );
-    fastToggleConfigValue( "schannel", true);
-    fastToggleConfigValue( "sdl", true );
-    fastToggleConfigValue( "zlib", true );
+    fastToggleConfigValue("bzlib", true);
+    fastToggleConfigValue("iconv", true);
+    fastToggleConfigValue("lzma", true);
+    fastToggleConfigValue("schannel", true);
+    fastToggleConfigValue("sdl", true);
+    fastToggleConfigValue("zlib", true);
 
     return true;
 }
 
-void configGenerator::buildFixedValues( DefaultValuesList & mFixedValues )
+void configGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
 {
-    mFixedValues.clear( );
+    mFixedValues.clear();
     mFixedValues["$(c_escape $FFMPEG_CONFIGURATION)"] = "";
     mFixedValues["$(c_escape $LIBAV_CONFIGURATION)"] = "";
     mFixedValues["$(c_escape $license)"] = "lgpl";
@@ -238,9 +226,9 @@ void configGenerator::buildFixedValues( DefaultValuesList & mFixedValues )
     mFixedValues["$sws_max_filter_size"] = "256";
 }
 
-void configGenerator::buildReplaceValues( DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues )
+void configGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues)
 {
-    mReplaceValues.clear( );
+    mReplaceValues.clear();
     //Add to config.h only list
     mReplaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
 #   define CC_IDENT \"icl\"\n\
@@ -323,10 +311,9 @@ void configGenerator::buildReplaceValues( DefaultValuesList & mReplaceValues, De
 
     //Build replace values for all inline asm
     vector<string> vInlineList;
-    getConfigList( "ARCH_EXT_LIST", vInlineList );
-    for( vector<string>::iterator vitIt=vInlineList.begin(); vitIt<vInlineList.end(); vitIt++ )
-    {
-        transform( vitIt->begin(), vitIt->end(), vitIt->begin(), ::toupper);
+    getConfigList("ARCH_EXT_LIST", vInlineList);
+    for (vector<string>::iterator vitIt = vInlineList.begin(); vitIt < vInlineList.end(); vitIt++) {
+        transform(vitIt->begin(), vitIt->end(), vitIt->begin(), ::toupper);
         string sName = "HAVE_" + *vitIt + "_INLINE";
         mReplaceValues[sName] = "#define " + sName + " HAVE_INLINE_ASM";
     }
@@ -375,26 +362,26 @@ void configGenerator::buildReplaceValues( DefaultValuesList & mReplaceValues, De
 %endif";
 }
 
-void configGenerator::buildReservedValues( vector<string> & vReservedItems )
+void configGenerator::buildReservedValues(vector<string> & vReservedItems)
 {
     vReservedItems.resize(0);
     //The following are reserved values that are automatically handled and can not be set explicitly
-    vReservedItems.push_back( "x86_32" );
-    vReservedItems.push_back( "x86_64" );
-    vReservedItems.push_back( "xmm_clobbers" );
-    vReservedItems.push_back( "shared" );
-    vReservedItems.push_back( "static" );
-    vReservedItems.push_back( "aligned_stack" );
-    vReservedItems.push_back( "fast_64bit" );
-    vReservedItems.push_back( "mm_empty" );
-    vReservedItems.push_back( "ebp_available" );
-    vReservedItems.push_back( "ebx_available" );
-    vReservedItems.push_back( "debug" );
+    vReservedItems.push_back("x86_32");
+    vReservedItems.push_back("x86_64");
+    vReservedItems.push_back("xmm_clobbers");
+    vReservedItems.push_back("shared");
+    vReservedItems.push_back("static");
+    vReservedItems.push_back("aligned_stack");
+    vReservedItems.push_back("fast_64bit");
+    vReservedItems.push_back("mm_empty");
+    vReservedItems.push_back("ebp_available");
+    vReservedItems.push_back("ebx_available");
+    vReservedItems.push_back("debug");
 }
 
-void configGenerator::buildAdditionalDependencies( DependencyList & mAdditionalDependencies )
+void configGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
 {
-    mAdditionalDependencies.clear( );
+    mAdditionalDependencies.clear();
     mAdditionalDependencies["capCreateCaptureWindow"] = true;
     mAdditionalDependencies["CreateDIBSection"] = true;
     mAdditionalDependencies["dv1394"] = false;
@@ -420,7 +407,7 @@ void configGenerator::buildAdditionalDependencies( DependencyList & mAdditionalD
     mAdditionalDependencies["X11_extensions_XvMClib_h"] = false;
 }
 
-void configGenerator::buildOptimisedDisables( OptimisedConfigList & mOptimisedDisables )
+void configGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
 {
     //This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
@@ -428,7 +415,7 @@ void configGenerator::buildOptimisedDisables( OptimisedConfigList & mOptimisedDi
     //This may have issues should a user not want to disable these but currently there are static compilation errors
     //  that will occur as several of these overlapping decoder/encoders have similar named methods that cause link errors.
 
-    mOptimisedDisables.clear( );
+    mOptimisedDisables.clear();
     //From trac.ffmpeg.org/wiki/GuidelinesHighQualityAudio
     //Dolby Digital: ac3
     //Dolby Digital Plus: eac3
@@ -458,66 +445,53 @@ void configGenerator::buildOptimisedDisables( OptimisedConfigList & mOptimisedDi
     //mOptimisedDisables["LIBUTVIDEO_ENCODER"].push_back( "UTVIDEO_ENCODER" );//???
     //mOptimisedDisables["LIBWAVPACK_ENCODER"].push_back( "WAVPACK_ENCODER" );//???
 
-    mOptimisedDisables["LIBGSM_DECODER"].push_back( "GSM_DECODER" );//???
-    mOptimisedDisables["LIBGSM_MS_DECODER"].push_back( "GSM_MS_DECODER" );//???
-    mOptimisedDisables["LIBNUT_MUXER"].push_back( "NUT_MUXER" );
-    mOptimisedDisables["LIBNUT_DEMUXER"].push_back( "NUT_DEMUXER" );
-    mOptimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back( "AMRNB_DECODER" );//???
-    mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back( "AMRWB_DECODER" );//???
-    mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back( "JPEG2000_DECODER" );//???
-    mOptimisedDisables["LIBSCHROEDINGER_DECODER"].push_back( "DIRAC_DECODER" );
-    mOptimisedDisables["LIBSTAGEFRIGHT_H264_DECODER"].push_back( "H264_DECODER" );
-    mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back( "UTVIDEO_DECODER" );//???
-    mOptimisedDisables["VP8_DECODER"].push_back( "LIBVPX_VP8_DECODER" );//Inbuilt native decoder is apparently faster
-    mOptimisedDisables["VP9_DECODER"].push_back( "LIBVPX_VP9_DECODER" );
-    mOptimisedDisables["OPUS_DECODER"].push_back( "LIBOPUS_DECODER" );//??? Not sure which is better
+    mOptimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");//???
+    mOptimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");//???
+    mOptimisedDisables["LIBNUT_MUXER"].push_back("NUT_MUXER");
+    mOptimisedDisables["LIBNUT_DEMUXER"].push_back("NUT_DEMUXER");
+    mOptimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");//???
+    mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");//???
+    mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");//???
+    mOptimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
+    mOptimisedDisables["LIBSTAGEFRIGHT_H264_DECODER"].push_back("H264_DECODER");
+    mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");//???
+    mOptimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");//Inbuilt native decoder is apparently faster
+    mOptimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");
+    mOptimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");//??? Not sure which is better
 }
 
 #define CHECKFORCEDENABLES( Opt ) { if( getConfigOption( Opt ) != m_vConfigValues.end( ) ){ vForceEnable.push_back( Opt ); } }
 
-void configGenerator::buildForcedEnables( string sOptionLower, vector<string> & vForceEnable )
+void configGenerator::buildForcedEnables(string sOptionLower, vector<string> & vForceEnable)
 {
-    if( sOptionLower.compare( "fontconfig" ) == 0 )
-    {
-        CHECKFORCEDENABLES( "libfontconfig" );
-    }
-    else if( sOptionLower.compare( "dxva2" ) == 0 )
-    {
-        CHECKFORCEDENABLES( "dxva2_lib" );
-    }
-    else if( sOptionLower.compare( "libcdio" ) == 0 )
-    {
-        CHECKFORCEDENABLES( "cdio_paranoia_paranoia_h" );
-    }
-    else if( sOptionLower.compare( "libmfx" ) == 0 )
-    {
-        CHECKFORCEDENABLES( "qsv" );
-    }
-    else if( sOptionLower.compare( "dcadec" ) == 0 )
-    {
-        CHECKFORCEDENABLES( "struct_dcadec_exss_info_matrix_encoding" );
+    if (sOptionLower.compare("fontconfig") == 0) {
+        CHECKFORCEDENABLES("libfontconfig");
+    } else if (sOptionLower.compare("dxva2") == 0) {
+        CHECKFORCEDENABLES("dxva2_lib");
+    } else if (sOptionLower.compare("libcdio") == 0) {
+        CHECKFORCEDENABLES("cdio_paranoia_paranoia_h");
+    } else if (sOptionLower.compare("libmfx") == 0) {
+        CHECKFORCEDENABLES("qsv");
+    } else if (sOptionLower.compare("dcadec") == 0) {
+        CHECKFORCEDENABLES("struct_dcadec_exss_info_matrix_encoding");
     }
 }
 
-void configGenerator::buildForcedDisables( string sOptionLower, vector<string> & vForceDisable )
+void configGenerator::buildForcedDisables(string sOptionLower, vector<string> & vForceDisable)
 {
     // Currently disable values are exact opposite of the corresponding enable ones
-    buildForcedEnables( sOptionLower, vForceDisable );
+    buildForcedEnables(sOptionLower, vForceDisable);
 }
 
-void configGenerator::buildObjects( const string & sTag, vector<string> & vObjects )
+void configGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
 {
-    if( sTag.compare( "COMPAT_OBJS" ) == 0 )
-    {
-        vObjects.push_back( "msvcrt/snprintf" ); //msvc only provides _snprintf which does not conform to snprintf standard
-        vObjects.push_back( "strtod" ); //msvc contains a strtod but it does not handle NaN's correctly
-        vObjects.push_back( "getopt" );
-    }
-    else if( sTag.compare( "EMMS_OBJS__yes_" ) == 0 )
-    {
-        if( this->getConfigOption( "MMX_EXTERNAL" )->m_sValue.compare( "1" ) == 0 )
-        {
-            vObjects.push_back( "x86/emms" ); //yasm emms is not required in 32b but is for 64bit unless with icl
+    if (sTag.compare("COMPAT_OBJS") == 0) {
+        vObjects.push_back("msvcrt/snprintf"); //msvc only provides _snprintf which does not conform to snprintf standard
+        vObjects.push_back("strtod"); //msvc contains a strtod but it does not handle NaN's correctly
+        vObjects.push_back("getopt");
+    } else if (sTag.compare("EMMS_OBJS__yes_") == 0) {
+        if (this->getConfigOption("MMX_EXTERNAL")->m_sValue.compare("1") == 0) {
+            vObjects.push_back("x86/emms"); //yasm emms is not required in 32b but is for 64bit unless with icl
         }
     }
 }

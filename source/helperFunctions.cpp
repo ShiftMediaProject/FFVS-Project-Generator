@@ -29,12 +29,14 @@
 #include "Shlwapi.h"
 
 namespace project_generate {
-bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary)
+bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bool bOutError)
 {
     //Open the input file
     ifstream ifInputFile(sFileName, (bBinary) ? ios_base::in | ios_base::binary : ios_base::in);
     if (!ifInputFile.is_open()) {
-        cout << "  Error: Failed opening file (" << sFileName << ")" << endl;
+        if (bOutError) {
+            cout << "  Error: Failed opening file (" << sFileName << ")" << endl;
+        }
         return false;
     }
 
@@ -245,5 +247,4 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
     sRetPath.resize(strlen(sRetPath.c_str()));
     replace(sRetPath.begin(), sRetPath.end(), '\\', '/');
 }
-
 };
