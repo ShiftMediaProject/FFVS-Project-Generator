@@ -184,6 +184,7 @@ bool configGenerator::buildDefaultValues()
     fastToggleConfigValue("xlib", false); //enabled by default but is linux only so we force disable
     fastToggleConfigValue("qtkit", false);
     fastToggleConfigValue("avfoundation", false);
+    fastToggleConfigValue("mmal", false);
 
     //Additional (must be explicitly disabled)
     fastToggleConfigValue("dct", true);
