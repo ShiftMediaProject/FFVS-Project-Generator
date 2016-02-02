@@ -63,7 +63,7 @@ bool configGenerator::passConfigureFile()
     //Setup initial directories
     if (m_sRootDirectory.length() == 0) {
         //Search paths starting in current directory then checking parents
-        string sPathList[] = {"./", "../", "../../ffmpeg/", "../../libav/", "../../../"};
+        string sPathList[] = {"./", "../", "../../ffmpeg/", "../../libav/", "../../../", "../../"};
         uint uiPathCount = 0;
         uint uiNumPaths = sizeof(sPathList) / sizeof(string);
         for (uiPathCount; uiPathCount < uiNumPaths; uiPathCount++) {
@@ -529,7 +529,7 @@ bool configGenerator::outputConfig()
     }
 
     //Optimise the config values. Based on user input different encoders/decoder can be disabled as there are now better inbuilt alternatives
-    //  Must occur after above dependency check so that optimized defaults are not incorrectly turned off based on an input that would otherwiie be disabled
+    //  Must occur after above dependency check so that optimised defaults are not incorrectly turned off based on an input that would otherwise be disabled
     OptimisedConfigList mOptimisedDisables;
     buildOptimisedDisables(mOptimisedDisables);
     //Check everything that is disabled based on current configuration
@@ -546,7 +546,7 @@ bool configGenerator::outputConfig()
         }
     }
 
-    //It may be possible that the above optimzation pass disables some dependencies of other options.
+    //It may be possible that the above optimisation pass disables some dependencies of other options.
     // If this happens then a full recheck is performed
     if (bDisabledOpt) {
         vitOption = m_vConfigValues.begin();
