@@ -301,6 +301,12 @@ bool configGenerator::changeConfig(const string & stOption)
         if (m_sProjectDirectory.length() == 0) {
             m_sProjectDirectory = m_sRootDirectory + "SMP/";
         }
+        //Check if directory has trailing '/'
+        if ((m_sRootDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
+            m_sRootDirectory += '/';
+        }
+        //rootdir is passed before all other options are set up so must skip any other remaining steps
+        return true;
     } else if (stOption.find("--projdir") == 0) {
         //A output dir has been specified
         if (stOption.at(9) != '=') {
