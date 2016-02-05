@@ -454,7 +454,6 @@ void configGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDis
     mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");//???
     mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");//???
     mOptimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
-    mOptimisedDisables["LIBSTAGEFRIGHT_H264_DECODER"].push_back("H264_DECODER");
     mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");//???
     mOptimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");//Inbuilt native decoder is apparently faster
     mOptimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");

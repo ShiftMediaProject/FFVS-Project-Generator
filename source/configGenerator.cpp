@@ -542,12 +542,16 @@ bool configGenerator::outputConfig()
     OptimisedConfigList::iterator vitDisable = mOptimisedDisables.begin();
     bool bDisabledOpt = false;
     for (vitDisable; vitDisable != mOptimisedDisables.end(); vitDisable++) {
-        if (getConfigOption(vitDisable->first)->m_sValue.compare("1") == 0) {
-            //Disable unneeded items
-            vector<string>::iterator vitOptions = vitDisable->second.begin();
-            for (vitOptions; vitOptions < vitDisable->second.end(); vitOptions++) {
-                bDisabledOpt = true;
-                toggleConfigValue(*vitOptions, false);
+        //Check if optimised value is valid for current configuration
+        ValuesList::iterator vitDisableOpt = getConfigOption(vitDisable->first);
+        if (vitDisableOpt != m_vConfigValues.end()) {
+            if (vitDisableOpt->m_sValue.compare("1") == 0) {
+                //Disable unneeded items
+                vector<string>::iterator vitOptions = vitDisable->second.begin();
+                for (vitOptions; vitOptions < vitDisable->second.end(); vitOptions++) {
+                    bDisabledOpt = true;
+                    toggleConfigValue(*vitOptions, false);
+                }
             }
         }
     }
