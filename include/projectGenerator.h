@@ -30,7 +30,7 @@ class projectGenerator
 {
 private:
     typedef vector<string> StaticList;
-    typedef map<string,StaticList> UnknownList;
+    typedef map<string, StaticList> UnknownList;
     ifstream        m_ifInputFile;
     string          m_sInLine;
     StaticList      m_vIncludes;
@@ -43,7 +43,7 @@ private:
     UnknownList     m_mUnknowns;
     string          m_sProjectDir;
 
-    map<string,StaticList> m_mProjectLibs;
+    map<string, StaticList> m_mProjectLibs;
 
     configGenerator::DefaultValuesList m_ReplaceValues;
 
@@ -53,77 +53,77 @@ public:
 
     configGenerator m_ConfigHelper;
 
-    bool passAllMake( );
+    bool passAllMake();
 
     void deleteCreatedFiles();
 
 private:
 
-    bool outputProject( );
+    bool outputProject();
 
     bool outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile);
 
     bool outputSolution();
 
-    bool passStaticIncludeObject( uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes );
+    bool passStaticIncludeObject(uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes);
 
-    bool passStaticIncludeLine( uint uiStartPos, StaticList & vStaticIncludes );
+    bool passStaticIncludeLine(uint uiStartPos, StaticList & vStaticIncludes);
 
-    bool passStaticInclude( uint uiILength, StaticList & vStaticIncludes );
+    bool passStaticInclude(uint uiILength, StaticList & vStaticIncludes);
 
-    bool passDynamicIncludeObject( uint & uiStartPos, uint & uiEndPos, string & sIdent, StaticList & vIncludes );
+    bool passDynamicIncludeObject(uint & uiStartPos, uint & uiEndPos, string & sIdent, StaticList & vIncludes);
 
-    bool passDynamicIncludeLine( uint uiStartPos, string & sIdent, StaticList & vIncludes );
+    bool passDynamicIncludeLine(uint uiStartPos, string & sIdent, StaticList & vIncludes);
 
-    bool passDynamicInclude( uint uiILength, StaticList & vIncludes );
+    bool passDynamicInclude(uint uiILength, StaticList & vIncludes);
 
-    bool passCInclude( );
+    bool passCInclude();
 
-    bool passDCInclude( );
+    bool passDCInclude();
 
-    bool passYASMInclude( );
+    bool passYASMInclude();
 
-    bool passDYASMInclude( );
+    bool passDYASMInclude();
 
-    bool passMMXInclude( );
+    bool passMMXInclude();
 
-    bool passDMMXInclude( );
+    bool passDMMXInclude();
 
-    bool passHInclude( uint uiCutPos = 7 );
+    bool passHInclude(uint uiCutPos = 7);
 
-    bool passDHInclude( );
+    bool passDHInclude();
 
-    bool passLibInclude( );
+    bool passLibInclude();
 
-    bool passDLibInclude( );
+    bool passDLibInclude();
 
-    bool passDUnknown( );
+    bool passDUnknown();
 
-    bool passDLibUnknown( );
+    bool passDLibUnknown();
 
-    bool passMake( );
+    bool passMake();
 
     bool passProgramMake(const string& sProjectName);
 
-    bool findSourceFile( const string & sFile, const string & sExtension, string & sRetFileName );
+    bool findSourceFile(const string & sFile, const string & sExtension, string & sRetFileName);
 
-    bool findSourceFiles( const string & sFile, const string & sExtension, vector<string> & vRetFiles );
+    bool findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles);
 
     void makeFileProjectRelative(const string & sFileName, string & sRetFileName);
 
     void makeFileGeneratorRelative(const string & sFileName, string & sRetFileName);
 
-    void buildInterDependenciesHelper( const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs );
+    void buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs);
 
-    void buildInterDependencies( const string & sProjectName, StaticList & vLibs );
+    void buildInterDependencies(const string & sProjectName, StaticList & vLibs);
 
-    void buildDependencies( const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs );
+    void buildDependencies(const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs);
 
     void buildDependencyDirs(const string & sProjectName, StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs);
 
-    void buildProjectDependencies( const string & sProjectName, map<string,bool> & mProjectDeps );
+    void buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps);
 
-    void buildProjectGUIDs( map<string, string> & mKeys );
+    void buildProjectGUIDs(map<string, string> & mKeys);
 
     bool checkProjectFiles(const string& sProjectName);
 
@@ -147,7 +147,7 @@ private:
 
     void outputYASMTools(string & sProjectTemplate);
 
-    bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram=false);
+    bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
 };
 
 #endif

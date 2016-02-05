@@ -39,16 +39,18 @@ private:
         string m_sValue;
         bool m_bLock;
 
-        ConfigPair( const string & sOption, const string & sPrefix, const string & sValue ) :
-            m_sOption( sOption ),
-            m_sPrefix( sPrefix ),
-            m_sValue( sValue ),
-            m_bLock( false ) {}
+        ConfigPair(const string & sOption, const string & sPrefix, const string & sValue) :
+            m_sOption(sOption),
+            m_sPrefix(sPrefix),
+            m_sValue(sValue),
+            m_bLock(false)
+        {
+        }
     };
     typedef vector<ConfigPair> ValuesList;
-    typedef map<string,string> DefaultValuesList;
-    typedef map<string,bool> DependencyList;
-    typedef map<string,vector<string>> OptimisedConfigList;
+    typedef map<string, string> DefaultValuesList;
+    typedef map<string, bool> DependencyList;
+    typedef map<string, vector<string>> OptimisedConfigList;
 
     ValuesList m_vFixedConfigValues;
     ValuesList m_vConfigValues;
@@ -63,9 +65,8 @@ private:
 
     const string m_sWhiteSpace;
 
-
 public:
-    configGenerator( );
+    configGenerator();
 
     bool passConfig(int argc, char** argv);
 
@@ -78,45 +79,43 @@ private:
 
     bool changeConfig(const string & stOption);
 
-    void buildFixedValues( DefaultValuesList & mFixedValues );
+    void buildFixedValues(DefaultValuesList & mFixedValues);
 
-    void buildReplaceValues( DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues );
+    void buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues);
 
-    void buildReservedValues( vector<string> & vReservedItems );
+    void buildReservedValues(vector<string> & vReservedItems);
 
-    void buildAdditionalDependencies( DependencyList & mAdditionalDependencies );
+    void buildAdditionalDependencies(DependencyList & mAdditionalDependencies);
 
-    void buildOptimisedDisables( OptimisedConfigList & mOptimisedDisables );
+    void buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables);
 
-    void buildForcedEnables( string sOptionLower, vector<string> & vForceEnable );
+    void buildForcedEnables(string sOptionLower, vector<string> & vForceEnable);
 
-    void buildForcedDisables( string sOptionLower, vector<string> & vForceDisable );
+    void buildForcedDisables(string sOptionLower, vector<string> & vForceDisable);
 
-    void buildObjects( const string & sTag, vector<string> & vObjects );
+    void buildObjects(const string & sTag, vector<string> & vObjects);
 
+    bool getConfigList(const string & sList, vector<string> & vReturn, bool bForce = true, uint uiCurrentFilePos = string::npos);
 
+    bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn);
 
-    bool getConfigList( const string & sList, vector<string> & vReturn, bool bForce=true, uint uiCurrentFilePos=string::npos );
+    bool passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos = string::npos);
 
-    bool passFindThings( const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn );
+    bool passFilterOut(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos);
 
-    bool passAddSuffix( const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos=string::npos );
+    bool passConfigList(const string & sPrefix, const string & sSuffix, const string & sList);
 
-    bool passFilterOut( const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos );
+    bool buildDefaultValues();
 
-    bool passConfigList( const string & sPrefix, const string & sSuffix, const string & sList );
+    bool fastToggleConfigValue(const string & sOption, bool bEnable);
 
-    bool buildDefaultValues( );
+    bool toggleConfigValue(const string & sOption, bool bEnable, bool bRecursive = false);
 
-    bool fastToggleConfigValue( const string & sOption, bool bEnable );
+    ValuesList::iterator getConfigOption(const string & sOption);
 
-    bool toggleConfigValue( const string & sOption, bool bEnable, bool bRecursive=false );
+    ValuesList::iterator getConfigOptionPrefixed(const string & sOption);
 
-    ValuesList::iterator getConfigOption( const string & sOption );
-
-    ValuesList::iterator getConfigOptionPrefixed( const string & sOption );
-
-    bool passDependencyCheck( const ValuesList::iterator vitOption );
+    bool passDependencyCheck(const ValuesList::iterator vitOption);
 };
 
 #endif

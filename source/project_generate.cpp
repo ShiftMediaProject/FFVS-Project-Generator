@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-int main( int argc, char** argv )
+int main(int argc, char** argv)
 {
     cout << "Project generator..." << endl;
     //Pass the input configuration
@@ -38,17 +38,15 @@ int main( int argc, char** argv )
     ProjectHelper.deleteCreatedFiles();
 
     //Output config.h and avutil.h
-    if( !ProjectHelper.m_ConfigHelper.outputConfig( ) )
-    {
+    if (!ProjectHelper.m_ConfigHelper.outputConfig()) {
         system("pause");
-        exit( 1 );
+        exit(1);
     }
 
     //Generate desired configuration files
-    if( !ProjectHelper.passAllMake( ) )
-    {
+    if (!ProjectHelper.passAllMake()) {
         system("pause");
-        exit( 1 );
+        exit(1);
     }
     cout << "Completed Successfully" << endl;
 #if _DEBUG
