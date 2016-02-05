@@ -47,6 +47,8 @@ private:
 
     configGenerator::DefaultValuesList m_ReplaceValues;
 
+    string m_sTemplateDirectory;
+
 public:
 
     configGenerator m_ConfigHelper;

@@ -26,13 +26,19 @@
 bool projectGenerator::passAllMake( )
 {
     //Copy the required header files to output directory
-    bool bCopy = copyFile("../templates/compat.h", m_ConfigHelper.m_sProjectDirectory + "compat.h");
-    bCopy &= copyFile("../templates/math.h", m_ConfigHelper.m_sProjectDirectory + "math.h");
-    bCopy &= copyFile("../templates/unistd.h", m_ConfigHelper.m_sProjectDirectory + "unistd.h");
+    m_sTemplateDirectory = "../";
+    bool bCopy = copyFile(m_sTemplateDirectory + "templates/compat.h", m_ConfigHelper.m_sProjectDirectory + "compat.h");
+    if (!bCopy) {
+        //Try in current directory instead
+        m_sTemplateDirectory = "./";
+        bCopy = copyFile(m_sTemplateDirectory + "templates/compat.h", m_ConfigHelper.m_sProjectDirectory + "compat.h");
+    }
+    bCopy &= copyFile(m_sTemplateDirectory + "templates/math.h", m_ConfigHelper.m_sProjectDirectory + "math.h");
+    bCopy &= copyFile(m_sTemplateDirectory + "templates/unistd.h", m_ConfigHelper.m_sProjectDirectory + "unistd.h");
     if (!bCopy) {
         cout << "Error: Missing required template files. Try re-downloading required files." << endl;
+        return false;
     }
-
     //Initialise internal values
     configGenerator::DefaultValuesList Unneeded;
     m_ConfigHelper.buildReplaceValues(m_ReplaceValues, Unneeded);
@@ -130,11 +136,15 @@ bool projectGenerator::outputProject()
 
     //Open the input temp project file
     string sProjectFile;
-    loadFromFile("../templates/template_in.vcxproj", sProjectFile);
+    if (!loadFromFile(m_sTemplateDirectory + "templates/template_in.vcxproj", sProjectFile)) {
+        return false;
+    }
 
     //Open the input temp project file filters
     string sFiltersFile;
-    loadFromFile("../templates/template_in.vcxproj.filters", sFiltersFile);
+    if (!loadFromFile(m_sTemplateDirectory + "templates/template_in.vcxproj.filters", sFiltersFile)) {
+        return false;
+    }
 
     //Replace all template tag arguments
     outputTemplateTags(sProjectName, sProjectFile, sFiltersFile);
@@ -190,11 +200,15 @@ bool projectGenerator::outputProgramProject(const string& sProjectName, const st
 {
     //Open the template program
     string sProgramFile;
-    loadFromFile("../templates/templateprogram_in.vcxproj", sProgramFile);
+    if (!loadFromFile(m_sTemplateDirectory + "templates/templateprogram_in.vcxproj", sProgramFile)) {
+        return false;
+    }
 
     //Open the template program filters
     string sProgramFiltersFile;
-    loadFromFile("../templates/templateprogram_in.vcxproj.filters", sProgramFiltersFile);
+    if (!loadFromFile(m_sTemplateDirectory + "templates/templateprogram_in.vcxproj.filters", sProgramFiltersFile)) {
+        return false;
+    }
 
     //Replace all template tag arguments
     outputTemplateTags(sProjectName, sProgramFile, sProgramFiltersFile);
@@ -261,7 +275,9 @@ bool projectGenerator::outputSolution()
     m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
     //Open the input temp project file
     string sSolutionFile;
-    loadFromFile("../templates/template_in.sln", sSolutionFile);
+    if(!loadFromFile(m_sTemplateDirectory + "templates/template_in.sln", sSolutionFile)) {
+        return false;
+    }
 
     map<string, string> mKeys;
     buildProjectGUIDs(mKeys);
