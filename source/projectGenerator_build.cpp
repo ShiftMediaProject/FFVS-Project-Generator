@@ -190,8 +190,9 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
 
     //Loop through each known configuration option and add the required dependencies
     for (map<string, bool>::iterator mitLib = mProjectDeps.begin(); mitLib != mProjectDeps.end(); mitLib++) {
-        //Check if enabled
-        if (mitLib->second && m_ConfigHelper.getConfigOption(mitLib->first)->m_sValue.compare("1") == 0) {
+        //Check if enabled//Check if optimised value is valid for current configuration
+        configGenerator::ValuesList::iterator vitProjectDep = m_ConfigHelper.getConfigOption(mitLib->first);
+        if (mitLib->second && (vitProjectDep != m_ConfigHelper.m_vConfigValues.end()) && (vitProjectDep->m_sValue.compare("1") == 0)) {
             //Add in the additional include directories
             if (mitLib->first.compare("libopus") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/opus");
