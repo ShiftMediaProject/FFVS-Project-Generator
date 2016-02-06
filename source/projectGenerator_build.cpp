@@ -23,11 +23,11 @@
 #include <iostream>
 #include <Windows.h>
 
-void projectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
+void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
 {
     bool bFound = false;
     for (StaticList::const_iterator itI = vConfigOptions.begin(); itI < vConfigOptions.end(); itI++) {
-        configGenerator::ValuesList::iterator itConfOpt = m_ConfigHelper.getConfigOption(*itI);
+        ConfigGenerator::ValuesList::iterator itConfOpt = m_ConfigHelper.getConfigOption(*itI);
         bFound = ((itConfOpt != m_ConfigHelper.m_vConfigValues.end()) && (m_ConfigHelper.getConfigOption(*itI)->m_sValue.compare("1") == 0));
         if (!bFound) {
             break;
@@ -42,7 +42,7 @@ void projectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOp
         }
     }
 }
-void projectGenerator::buildInterDependencies(const string & sProjectName, StaticList & vLibs)
+void ProjectGenerator::buildInterDependencies(const string & sProjectName, StaticList & vLibs)
 {
     //Get the lib dependencies from the configure file
     string sLibName = sProjectName.substr(3) + "_deps";
@@ -88,7 +88,7 @@ void projectGenerator::buildInterDependencies(const string & sProjectName, Stati
     }
 }
 
-void projectGenerator::buildDependencies(const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs)
+void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs)
 {
     //Add any forced dependencies
     if (sProjectName.compare("libavformat") == 0) {
@@ -184,7 +184,7 @@ void projectGenerator::buildDependencies(const string & sProjectName, StaticList
     }
 }
 
-void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs)
+void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs)
 {
     //Determine only those dependencies that are valid for current project
     map<string, bool> mProjectDeps;
@@ -193,7 +193,7 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
     //Loop through each known configuration option and add the required dependencies
     for (map<string, bool>::iterator mitLib = mProjectDeps.begin(); mitLib != mProjectDeps.end(); mitLib++) {
         //Check if enabled//Check if optimised value is valid for current configuration
-        configGenerator::ValuesList::iterator vitProjectDep = m_ConfigHelper.getConfigOption(mitLib->first);
+        ConfigGenerator::ValuesList::iterator vitProjectDep = m_ConfigHelper.getConfigOption(mitLib->first);
         if (mitLib->second && (vitProjectDep != m_ConfigHelper.m_vConfigValues.end()) && (vitProjectDep->m_sValue.compare("1") == 0)) {
             //Add in the additional include directories
             if (mitLib->first.compare("libopus") == 0) {
@@ -247,7 +247,7 @@ void projectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
     }
 }
 
-void projectGenerator::buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps)
+void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps)
 {
     mProjectDeps["avisynth"] = false; //no dependencies ever needed
     mProjectDeps["bzlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
@@ -334,7 +334,7 @@ void projectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["zlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
 }
 
-void projectGenerator::buildProjectGUIDs(map<string, string> & mKeys)
+void ProjectGenerator::buildProjectGUIDs(map<string, string> & mKeys)
 {
     mKeys["libavcodec"] = "B4824EFF-C340-425D-A4A8-E2E02A71A7AE";
     mKeys["libavdevice"] = "6E165FA4-44EB-4330-8394-9F0D76D8E03E";

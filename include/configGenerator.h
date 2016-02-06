@@ -25,14 +25,14 @@
 #include <map>
 #include <vector>
 
-class configGenerator
+class ConfigGenerator
 {
-    friend class projectGenerator;
+    friend class ProjectGenerator;
 private:
     class ConfigPair
     {
-        friend class configGenerator;
-        friend class projectGenerator;
+        friend class ConfigGenerator;
+        friend class ProjectGenerator;
     private:
         string m_sOption;
         string m_sPrefix;
@@ -66,7 +66,7 @@ private:
     const string m_sWhiteSpace;
 
 public:
-    configGenerator();
+    ConfigGenerator();
 
     bool passConfig(int argc, char** argv);
 

@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 {
     cout << "Project generator..." << endl;
     //Pass the input configuration
-    projectGenerator ProjectHelper;
+    ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
         system("pause");
         exit(1);

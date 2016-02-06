@@ -24,7 +24,7 @@
 #include <fstream>
 #include <algorithm>
 
-configGenerator::configGenerator() :
+ConfigGenerator::ConfigGenerator() :
     m_sWhiteSpace(" \t\n\0"),
     m_sToolchain("msvc"),
     m_bLibav(false),
@@ -32,7 +32,7 @@ configGenerator::configGenerator() :
 {
 }
 
-bool configGenerator::passConfig(int argc, char** argv)
+bool ConfigGenerator::passConfig(int argc, char** argv)
 {
     //Check for initial input arguments
     for (int i = 1; i < argc; i++) {
@@ -55,7 +55,7 @@ bool configGenerator::passConfig(int argc, char** argv)
     return true;
 }
 
-bool configGenerator::passConfigureFile()
+bool ConfigGenerator::passConfigureFile()
 {
     //Generate a new config file by scanning existing build chain files
     cout << "  Passing configure file..." << endl;
@@ -224,7 +224,7 @@ bool configGenerator::passConfigureFile()
     return buildDefaultValues();
 }
 
-bool configGenerator::changeConfig(const string & stOption)
+bool ConfigGenerator::changeConfig(const string & stOption)
 {
     if (stOption.compare("--help") == 0) {
         uint uiStart = m_sConfigureFile.find("show_help(){");
@@ -514,7 +514,7 @@ bool configGenerator::changeConfig(const string & stOption)
     return true;
 }
 
-bool configGenerator::outputConfig()
+bool ConfigGenerator::outputConfig()
 {
     cout << "  Outputting config.h..." << endl;
     //Correct license variables
@@ -723,7 +723,7 @@ bool configGenerator::outputConfig()
     return true;
 }
 
-void configGenerator::deleteCreatedFiles()
+void ConfigGenerator::deleteCreatedFiles()
 {
     //Delete any previously generated files
     vector<string> vExistingFiles;
@@ -739,7 +739,7 @@ void configGenerator::deleteCreatedFiles()
     }
 }
 
-bool configGenerator::getConfigList(const string & sList, vector<string> & vReturn, bool bForce, uint uiCurrentFilePos)
+bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vReturn, bool bForce, uint uiCurrentFilePos)
 {
     //Find List name in file (searches backwards so that it finds the closest definition to where we currently are)
     //   This is in case a list is redefined
@@ -857,7 +857,7 @@ bool configGenerator::getConfigList(const string & sList, vector<string> & vRetu
     return true;
 }
 
-bool configGenerator::passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn)
+bool ConfigGenerator::passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn)
 {
     //Need to find and open the specified file
     string sFile = m_sRootDirectory + sParam3;
@@ -927,7 +927,7 @@ bool configGenerator::passFindThings(const string & sParam1, const string & sPar
     return true;
 }
 
-bool configGenerator::passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos)
+bool ConfigGenerator::passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos)
 {
     //Convert the first parameter to upper case
     string sParam1Upper = sParam1;
@@ -947,7 +947,7 @@ bool configGenerator::passAddSuffix(const string & sParam1, const string & sPara
     return false;
 }
 
-bool configGenerator::passFilterOut(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos)
+bool ConfigGenerator::passFilterOut(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos)
 {
     //Remove the "'" from the front and back of first parameter
     string sParam1Cut = sParam1.substr(1, sParam1.length() - 2);
@@ -968,7 +968,7 @@ bool configGenerator::passFilterOut(const string & sParam1, const string & sPara
     return false;
 }
 
-bool configGenerator::passConfigList(const string & sPrefix, const string & sSuffix, const string & sList)
+bool ConfigGenerator::passConfigList(const string & sPrefix, const string & sSuffix, const string & sList)
 {
     vector<string> vList;
     if (getConfigList(sList, vList)) {
@@ -986,7 +986,7 @@ bool configGenerator::passConfigList(const string & sPrefix, const string & sSuf
     return false;
 }
 
-bool configGenerator::fastToggleConfigValue(const string & sOption, bool bEnable)
+bool ConfigGenerator::fastToggleConfigValue(const string & sOption, bool bEnable)
 {
     //Simply find the element in the list and change its setting
     string sOptionUpper = sOption; //Ensure it is in upper case
@@ -1004,7 +1004,7 @@ bool configGenerator::fastToggleConfigValue(const string & sOption, bool bEnable
     return bRet;
 }
 
-bool configGenerator::toggleConfigValue(const string & sOption, bool bEnable, bool bRecursive)
+bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bool bRecursive)
 {
     string sOptionUpper = sOption; //Ensure it is in upper case
     transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
@@ -1087,7 +1087,7 @@ bool configGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
     return true;
 }
 
-configGenerator::ValuesList::iterator configGenerator::getConfigOption(const string & sOption)
+ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOption(const string & sOption)
 {
     //Ensure it is in upper case
     string sOptionUpper = sOption;
@@ -1102,7 +1102,7 @@ configGenerator::ValuesList::iterator configGenerator::getConfigOption(const str
     return vitValues;
 }
 
-configGenerator::ValuesList::iterator configGenerator::getConfigOptionPrefixed(const string & sOption)
+ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(const string & sOption)
 {
     //Ensure it is in upper case
     string sOptionUpper = sOption;
@@ -1117,7 +1117,7 @@ configGenerator::ValuesList::iterator configGenerator::getConfigOptionPrefixed(c
     return vitValues;
 }
 
-bool configGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
+bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
 {
     //Need to convert the name to lower case
     string sOptionLower = vitOption->m_sOption;

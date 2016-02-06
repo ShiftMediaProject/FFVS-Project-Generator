@@ -22,7 +22,7 @@
 
 #include <algorithm>
 
-bool configGenerator::buildDefaultValues()
+bool ConfigGenerator::buildDefaultValues()
 {
     // configurable options
     vector<string> vList;
@@ -212,7 +212,7 @@ bool configGenerator::buildDefaultValues()
     return true;
 }
 
-void configGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
+void ConfigGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
 {
     mFixedValues.clear();
     mFixedValues["$(c_escape $FFMPEG_CONFIGURATION)"] = "";
@@ -227,7 +227,7 @@ void configGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
     mFixedValues["$sws_max_filter_size"] = "256";
 }
 
-void configGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues)
+void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues)
 {
     mReplaceValues.clear();
     //Add to config.h only list
@@ -363,7 +363,7 @@ void configGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 %endif";
 }
 
-void configGenerator::buildReservedValues(vector<string> & vReservedItems)
+void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
 {
     vReservedItems.resize(0);
     //The following are reserved values that are automatically handled and can not be set explicitly
@@ -380,7 +380,7 @@ void configGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("debug");
 }
 
-void configGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
+void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
 {
     mAdditionalDependencies.clear();
     mAdditionalDependencies["capCreateCaptureWindow"] = true;
@@ -408,7 +408,7 @@ void configGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["X11_extensions_XvMClib_h"] = false;
 }
 
-void configGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
+void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
 {
     //This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
@@ -462,7 +462,7 @@ void configGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDis
 
 #define CHECKFORCEDENABLES( Opt ) { if( getConfigOption( Opt ) != m_vConfigValues.end( ) ){ vForceEnable.push_back( Opt ); } }
 
-void configGenerator::buildForcedEnables(string sOptionLower, vector<string> & vForceEnable)
+void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & vForceEnable)
 {
     if (sOptionLower.compare("fontconfig") == 0) {
         CHECKFORCEDENABLES("libfontconfig");
@@ -477,13 +477,13 @@ void configGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
     }
 }
 
-void configGenerator::buildForcedDisables(string sOptionLower, vector<string> & vForceDisable)
+void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string> & vForceDisable)
 {
     // Currently disable values are exact opposite of the corresponding enable ones
     buildForcedEnables(sOptionLower, vForceDisable);
 }
 
-void configGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
+void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
 {
     if (sTag.compare("COMPAT_OBJS") == 0) {
         vObjects.push_back("msvcrt/snprintf"); //msvc only provides _snprintf which does not conform to snprintf standard

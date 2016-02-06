@@ -26,7 +26,7 @@
 #include <fstream>
 #include <set>
 
-class projectGenerator
+class ProjectGenerator
 {
 private:
     typedef vector<string> StaticList;
@@ -45,13 +45,13 @@ private:
 
     map<string, StaticList> m_mProjectLibs;
 
-    configGenerator::DefaultValuesList m_ReplaceValues;
+    ConfigGenerator::DefaultValuesList m_ReplaceValues;
 
     string m_sTemplateDirectory;
 
 public:
 
-    configGenerator m_ConfigHelper;
+    ConfigGenerator m_ConfigHelper;
 
     bool passAllMake();
 

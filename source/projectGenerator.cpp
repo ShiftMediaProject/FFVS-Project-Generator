@@ -23,7 +23,7 @@
 #include <iostream>
 #include <algorithm>
 
-bool projectGenerator::passAllMake()
+bool ProjectGenerator::passAllMake()
 {
     //Copy the required header files to output directory
     m_sTemplateDirectory = "../";
@@ -40,7 +40,7 @@ bool projectGenerator::passAllMake()
         return false;
     }
     //Initialise internal values
-    configGenerator::DefaultValuesList Unneeded;
+    ConfigGenerator::DefaultValuesList Unneeded;
     m_ConfigHelper.buildReplaceValues(m_ReplaceValues, Unneeded);
 
     //Loop through each library make file
@@ -92,7 +92,7 @@ bool projectGenerator::passAllMake()
     return outputSolution();
 }
 
-void projectGenerator::deleteCreatedFiles()
+void ProjectGenerator::deleteCreatedFiles()
 {
     //Delete any previously generated files
     vector<string> vExistingFiles;
@@ -114,7 +114,7 @@ void projectGenerator::deleteCreatedFiles()
     }
 }
 
-bool projectGenerator::outputProject()
+bool ProjectGenerator::outputProject()
 {
     //Output the generated files
     uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2) + 1;
@@ -189,7 +189,7 @@ bool projectGenerator::outputProject()
     return true;
 }
 
-bool projectGenerator::outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile)
+bool ProjectGenerator::outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile)
 {
     //Open the template program
     string sProgramFile;
@@ -262,7 +262,7 @@ bool projectGenerator::outputProgramProject(const string& sProjectName, const st
     return true;
 }
 
-bool projectGenerator::outputSolution()
+bool ProjectGenerator::outputSolution()
 {
     cout << "  Generating solution file..." << endl;
     m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
@@ -515,7 +515,7 @@ bool projectGenerator::outputSolution()
     return true;
 }
 
-bool projectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes)
+bool ProjectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes)
 {
     //Add the found string to internal storage
     uiEndPos = m_sInLine.find_first_of(". \t", uiStartPos);
@@ -561,7 +561,7 @@ bool projectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPo
     return true;
 }
 
-bool projectGenerator::passStaticIncludeLine(uint uiStartPos, StaticList & vStaticIncludes)
+bool ProjectGenerator::passStaticIncludeLine(uint uiStartPos, StaticList & vStaticIncludes)
 {
     uint uiEndPos;
     if (!passStaticIncludeObject(uiStartPos, uiEndPos, vStaticIncludes)) {
@@ -581,7 +581,7 @@ bool projectGenerator::passStaticIncludeLine(uint uiStartPos, StaticList & vStat
     return true;
 }
 
-bool projectGenerator::passStaticInclude(uint uiILength, StaticList & vStaticIncludes)
+bool ProjectGenerator::passStaticInclude(uint uiILength, StaticList & vStaticIncludes)
 {
     //Remove the identifier and '='
     uint uiStartPos = m_sInLine.find_first_not_of(" +=:", uiILength);
@@ -604,7 +604,7 @@ bool projectGenerator::passStaticInclude(uint uiILength, StaticList & vStaticInc
     return true;
 }
 
-bool projectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndPos, string & sIdent, StaticList & vIncludes)
+bool ProjectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndPos, string & sIdent, StaticList & vIncludes)
 {
     //Check if this is A valid File or a past compile option
     if (m_sInLine.at(uiStartPos) == '$') {
@@ -618,7 +618,7 @@ bool projectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
                 //Check if object already included in internal list
                 if (find(vIncludes.begin(), vIncludes.end(), *vitObject) == vIncludes.end()) {
                     //Check if the config option is correct
-                    configGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
+                    ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
                     if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
                         cout << "  Warning: Unknown dynamic configuration option (" << sIdent << ") used when passing object (" << *vitObject << ")" << endl;
                         return true;
@@ -650,7 +650,7 @@ bool projectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
         //Check if object already included in internal list
         if (find(vIncludes.begin(), vIncludes.end(), sTag) == vIncludes.end()) {
             //Check if the config option is correct
-            configGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
+            ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
             if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
                 cout << "  Warning: Unknown dynamic configuration option (" << sIdent << ") used when passing object (" << sTag << ")" << endl;
                 return true;
@@ -670,7 +670,7 @@ bool projectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
     return true;
 }
 
-bool projectGenerator::passDynamicIncludeLine(uint uiStartPos, string & sIdent, StaticList & vIncludes)
+bool ProjectGenerator::passDynamicIncludeLine(uint uiStartPos, string & sIdent, StaticList & vIncludes)
 {
     uint uiEndPos;
     if (!passDynamicIncludeObject(uiStartPos, uiEndPos, sIdent, vIncludes)) {
@@ -690,7 +690,7 @@ bool projectGenerator::passDynamicIncludeLine(uint uiStartPos, string & sIdent, 
     return true;
 }
 
-bool projectGenerator::passDynamicInclude(uint uiILength, StaticList & vIncludes)
+bool ProjectGenerator::passDynamicInclude(uint uiILength, StaticList & vIncludes)
 {
     //Find the dynamic identifier
     uint uiStartPos = m_sInLine.find_first_not_of("$( \t", uiILength);
@@ -717,17 +717,17 @@ bool projectGenerator::passDynamicInclude(uint uiILength, StaticList & vIncludes
     return true;
 }
 
-bool projectGenerator::passCInclude()
+bool ProjectGenerator::passCInclude()
 {
     return passStaticInclude(4, m_vIncludes);
 }
 
-bool projectGenerator::passDCInclude()
+bool ProjectGenerator::passDCInclude()
 {
     return passDynamicInclude(5, m_vIncludes);
 }
 
-bool projectGenerator::passYASMInclude()
+bool ProjectGenerator::passYASMInclude()
 {
     //Check if supported option
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
@@ -736,7 +736,7 @@ bool projectGenerator::passYASMInclude()
     return true;
 }
 
-bool projectGenerator::passDYASMInclude()
+bool ProjectGenerator::passDYASMInclude()
 {
     //Check if supported option
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
@@ -745,7 +745,7 @@ bool projectGenerator::passDYASMInclude()
     return true;
 }
 
-bool projectGenerator::passMMXInclude()
+bool ProjectGenerator::passMMXInclude()
 {
     //Check if supported option
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_sValue.compare("1") == 0) {
@@ -754,7 +754,7 @@ bool projectGenerator::passMMXInclude()
     return true;
 }
 
-bool projectGenerator::passDMMXInclude()
+bool ProjectGenerator::passDMMXInclude()
 {
     //Check if supported option
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_sValue.compare("1") == 0) {
@@ -763,27 +763,27 @@ bool projectGenerator::passDMMXInclude()
     return true;
 }
 
-bool projectGenerator::passHInclude(uint uiCutPos)
+bool ProjectGenerator::passHInclude(uint uiCutPos)
 {
     return passStaticInclude(uiCutPos, m_vHIncludes);
 }
 
-bool projectGenerator::passDHInclude()
+bool ProjectGenerator::passDHInclude()
 {
     return passDynamicInclude(8, m_vHIncludes);
 }
 
-bool projectGenerator::passLibInclude()
+bool ProjectGenerator::passLibInclude()
 {
     return passStaticInclude(6, m_vLibs);
 }
 
-bool projectGenerator::passDLibInclude()
+bool ProjectGenerator::passDLibInclude()
 {
     return passDynamicInclude(7, m_vLibs);
 }
 
-bool projectGenerator::passDUnknown()
+bool ProjectGenerator::passDUnknown()
 {
     //Find the dynamic identifier
     uint uiStartPos = m_sInLine.find("$(");
@@ -812,7 +812,7 @@ bool projectGenerator::passDUnknown()
     return true;
 }
 
-bool projectGenerator::passDLibUnknown()
+bool ProjectGenerator::passDLibUnknown()
 {
     //Find the dynamic identifier
     uint uiStartPos = m_sInLine.find("$(");
@@ -841,7 +841,7 @@ bool projectGenerator::passDLibUnknown()
     return true;
 }
 
-bool projectGenerator::passMake()
+bool ProjectGenerator::passMake()
 {
     cout << "  Generating from Makefile (" << m_sProjectDir << ")..." << endl;
     //Open the input Makefile
@@ -953,7 +953,7 @@ bool projectGenerator::passMake()
     return false;
 }
 
-bool projectGenerator::passProgramMake(const string & sProjectName)
+bool ProjectGenerator::passProgramMake(const string & sProjectName)
 {
     cout << "  Generating from Makefile (" << m_sProjectDir << ") for project " << sProjectName << "..." << endl;
     //Open the input Makefile
@@ -1023,7 +1023,7 @@ bool projectGenerator::passProgramMake(const string & sProjectName)
     return false;
 }
 
-bool projectGenerator::findSourceFile(const string & sFile, const string & sExtension, string & sRetFileName)
+bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExtension, string & sRetFileName)
 {
     string sFileName;
     sRetFileName = m_sProjectDir + sFile + sExtension;
@@ -1037,13 +1037,13 @@ bool projectGenerator::findSourceFile(const string & sFile, const string & sExte
     return true;
 }
 
-bool projectGenerator::findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles)
+bool ProjectGenerator::findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles)
 {
     string sFileName = m_sProjectDir + sFile + sExtension;
     return findFiles(sFileName, vRetFiles);
 }
 
-void projectGenerator::makeFileProjectRelative(const string & sFileName, string & sRetFileName)
+void ProjectGenerator::makeFileProjectRelative(const string & sFileName, string & sRetFileName)
 {
     string sPath;
     string sFile = sFileName;
@@ -1061,7 +1061,7 @@ void projectGenerator::makeFileProjectRelative(const string & sFileName, string 
     sRetFileName += sFile;
 }
 
-void projectGenerator::makeFileGeneratorRelative(const string & sFileName, string & sRetFileName)
+void ProjectGenerator::makeFileGeneratorRelative(const string & sFileName, string & sRetFileName)
 {
     string sPath;
     string sFile = sFileName;
@@ -1079,7 +1079,7 @@ void projectGenerator::makeFileGeneratorRelative(const string & sFileName, strin
     sRetFileName += sFile;
 }
 
-bool projectGenerator::checkProjectFiles(const string& sProjectName)
+bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
 {
     //Check that all headers are correct
     for (StaticList::iterator itIt = m_vHIncludes.begin(); itIt != m_vHIncludes.end(); itIt++) {
@@ -1153,7 +1153,7 @@ bool projectGenerator::checkProjectFiles(const string& sProjectName)
     return true;
 }
 
-bool projectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes, const string& sProjectName)
+bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes, const string& sProjectName)
 {
     for (StaticList::const_iterator itIt = vReplaceIncludes.cbegin(); itIt != vReplaceIncludes.cend(); itIt++) {
         //Check hasnt already been included as a fixed object
@@ -1199,7 +1199,7 @@ bool projectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
     return true;
 }
 
-bool projectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes, StaticList& vASMIncludes, StaticList& vHIncludes)
+bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes, StaticList& vASMIncludes, StaticList& vHIncludes)
 {
     for (StaticList::const_iterator itIt = vIncludes.cbegin(); itIt != vIncludes.cend(); itIt++) {
         string sRetFileName;
@@ -1243,7 +1243,7 @@ bool projectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
     return true;
 }
 
-void projectGenerator::outputTemplateTags(const string& sProjectName, string & sProjectTemplate, string& sFiltersTemplate)
+void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & sProjectTemplate, string& sFiltersTemplate)
 {
     //Change all occurance of template_in with project name
     const string sFFSearchTag = "template_in";
@@ -1326,7 +1326,7 @@ void projectGenerator::outputTemplateTags(const string& sProjectName, string & s
     }
 }
 
-void projectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting)
+void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting)
 {
     //Declare constant strings used in output files
     const string sItemGroup = "\n  <ItemGroup>";
@@ -1418,7 +1418,7 @@ void projectGenerator::outputSourceFileType(StaticList& vFileList, const string&
     }
 }
 
-void projectGenerator::outputSourceFiles(const string & sProjectName, string & sProjectTemplate, string & sFilterTemplate)
+void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & sProjectTemplate, string & sFilterTemplate)
 {
     set<string> vFoundFilters;
     StaticList vFoundObjects;
@@ -1468,7 +1468,7 @@ void projectGenerator::outputSourceFiles(const string & sProjectName, string & s
     sFilterTemplate.insert(uiFindPosFilt, sAddFilters);
 }
 
-bool projectGenerator::outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs)
+bool ProjectGenerator::outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs)
 {
     string sExportList;
     if (!findFile(this->m_sProjectDir + "/*.v", sExportList)) {
@@ -1787,7 +1787,7 @@ exit /b 1 \n\
     return true;
 }
 
-void projectGenerator::outputBuildEvents(const string& sProjectName, string & sProjectTemplate)
+void ProjectGenerator::outputBuildEvents(const string& sProjectName, string & sProjectTemplate)
 {
     //After </Lib> and </Link> and the post and then pre build events
     const string asLibLink[2] = {"</Lib>", "</Link>"};
@@ -1880,7 +1880,7 @@ cd $(ProjectDir)\n\
     }
 }
 
-void projectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string & sProjectTemplate)
+void ProjectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string & sProjectTemplate)
 {
     if (vIncludeDirs.size() > 0) {
         string sAddInclude;
@@ -1901,7 +1901,7 @@ void projectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string
     }
 }
 
-void projectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const StaticList & vLib64Dirs, string & sProjectTemplate)
+void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const StaticList & vLib64Dirs, string & sProjectTemplate)
 {
     if ((vLib32Dirs.size() > 0) || (vLib64Dirs.size() > 0)) {
         //Add additional lib includes to include list based on current config
@@ -1929,7 +1929,7 @@ void projectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const Static
     }
 }
 
-void projectGenerator::outputYASMTools(string & sProjectTemplate)
+void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
 {
     const string sYASMDefines = "\n\
     <YASM>\n\
@@ -1973,7 +1973,7 @@ void projectGenerator::outputYASMTools(string & sProjectTemplate)
     }
 }
 
-bool projectGenerator::outputDependencyLibs(const string & sProjectName, string & sProjectTemplate, bool bProgram)
+bool ProjectGenerator::outputDependencyLibs(const string & sProjectName, string & sProjectTemplate, bool bProgram)
 {
     //Check current libs list for valid lib names
     for (StaticList::iterator vitLib = m_vLibs.begin(); vitLib < m_vLibs.end(); vitLib++) {
