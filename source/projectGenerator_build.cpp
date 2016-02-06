@@ -137,6 +137,8 @@ void projectGenerator::buildDependencies(const string & sProjectName, StaticList
                 vAddLibs.push_back("OpenAL32"); //Add the additional required libs
             } else if (vitLib->compare("nvenc") == 0) {
                 //Doesnt require any additional libs
+            } else if (vitLib->compare("schannel") == 0) {
+                vAddLibs.push_back("Secur32"); //Add the additional required libs
             } else {
                 //By default just use the lib name and prefix with lib if not already
                 if (vitLib->find("lib") == 0) {
