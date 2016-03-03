@@ -23,6 +23,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <regex>
 
 ConfigGenerator::ConfigGenerator() :
     m_sWhiteSpace(" \t\n\0"),
@@ -795,6 +796,25 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 }
                 //Make sure the closing ) is not included
                 uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
+            } else if (sFunction.compare("find_things_extern") == 0) {
+                //Get first parameter
+                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                //Get second parameter
+                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                //Get file name
+                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + ")", uiStart + 1);
+                string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                //Call function find_things
+                if (!passFindThingsExtern(sParam1, sParam2, sParam3, vReturn)) {
+                    return false;
+                }
+                //Make sure the closing ) is not included
+                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
             } else if (sFunction.compare("add_suffix") == 0) {
                 //Get first parameter
                 uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
@@ -867,9 +887,6 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
     }
 
     //Find the search pattern in the file
-    string sParam1Upper = sParam1;
-    transform(sParam1Upper.begin(), sParam1Upper.end(), sParam1Upper.begin(), ::toupper);
-    sParam1Upper = "_" + sParam1Upper;
     uint uiStart = sFindFile.find(sParam2);
     while (uiStart != string::npos) {
         //Find the start of the tag (also as ENCDEC should be treated as both DEC+ENC we skip that as well)
@@ -917,12 +934,65 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             //  and create a config option out of it. This is actually incorrect as the source code itself
             //  only uses the first parameter as the config option.
         }
-        sTag = sTag + sParam1Upper;
+        sTag = sTag + "_" + sParam1;
         //Add the new value to list
         transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
         vReturn.push_back(sTag);
         //Get next
         uiStart = sFindFile.find(sParam2, uiEnd + 1);
+    }
+    return true;
+}
+
+bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, vector<string>& vReturn)
+{
+    //Need to find and open the specified file
+    string sFile = m_sRootDirectory + sParam3;
+    string sFindFile;
+    if (!loadFromFile(sFile, sFindFile)) {
+        return false;
+    }
+
+    //Find the search pattern in the file
+    string sStartSearch = "extern ";
+    uint uiStart = sFindFile.find(sStartSearch);
+    while (uiStart != string::npos) {
+        uiStart += sStartSearch.length();
+        //Skip any occurrence of 'const'
+        if ((sFindFile.at(uiStart) == 'c') && (sFindFile.find("const ", uiStart) == uiStart)) {
+            uiStart += 6;
+        }
+        //Check for search tag
+        if ((sFindFile.at(uiStart) != sParam2.at(0)) || (sFindFile.find(sParam2, uiStart) != uiStart)) {
+            //Get next
+            uiStart = sFindFile.find(sParam2, uiStart + 1);
+            continue;
+        }
+        uiStart += sParam2.length() + 1;
+        //Check for function start
+        if ((sFindFile.at(uiStart) != 'f') || (sFindFile.find("ff_", uiStart) != uiStart)) {
+            //Get next
+            uiStart = sFindFile.find(sParam2, uiStart + 1);
+            continue;
+        }
+        uiStart += 3;
+        //Find end of tag
+        uint uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",();[]", uiStart);
+        uint uiEnd2 = sFindFile.find("_" + sParam1, uiStart);
+        uiEnd = (uiEnd2 < uiEnd) ? uiEnd2 : uiEnd;
+        if ((sFindFile.at(uiEnd) != '_') || (uiEnd2 != uiEnd)) {
+            //Get next
+            uiStart = sFindFile.find(sParam2, uiEnd + 1);
+            continue;
+        }
+        //Get the tag string
+        uiEnd += 1 + sParam1.length();
+        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        //Add the new value to list
+        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
+        vReturn.push_back(sTag);
+        //Get next
+        uiStart = sFindFile.find(sStartSearch, uiEnd + 1);
     }
     return true;
 }
