@@ -186,6 +186,10 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("avfoundation", false);
     fastToggleConfigValue("mmal", false);
 
+    //values that are not correctly handled by configure
+    fastToggleConfigValue("coreimage_filter", false);
+    fastToggleConfigValue("coreimagesrc_filter", false);
+
     //Additional (must be explicitly disabled)
     fastToggleConfigValue("dct", true);
     fastToggleConfigValue("dwt", true);
