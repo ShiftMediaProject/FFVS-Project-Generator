@@ -122,6 +122,9 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
                 sLib = "libcdio_paranoia";
             } else if (vitLib->compare("libfdk_aac") == 0) {
                 sLib = "libfdk-aac";
+            } else if (vitLib->compare("libnpp") == 0) {
+                vAddLibs.push_back("nppi"); //Add the additional required libs
+                //CUDA 7.5 onwards only provides npp for x64
             } else if (vitLib->compare("libxvid") == 0) {
                 sLib = "libxvidcore";
             } else if (vitLib->compare("openssl") == 0) {
@@ -295,6 +298,7 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["libmfx"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["libmodplug"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["libmp3lame"] = (sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libnpp"] = (sProjectName.compare("libavfilter") == 0);
     mProjectDeps["libnut"] = (sProjectName.compare("libformat") == 0);
     mProjectDeps["libopencore_amrnb"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libopencore_amrwb"] = (sProjectName.compare("libavcodec") == 0);
