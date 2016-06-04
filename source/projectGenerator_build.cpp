@@ -102,6 +102,7 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
     //Loop through each known configuration option and add the required dependencies
     vector<string> vExternLibs;
     m_ConfigHelper.getConfigList("EXTERNAL_LIBRARY_LIST", vExternLibs);
+    m_ConfigHelper.getConfigList("HW_CODECS_LIST", vExternLibs, false);
     for (vector<string>::iterator vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); vitLib++) {
         //Check if enabled
         if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
