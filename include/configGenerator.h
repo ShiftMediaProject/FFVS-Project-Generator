@@ -107,6 +107,8 @@ private:
 
     bool passConfigList(const string & sPrefix, const string & sSuffix, const string & sList);
 
+    bool passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList);
+
     bool buildDefaultValues();
 
     bool fastToggleConfigValue(const string & sOption, bool bEnable);

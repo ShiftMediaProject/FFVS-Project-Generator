@@ -721,6 +721,31 @@ bool ConfigGenerator::outputConfig()
 
     ofVersionFile.close();
 
+    //Output enabled components lists
+    uint uiStart = m_sConfigureFile.find("print_enabled_components ");
+    while (uiStart != string::npos) {
+        //Get file name input parameter
+        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiStart + 24);
+        uint uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        string sFile = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        //Get struct name input parameter
+        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        string sStruct = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        //Get list name input parameter
+        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        string sName = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        //Get config list input parameter
+        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, ++uiStart); //skip precedding '$'
+        string sList = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        if (!passEnabledComponents(sFile, sStruct, sName, sList)) {
+            return false;
+        }
+        uiStart = m_sConfigureFile.find("print_enabled_components ", uiEnd + 1);
+    }
+
     return true;
 }
 
@@ -1054,6 +1079,47 @@ bool ConfigGenerator::passConfigList(const string & sPrefix, const string & sSuf
         return true;
     }
     return false;
+}
+
+bool ConfigGenerator::passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList)
+{
+    cout << "  Outputting enabled components file " << sFile << "..." << endl;
+    //Open output file
+    uint uiDirPos = sFile.rfind('/');
+    if (uiDirPos != string::npos) {
+        string sDir = sFile.substr(0, uiDirPos);
+        if (!makeDirectory(m_sProjectDirectory + sDir)) {
+            cout << "  Error: Failed creating local " << sDir << " directory" << endl;
+            return false;
+        }
+    }
+    ofstream ofFile(m_sProjectDirectory + sFile);
+    if (!ofFile.is_open()) {
+        cout << "  Error: Failed opening output file (" << sFile << ")" << endl;
+        return false;
+    }
+
+    //Output header
+    ofFile << "static const " << sStruct << " *" << sName << "[] = {" << endl;
+
+    //Output each element of desired list
+    vector<string> vList;
+    if (!getConfigList(sList, vList)) {
+        return false;
+    }
+
+    for (vector<string>::iterator vitList = vList.begin(); vitList < vList.end(); vitList++) {
+        ValuesList::iterator vitOption = getConfigOption(*vitList);
+        if (vitOption->m_sValue.compare("1") == 0) {
+            string sOptionLower = vitOption->m_sOption;
+            transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+            ofFile << "    &ff_" << sOptionLower << "," << endl;
+        }
+    }
+    ofFile << "    NULL };";
+
+    ofFile.close();
+    return true;
 }
 
 bool ConfigGenerator::fastToggleConfigValue(const string & sOption, bool bEnable)
