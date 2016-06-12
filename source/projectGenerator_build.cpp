@@ -249,25 +249,22 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                     cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
                     cout << "    NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path." << endl;
                 }
-                vIncludeDirs.push_back("$(CUDA_PATH)/include/");
-            } else if (mitLib->first.compare("cuda") == 0) {
+                //Only add if it hasn’t already been added
+                if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
+                    vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                }
+            } else if ((mitLib->first.compare("cuda") == 0) || (mitLib->first.compare("cuvid") == 0)) {
                 //Need to check for the existence of environment variables
                 if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
                     cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
                     cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
                 }
-                vIncludeDirs.push_back("$(CUDA_PATH)/include/");
-                vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
-            } else if (mitLib->first.compare("cuvid") == 0) {
-                //Need to check for the existence of environment variables
-                if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
-                    cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
-                    cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
+                //Only add if it hasn’t already been added
+                if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
+                    vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                    vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
+                    vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
                 }
-                vIncludeDirs.push_back("$(CUDA_PATH)/include/");
-                vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
             }
         }
     }
