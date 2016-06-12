@@ -143,6 +143,8 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
                 //Doesnt require any additional libs
             } else if (vitLib->compare("cuda") == 0) {
                 vAddLibs.push_back("cuda"); //Add the additional required libs
+            } else if (vitLib->compare("cuvid") == 0) {
+                vAddLibs.push_back("nvcuvid"); //Add the additional required libs
             } else if (vitLib->compare("schannel") == 0) {
                 vAddLibs.push_back("Secur32"); //Add the additional required libs
             } else {
@@ -257,6 +259,15 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 vIncludeDirs.push_back("$(CUDA_PATH)/include/");
                 vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
                 vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+            } else if (mitLib->first.compare("cuvid") == 0) {
+                //Need to check for the existence of environment variables
+                if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                    cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
+                    cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
+                }
+                vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
+                vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
             }
         }
     }
@@ -269,6 +280,7 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["crystalhd"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["chromaprint"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["cuda"] = (sProjectName.compare("libavutil") == 0) || (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["cuvid"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["decklink"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libfontconfig"] = (sProjectName.compare("libavfilter") == 0);
     mProjectDeps["frei0r"] = (sProjectName.compare("libavfilter") == 0);
