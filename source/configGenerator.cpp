@@ -1253,6 +1253,12 @@ ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(c
     return vitValues;
 }
 
+bool ConfigGenerator::isConfigOptionEnabled(const string & sOption)
+{
+    const ValuesList::iterator vitOpt = getConfigOption(sOption);
+    return (vitOpt != m_vConfigValues.end()) && (vitOpt->m_sValue.compare("1") == 0);
+}
+
 bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
 {
     //Need to convert the name to lower case

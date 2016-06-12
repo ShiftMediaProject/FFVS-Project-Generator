@@ -119,6 +119,8 @@ private:
 
     ValuesList::iterator getConfigOptionPrefixed(const string & sOption);
 
+    bool isConfigOptionEnabled(const string & sOption);
+
     bool passDependencyCheck(const ValuesList::iterator vitOption);
 };
 
