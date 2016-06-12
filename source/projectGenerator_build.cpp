@@ -279,7 +279,8 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["bzlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["crystalhd"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["chromaprint"] = (sProjectName.compare("libavformat") == 0);
-    mProjectDeps["cuda"] = (sProjectName.compare("libavutil") == 0) || (sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["cuda"] = (sProjectName.compare("libavutil") == 0) || (sProjectName.compare("libavfilter") == 0) ||
+        (m_ConfigHelper.isConfigOptionEnabled("nvenc") && (sProjectName.compare("libavcodec") == 0));
     mProjectDeps["cuvid"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["decklink"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libfontconfig"] = (sProjectName.compare("libavfilter") == 0);
