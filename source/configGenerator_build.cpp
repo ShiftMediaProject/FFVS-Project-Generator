@@ -410,6 +410,9 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
     mAdditionalDependencies["X11_extensions_Xvlib_h"] = false;
     mAdditionalDependencies["X11_extensions_XvMClib_h"] = false;
+    ValuesList::iterator vitX264Opt = getConfigOption("libx264");
+    bool bX264 = (vitX264Opt != m_vConfigValues.end()) && (vitX264Opt->m_sValue.compare("1") == 0);
+    mAdditionalDependencies["x264_csp_bgr"] = bX264;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
