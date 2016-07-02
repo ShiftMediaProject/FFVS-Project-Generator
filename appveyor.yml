@@ -1,0 +1,36 @@
+version: '{build}'
+
+branches:
+  only:
+  - master
+skip_non_tags: true
+shallow_clone: true
+
+configuration: Release
+
+platform:
+- Win32
+- x64
+
+build:
+  project: project_generate.sln
+  parallel: true
+  verbosity: minimal
+
+after_build:
+- cmd: for %%i in (%APPVEYOR_BUILD_FOLDER%\bin\*.*) do if not %%i == %APPVEYOR_BUILD_FOLDER%\bin\project_generate.exe del %%i
+- cmd: copy /y %APPVEYOR_BUILD_FOLDER%\readme.txt %APPVEYOR_BUILD_FOLDER%\bin
+
+artifacts:
+- path: bin
+  name: $(APPVEYOR_PROJECT_NAME)_$(APPVEYOR_REPO_TAG_NAME)_$(PLATFORM)
+  type: zip
+
+deploy:
+- provider: GitHub
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  description: Pre-built 32b and 64b executables for $(APPVEYOR_PROJECT_NAME) $(APPVEYOR_REPO_TAG_NAME)
+  auth_token:
+    secure: aiTcAD/YitqgwuiBdC3ImXiUlHfIIDD7ayjCs3Y3aAO5vEm1gA7flCZpUZ60a5am
+  artifact: $(APPVEYOR_PROJECT_NAME)_$(APPVEYOR_REPO_TAG_NAME)_$(PLATFORM)
+  force_update: true
