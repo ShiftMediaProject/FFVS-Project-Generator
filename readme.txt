@@ -52,18 +52,20 @@ in OutputDir* otherwise an error will be generated.
 Many of the possible FFmpeg dependencies (and there dependencies) are available in the ShiftMediaProject repositories.
 However the following is a list of extra dependency options that require external downloads:
     1) opengl (requires glext)
-		a) Download glext from the glext homepage.
-		b) Extract all the header files into OutputDir/include/gl/*.
-    2) opencl (requires latest Intel/AMD or NVIDIA OpenCL SDK)
+		a) Download glext.h and wglext.h from opengl.org.
+		b) Save the header files into OutputDir/include/gl/*.
+    2) opencl (requires latest Intel/AMD OpenCL or NVIDIA CUDA SDK)
 		a) Download either the "Intel OpenCL SDK", "AMD OpenCL SDK" or the "NVIDIA CUDA SDK" from their respective suppliers.
 		b) Install the downloaded SDK wherever desired.
-    3) nvenc (requires NVIDIA CUDA SDK)
+    3) cuda/libnpp (requires NVIDIA CUDA SDK)
 		a) Download the "NVIDIA CUDA SDK" from the NVIDIA website.
 		b) Install the downloaded SDK wherever desired.
-		c) Download the "NVIDIA Video Codec SDK" from the NVIDIA website.
-		d) Copy 'nvEncodeAPI.h' from the "NVIDIA Video Codec SDK" into the installed %CUDA%\include folder 
+    4) nvenc (requires NVIDIA Video Codec SDK, recommended to also enable cuda)
+        a) Enable cuda as above.
+		b) Download the "NVIDIA Video Codec SDK" from the NVIDIA website.
+		c) Copy 'nvEncodeAPI.h' from the "NVIDIA Video Codec SDK" into the installed %CUDA%\include folder 
 			(where %CUDA% is the location that the CUDA SDK was installed).
-    4) decklink (requires Blackmagic DeckLink SDK)
+    5) decklink (requires Blackmagic DeckLink SDK)
 		a) Download the "Blackmagic DeckLink SDK" from the Blackmagic website.
 		b) Extract the downloaded SDK wherever desired.
         c) Create a batch file in the extracted "Win/include" folder containing the following (Note: you may have to change 
