@@ -416,6 +416,10 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["CUVIDHEVCPICPARAMS"] = bCuvid;
     mAdditionalDependencies["CUVIDVC1PICPARAMS"] = bCuvid;
     mAdditionalDependencies["CUVIDVP9PICPARAMS"] = bCuvid;
+    mAdditionalDependencies["VAEncPictureParameterBufferH264"] = false;
+    mAdditionalDependencies["videotoolbox_encoder"] = false;
+    mAdditionalDependencies["VAEncPictureParameterBufferHEVC"] = false;
+    mAdditionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
