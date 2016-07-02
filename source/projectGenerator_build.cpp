@@ -207,12 +207,16 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
             //Add in the additional include directories
             if (mitLib->first.compare("libopus") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/opus");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/opus");
             } else if (mitLib->first.compare("libfreetype") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/freetype2");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/freetype2");
             } else if (mitLib->first.compare("libfribidi") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/fribidi");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
             } else if (mitLib->first.compare("sdl") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
             } else if (mitLib->first.compare("opengl") == 0) {
                 //Requires glext headers to be installed in include dir (does not require the libs)
             } else if (mitLib->first.compare("opencl") == 0) {
