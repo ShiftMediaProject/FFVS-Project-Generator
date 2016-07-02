@@ -282,6 +282,8 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
         (m_ConfigHelper.isConfigOptionEnabled("cuvid") && ((sProjectName.compare("libavcodec") == 0) ||
         (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0)));
     mProjectDeps["cuvid"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
+    mProjectDeps["d3d11va"] = false; //supplied by windows sdk
+    mProjectDeps["dxva2"] = false;
     mProjectDeps["decklink"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libfontconfig"] = (sProjectName.compare("libavfilter") == 0);
     mProjectDeps["frei0r"] = (sProjectName.compare("libavfilter") == 0);
