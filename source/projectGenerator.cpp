@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <utility>
 
 bool ProjectGenerator::passAllMake()
 {
@@ -1344,17 +1345,19 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
     if (vFileList.size() > 0) {
         string sTypeFiles = sItemGroup;
         string sTypeFilesFilt = sItemGroup;
+        string sTypeFilesTemp, sTypeFilesFiltTemp;
+        vector<pair<string, string>> vTempObjects;
 
         for (StaticList::iterator vitInclude = vFileList.begin(); vitInclude < vFileList.end(); vitInclude++) {
             //Output objects
-            sTypeFiles += sTypeInclude;
-            sTypeFilesFilt += sTypeInclude;
+            sTypeFilesTemp = sTypeInclude;
+            sTypeFilesFiltTemp = sTypeInclude;
 
             //Add the fileName
             string sFile = *vitInclude;
             replace(sFile.begin(), sFile.end(), '/', '\\');
-            sTypeFiles += sFile;
-            sTypeFilesFilt += sFile;
+            sTypeFilesTemp += sFile;
+            sTypeFilesFiltTemp += sFile;
 
             //Get object name without path or extension
             uint uiPos = vitInclude->rfind('/') + 1;
@@ -1362,45 +1365,52 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
             uint uiPos2 = sObjectName.rfind('.');
             sObjectName.resize(uiPos2);
 
-            //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
+            //Add the filters Filter
             uiPos = vitInclude->rfind("../");
             uiPos = (uiPos == string::npos) ? 0 : uiPos + 3;
-            sTypeFilesFilt += sIncludeClose;
-            if (bCheckExisting) {
-                if (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end()) {
-                    sObjectName = vitInclude->substr(uiPos);
-                    replace(sObjectName.begin(), sObjectName.end(), '/', '_');
-                    //Replace the extension with obj
-                    uiPos2 = sObjectName.rfind('.');
-                    sObjectName.resize(uiPos2);
-                    sTypeFiles += sIncludeClose;
-                    sTypeFiles += sIncludeObject;
-                    sTypeFiles += sObjectName;
-                    sTypeFiles += sIncludeObjectClose;
-                    sTypeFiles += sTypeIncludeEnd;
-                } else {
-                    vFoundObjects.push_back(sObjectName);
-                    //Close the current item
-                    sTypeFiles += sIncludeEnd;
-                }
-            } else {
-                vFoundObjects.push_back(sObjectName);
-                //Close the current item
-                sTypeFiles += sIncludeEnd;
-            }
-
-            //Add the filters Filter
-            sTypeFilesFilt += sFilterSource;
+            sTypeFilesFiltTemp += sIncludeClose;
+            sTypeFilesFiltTemp += sFilterSource;
             uint uiFolderLength = vitInclude->rfind('/') - uiPos;
             if ((int)uiFolderLength != -1) {
                 string sFolderName = sFile.substr(uiPos, uiFolderLength);
                 sFolderName = "\\" + sFolderName;
                 vFoundFilters.insert(sSource + sFolderName);
-                sTypeFilesFilt += sFolderName;
+                sTypeFilesFiltTemp += sFolderName;
             }
-            sTypeFilesFilt += sFilterEnd;
-            sTypeFilesFilt += sTypeIncludeEnd;
+            sTypeFilesFiltTemp += sFilterEnd;
+            sTypeFilesFiltTemp += sTypeIncludeEnd;
+
+            //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
+            if (bCheckExisting && (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end())) {
+                    sObjectName = vitInclude->substr(uiPos);
+                    replace(sObjectName.begin(), sObjectName.end(), '/', '_');
+                    //Replace the extension with obj
+                    uiPos2 = sObjectName.rfind('.');
+                    sObjectName.resize(uiPos2);
+                    sTypeFilesTemp += sIncludeClose;
+                    sTypeFilesTemp += sIncludeObject;
+                    sTypeFilesTemp += sObjectName;
+                    sTypeFilesTemp += sIncludeObjectClose;
+                    sTypeFilesTemp += sTypeIncludeEnd;
+                    //Add to temp list of stored objects
+                    vTempObjects.push_back(pair<string, string>(sTypeFilesTemp, sTypeFilesFiltTemp));
+            } else {
+                vFoundObjects.push_back(sObjectName);
+                //Close the current item
+                sTypeFilesTemp += sIncludeEnd;
+                //Add to output
+                sTypeFiles += sTypeFilesTemp;
+                sTypeFilesFilt += sTypeFilesFiltTemp;
+            }
         }
+
+        //Add any temporary stored objects (This improves compile performance by grouping objects with different compile options - in this case output name)
+        for (vector<pair<string, string>>::iterator vitObject = vTempObjects.begin(); vitObject < vTempObjects.end(); vitObject++) {
+            //Add to output
+            sTypeFiles += vitObject->first;
+            sTypeFilesFilt += vitObject->second;
+        }
+
         sTypeFiles += sItemGroupEnd;
         sTypeFilesFilt += sItemGroupEnd;
 
