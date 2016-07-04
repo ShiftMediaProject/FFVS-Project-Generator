@@ -456,8 +456,10 @@ bool ProjectGenerator::outputSolution()
         for (uint uiI = 0; uiI < 7; uiI++) {
             //loop over build archs
             for (uint uiJ = 0; uiJ < 2; uiJ++) {
+                //Don’t build projects by default on anything other than debug/release
+                uint uiBuilds = ((uiI == 0) || (uiI == 3)) ? 2 : 1;
                 //loop over build types
-                for (uint uiK = 0; uiK < 2; uiK++) {
+                for (uint uiK = 0; uiK < uiBuilds; uiK++) {
                     sAddPlatform += sConfigPlatform;
                     sAddPlatform += *vitIt;
                     sAddPlatform += sConfigPlatform2;
