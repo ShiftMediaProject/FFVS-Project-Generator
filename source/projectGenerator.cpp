@@ -1665,8 +1665,12 @@ exit /b 1 \n\
                 //Search for all occurrences
                 uiFindPos = sSBRFile.find(sSearch);
                 while (uiFindPos != string::npos) {
-                    //Find end of name signaled by NULL character
+                    //Find end of name signalled by NULL character
                     uint uiFindPos2 = sSBRFile.find((char)0x00, uiFindPos + 1);
+                    if (uiFindPos2 == string::npos) {
+                        uiFindPos = uiFindPos2;
+                        break;
+                    }
 
                     //Check if this is a define
                     uint uiFindPos3 = sSBRFile.rfind((char)0x00, uiFindPos - 3);
