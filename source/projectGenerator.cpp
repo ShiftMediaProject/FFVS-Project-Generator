@@ -425,6 +425,7 @@ bool ProjectGenerator::outputSolution()
     string sConfigPlatform2 = "}.";
     string sConfigPlatform3 = "|";
     string aBuildConfigs[7] = {"Debug", "DebugDLL", "DebugDLLStaticDeps", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps", "ReleaseLTO"};
+    string aBuildArchsSol[2] = {"x86", "x64"};
     string aBuildArchs[2] = {"Win32", "x64"};
     string aBuildTypes[2] = {".ActiveCfg = ", ".Build.0 = "};
     string sAddPlatform;
@@ -441,7 +442,7 @@ bool ProjectGenerator::outputSolution()
                     sAddPlatform += sConfigPlatform2;
                     sAddPlatform += aBuildConfigs[uiI];
                     sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchs[uiJ];
+                    sAddPlatform += aBuildArchsSol[uiJ];
                     sAddPlatform += aBuildTypes[uiK];
                     sAddPlatform += aBuildConfigs[uiI];
                     sAddPlatform += sConfigPlatform3;
