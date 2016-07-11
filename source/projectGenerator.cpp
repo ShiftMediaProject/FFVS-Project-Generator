@@ -464,7 +464,7 @@ bool ProjectGenerator::outputSolution()
                     sAddPlatform += sConfigPlatform2;
                     sAddPlatform += aBuildConfigs[uiI];
                     sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchs[uiJ];
+                    sAddPlatform += aBuildArchsSol[uiJ];
                     sAddPlatform += aBuildTypes[uiK];
                     if (uiI == 2) {
                         sAddPlatform += aBuildConfigs[1];
