@@ -1383,18 +1383,18 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
 
             //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
             if (bCheckExisting && (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end())) {
-                    sObjectName = vitInclude->substr(uiPos);
-                    replace(sObjectName.begin(), sObjectName.end(), '/', '_');
-                    //Replace the extension with obj
-                    uiPos2 = sObjectName.rfind('.');
-                    sObjectName.resize(uiPos2);
-                    sTypeFilesTemp += sIncludeClose;
-                    sTypeFilesTemp += sIncludeObject;
-                    sTypeFilesTemp += sObjectName;
-                    sTypeFilesTemp += sIncludeObjectClose;
-                    sTypeFilesTemp += sTypeIncludeEnd;
-                    //Add to temp list of stored objects
-                    vTempObjects.push_back(pair<string, string>(sTypeFilesTemp, sTypeFilesFiltTemp));
+                sObjectName = vitInclude->substr(uiPos);
+                replace(sObjectName.begin(), sObjectName.end(), '/', '_');
+                //Replace the extension with obj
+                uiPos2 = sObjectName.rfind('.');
+                sObjectName.resize(uiPos2);
+                sTypeFilesTemp += sIncludeClose;
+                sTypeFilesTemp += sIncludeObject;
+                sTypeFilesTemp += sObjectName;
+                sTypeFilesTemp += sIncludeObjectClose;
+                sTypeFilesTemp += sTypeIncludeEnd;
+                //Add to temp list of stored objects
+                vTempObjects.push_back(pair<string, string>(sTypeFilesTemp, sTypeFilesFiltTemp));
             } else {
                 vFoundObjects.push_back(sObjectName);
                 //Close the current item
@@ -1583,6 +1583,7 @@ goto MSVCVarsDone \n\
 call \"%VS110COMNTOOLS%\\vsvars32.bat\" \n\
 goto MSVCVarsDone \n\
 ) else ( \n\
+echo fatal error : An installed version of Visual Studio could not be detected. \n\
 exit /b 1 \n\
 ) \n\
 :MSVCVarsDone \n";
@@ -1605,7 +1606,7 @@ exit /b 1 \n\
                 makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
                 sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
             }
-            sCLLaunchBat += " > log.txt\nif %errorlevel% neq 0 goto exitFail\n";
+            sCLLaunchBat += " > log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
     }
     sCLLaunchBat += "del /F /S /Q *.obj > nul 2>&1\ndel log.txt > nul 2>&1\n";
@@ -1615,7 +1616,50 @@ exit /b 1 \n\
     }
 
     if (0 != system("test.bat")) {
-        cout << "  Error: Failed calling temp.bat. Ensure you have Visual Studio or the Microsoft compiler installed and that any required dependencies are available.\nSee log.txt for further details." << endl;
+        cout << "  Error: Errors detected during test compilation :-" << endl;
+        string sTestOutput;
+        if (loadFromFile("log.txt", sTestOutput)) {
+            //Output errors from log.txt
+            bool bError = false;
+            bool bMissingVS = false;
+            bool bMissingDeps = false;
+            uiFindPos = sTestOutput.find(" error ");
+            while (uiFindPos != string::npos) {
+                //find end of line
+                uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
+                string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
+                cout << "    " << sTemp << endl;
+                uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
+                //Check what type of error was found
+                if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
+                    bMissingDeps = true;
+                } else if (!bMissingVS && (sTemp.find("Visual Studio could not be detected") != string::npos)) {
+                    bMissingVS = true;
+                } else {
+                    bError = true;
+                }
+            }
+            uiFindPos = sTestOutput.find("internal or external command");
+            if (uiFindPos != string::npos) {
+                uint uiFindPos2 = sTestOutput.find("\n", uiFindPos + 1);
+                uiFindPos = sTestOutput.rfind("\n", uiFindPos);
+                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos;
+                cout << "    " << sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos) << endl;
+                bMissingVS = true;
+            }
+            if (bMissingVS) {
+                cout << endl << "    Based on the above error(s) Visual Studio is not installed correctly on the host system." << endl;
+                cout << "    Install a compatible version of Visual Studio before trying again." << endl;
+            } else if (bMissingDeps) {
+                cout << endl << "    Based on the above error(s) there are files required for dependency libraries that are not available" << endl;
+                cout << "    Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again." << endl;
+                cout << "    Consult the supplied readme for instructions for installing varying dependencies." << endl;
+                cout << "    If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again." << endl;
+                cout << "    Removing the offending configuration option can also be used to remove the error." << endl;
+            } else if (bError) {
+                cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
+            }
+        }
         //Remove the test header files
         deleteFile("test.bat");
         deleteFolder(sProjectNameShort);
@@ -1679,7 +1723,7 @@ exit /b 1 \n\
                     uint uiFindPosDiff = uiFindPos - uiFindPos3;
                     if ((sSBRFile.at(uiFindPos3 - 1) == '@') &&
                         (((uiFindPosDiff == 3) && (sSBRFile.at(uiFindPos3 - 3) == (char)0x03)) ||
-                         ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
+                        ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
                         //Check if this is a data or function name
                         string sFoundName = sSBRFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
                         if ((sSBRFile.at(uiFindPos3 - 2) == (char)0x01)) {
@@ -1712,7 +1756,7 @@ exit /b 1 \n\
                         uint uiFindPosDiff = uiFindPos - uiFindPos3;
                         if ((sSBRFile.at(uiFindPos3 - 1) == '@') &&
                             (((uiFindPosDiff == 3) && (sSBRFile.at(uiFindPos3 - 3) == (char)0x03)) ||
-                             ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
+                            ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
                             break;
                         }
                     }
