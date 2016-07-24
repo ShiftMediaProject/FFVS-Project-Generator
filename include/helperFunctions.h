@@ -35,9 +35,11 @@ typedef unsigned int uint;
 namespace project_generate {
 bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary = false, bool bOutError = true);
 
+bool loadFromResourceFile(int iResourceID, string& sRetString);
+
 bool writeToFile(const string& sFileName, const string& sString);
 
-bool copyFile(const string & sSourceFile, const string & sDestinationFile);
+bool copyResourceFile(int iResourceID, const string & sDestinationFile);
 
 void deleteFile(const string & sDestinationFile);
 

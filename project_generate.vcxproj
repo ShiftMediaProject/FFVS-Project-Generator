@@ -31,6 +31,9 @@
     <ClCompile Include="source\projectGenerator.cpp" />
     <ClCompile Include="source\projectGenerator_build.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="source\Templates.rc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FA1D2C31-D809-4021-9DE4-7552704175EE}</ProjectGuid>
     <RootNamespace>ffmpeg_generate</RootNamespace>

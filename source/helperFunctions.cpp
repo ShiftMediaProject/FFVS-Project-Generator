@@ -53,6 +53,23 @@ bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bo
     return true;
 }
 
+bool loadFromResourceFile(int iResourceID, string& sRetString)
+{
+    // Can load directly from windows resource file
+    HINSTANCE hInst = GetModuleHandle(NULL);
+    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(iResourceID), RT_RCDATA);
+    HGLOBAL hMem = LoadResource(hInst, hRes);
+    DWORD size = SizeofResource(hInst, hRes);
+    char* resText = (char*)LockResource(hMem);
+
+    //Copy across the file
+    sRetString = resText;
+
+    //Close Resource
+    FreeResource(hMem);
+    return true;
+}
+
 bool writeToFile(const string & sFileName, const string & sString)
 {
     //Open output file
@@ -68,19 +85,25 @@ bool writeToFile(const string & sFileName, const string & sString)
     return true;
 }
 
-bool copyFile(const string & sSourceFile, const string & sDestinationFile)
+bool copyResourceFile(int iResourceID, const string & sDestinationFile)
 {
-    ifstream ifSource(sSourceFile, ios::binary);
-    if (!ifSource.is_open()) {
-        return false;
-    }
+    // Can load directly from windows resource file
+    HINSTANCE hInst = GetModuleHandle(NULL);
+    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(iResourceID), RT_RCDATA);
+    HGLOBAL hMem = LoadResource(hInst, hRes);
+    DWORD size = SizeofResource(hInst, hRes);
+    char* resText = (char*)LockResource(hMem);
+
+    //Copy across the file
     ofstream ifDest(sDestinationFile, ios::binary);
     if (!ifDest.is_open()) {
         return false;
     }
-    ifDest << ifSource.rdbuf();
-    ifSource.close();
+    ifDest << resText;
     ifDest.close();
+
+    //Close Resource
+    FreeResource(hMem);
     return true;
 }
 

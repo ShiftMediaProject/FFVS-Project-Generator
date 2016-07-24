@@ -24,22 +24,27 @@
 #include <algorithm>
 #include <utility>
 
+#define TEMPLATE_COMPAT_ID 100
+#define TEMPLATE_MATH_ID 102
+#define TEMPLATE_UNISTD_ID 104
+#define TEMPLATE_SLN_ID 106
+#define TEMPLATE_VCXPROJ_ID 108
+#define TEMPLATE_FILTERS_ID 110
+#define TEMPLATE_PROG_VCXPROJ_ID 112
+#define TEMPLATE_PROG_FILTERS_ID 114
+
 bool ProjectGenerator::passAllMake()
 {
     //Copy the required header files to output directory
-    m_sTemplateDirectory = "../";
-    bool bCopy = copyFile(m_sTemplateDirectory + "templates/compat.h", m_ConfigHelper.m_sProjectDirectory + "compat.h");
+    m_sTemplateDirectory = "./templates/";
+    bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h");
     if (!bCopy) {
-        //Try in current directory instead
-        m_sTemplateDirectory = "./";
-        bCopy = copyFile(m_sTemplateDirectory + "templates/compat.h", m_ConfigHelper.m_sProjectDirectory + "compat.h");
-    }
-    bCopy &= copyFile(m_sTemplateDirectory + "templates/math.h", m_ConfigHelper.m_sProjectDirectory + "math.h");
-    bCopy &= copyFile(m_sTemplateDirectory + "templates/unistd.h", m_ConfigHelper.m_sProjectDirectory + "unistd.h");
-    if (!bCopy) {
-        cout << "Error: Missing required template files. Try re-downloading required files." << endl;
+        cout << "Error: Failed writing to output location. Make sure you have the appropriate user permissions." << endl;
         return false;
     }
+    copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
+    copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h");
+
     //Initialise internal values
     ConfigGenerator::DefaultValuesList Unneeded;
     m_ConfigHelper.buildReplaceValues(m_ReplaceValues, Unneeded);
@@ -130,13 +135,13 @@ bool ProjectGenerator::outputProject()
 
     //Open the input temp project file
     string sProjectFile;
-    if (!loadFromFile(m_sTemplateDirectory + "templates/template_in.vcxproj", sProjectFile)) {
+    if (!loadFromResourceFile(TEMPLATE_VCXPROJ_ID, sProjectFile)) {
         return false;
     }
 
     //Open the input temp project file filters
     string sFiltersFile;
-    if (!loadFromFile(m_sTemplateDirectory + "templates/template_in.vcxproj.filters", sFiltersFile)) {
+    if (!loadFromResourceFile(TEMPLATE_FILTERS_ID, sFiltersFile)) {
         return false;
     }
 
@@ -194,13 +199,13 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
 {
     //Open the template program
     string sProgramFile;
-    if (!loadFromFile(m_sTemplateDirectory + "templates/templateprogram_in.vcxproj", sProgramFile)) {
+    if (!loadFromResourceFile(TEMPLATE_PROG_VCXPROJ_ID, sProgramFile)) {
         return false;
     }
 
     //Open the template program filters
     string sProgramFiltersFile;
-    if (!loadFromFile(m_sTemplateDirectory + "templates/templateprogram_in.vcxproj.filters", sProgramFiltersFile)) {
+    if (!loadFromResourceFile(TEMPLATE_PROG_FILTERS_ID, sProgramFiltersFile)) {
         return false;
     }
 
@@ -269,7 +274,7 @@ bool ProjectGenerator::outputSolution()
     m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
     //Open the input temp project file
     string sSolutionFile;
-    if (!loadFromFile(m_sTemplateDirectory + "templates/template_in.sln", sSolutionFile)) {
+    if (!loadFromResourceFile(TEMPLATE_SLN_ID, sSolutionFile)) {
         return false;
     }
 
