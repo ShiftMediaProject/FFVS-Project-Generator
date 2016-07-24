@@ -49,6 +49,10 @@ To be able to build ffplay the SDL libs must be available in the OutputDir*. If 
 The project generator will also check the availability of dependencies. Any enabled options must have the appropriate headers installed
 in OutputDir* otherwise an error will be generated.
 
+Sevaral automated batch files are supplied with the project that can be used to generate FFmpeg projects based on dependencies 
+provided by ShiftMediaProject (smp_project_generate_gpl etc.). These batch files can be used to build projects based on various
+configurations and they can also optionally download all the appropriate dependency libraries that are supplied by ShiftMediaProject.
+
 Many of the possible FFmpeg dependencies (and there dependencies) are available in the ShiftMediaProject repositories.
 However the following is a list of extra dependency options that require external downloads:
     1) opengl (requires glext)

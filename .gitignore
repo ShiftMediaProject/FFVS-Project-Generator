@@ -25,4 +25,5 @@
 *.VC.db
 *.opendb
 *.ilk
-[Bb]in/
+[Bb]in/*
+!smp_*
