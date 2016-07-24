@@ -12,13 +12,20 @@ platform:
 - Win32
 - x64
 
+install:
+# Install GitLink
+- cmd: choco install gitlink
+
 build:
   project: project_generate.sln
   parallel: true
   verbosity: minimal
 
 after_build:
+# Copy over readme to artifact folder
 - cmd: copy /y %APPVEYOR_BUILD_FOLDER%\readme.txt %APPVEYOR_BUILD_FOLDER%\bin
+# GitLink the genrated pdb
+- cmd: GitLink . -f project_generate.sln -c %CONFIGURATION% -p %PLATFORM% -u https://github.com/%APPVEYOR_REPO_NAME%.git -s %APPVEYOR_REPO_COMMIT%
 
 artifacts:
 - path: bin
