@@ -18,7 +18,6 @@ build:
   verbosity: minimal
 
 after_build:
-- cmd: for %%i in (%APPVEYOR_BUILD_FOLDER%\bin\*.*) do if not %%i == %APPVEYOR_BUILD_FOLDER%\bin\project_generate.exe del %%i
 - cmd: copy /y %APPVEYOR_BUILD_FOLDER%\readme.txt %APPVEYOR_BUILD_FOLDER%\bin
 
 artifacts:
