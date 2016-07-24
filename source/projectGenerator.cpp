@@ -2086,7 +2086,7 @@ bool ProjectGenerator::outputDependencyLibs(const string & sProjectName, string 
         }
         //Add to Additional Dependencies
         string asLibLink2[2] = {"<Link>", "<Lib>"};
-        for (uint uiLinkLib = 0; uiLinkLib < ((bProgram) ? 1 : 2); uiLinkLib++) {
+        for (uint uiLinkLib = 0; uiLinkLib < ((bProgram) ? 1u : 2u); uiLinkLib++) {
             //loop over each debug/release sequence
             uint uiFindPos = sProjectTemplate.find(asLibLink2[uiLinkLib]);
             for (uint uiDebugRelease = 0; uiDebugRelease < 2; uiDebugRelease++) {
