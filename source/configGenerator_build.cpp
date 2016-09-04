@@ -140,6 +140,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
     fastToggleConfigValue("isatty", true);
     fastToggleConfigValue("kbhit", true);
+    fastToggleConfigValue("LoadLibrary", true);
     fastToggleConfigValue("libc_msvcrt", true);
     fastToggleConfigValue("local_aligned_32", true);
     fastToggleConfigValue("local_aligned_16", true);
