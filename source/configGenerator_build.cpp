@@ -212,6 +212,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("lzma", true);
     fastToggleConfigValue("schannel", true);
     fastToggleConfigValue("sdl", true);
+    fastToggleConfigValue("sdl2", true);
     fastToggleConfigValue("zlib", true);
 
     return true;
@@ -489,6 +490,10 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
         CHECKFORCEDENABLES("qsv");
     } else if (sOptionLower.compare("dcadec") == 0) {
         CHECKFORCEDENABLES("struct_dcadec_exss_info_matrix_encoding");
+    } else if (sOptionLower.compare("sdl") == 0) {
+        fastToggleConfigValue("sdl2", true); //must use fastToggle to prevent infinite cycle
+    } else if (sOptionLower.compare("sdl2") == 0) {
+        fastToggleConfigValue("sdl", true); //must use fastToggle to prevent infinite cycle
     }
 }
 

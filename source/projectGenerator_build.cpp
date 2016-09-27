@@ -148,6 +148,10 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
                 vAddLibs.push_back("nvcuvid"); //Add the additional required libs
             } else if (vitLib->compare("schannel") == 0) {
                 vAddLibs.push_back("Secur32"); //Add the additional required libs
+            } else if (vitLib->compare("sdl") == 0) {
+                if (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end()) {
+                    vLibs.push_back("libsdl"); //Only add if not sdl2
+                }
             } else {
                 //By default just use the lib name and prefix with lib if not already
                 if (vitLib->find("lib") == 0) {
@@ -214,7 +218,10 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
             } else if (mitLib->first.compare("libfribidi") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/fribidi");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
-            } else if (mitLib->first.compare("sdl") == 0) {
+            } else if ((mitLib->first.compare("sdl") == 0) && (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end())) {
+                vIncludeDirs.push_back("$(OutDir)/include/SDL");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
+            } else if (mitLib->first.compare("sdl2") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
             } else if (mitLib->first.compare("opengl") == 0) {
@@ -366,6 +373,7 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["openssl"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["schannel"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["sdl"] = (sProjectName.compare("libavdevice") == 0) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("avplay") == 0);
+    mProjectDeps["sdl2"] = (sProjectName.compare("libavdevice") == 0) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("avplay") == 0);
     //mProjectDeps["x11grab"] = ( sProjectName.compare("libavdevice") == 0 );//Always disabled on Win32
     mProjectDeps["zlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
 }
