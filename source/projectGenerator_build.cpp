@@ -284,11 +284,12 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
 
 void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps)
 {
+    string sNotUsed;
     mProjectDeps["avisynth"] = false; //no dependencies ever needed
     mProjectDeps["bzlib"] = (sProjectName.compare("libavformat") == 0) || (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["crystalhd"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["chromaprint"] = (sProjectName.compare("libavformat") == 0);
-    mProjectDeps["cuda"] = (sProjectName.compare("libavutil") == 0) || (sProjectName.compare("libavfilter") == 0) ||
+    mProjectDeps["cuda"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_cuda", ".h", sNotUsed)) || (sProjectName.compare("libavfilter") == 0) ||
         (m_ConfigHelper.isConfigOptionEnabled("nvenc") && (sProjectName.compare("libavcodec") == 0)) ||
         (m_ConfigHelper.isConfigOptionEnabled("cuvid") && ((sProjectName.compare("libavcodec") == 0) ||
         (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0)));
@@ -322,7 +323,8 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["libiec61883"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libilbc"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libkvazaar"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libmfx"] = (sProjectName.compare("libavcodec") == 0) || (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
+    mProjectDeps["libmfx"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) || (sProjectName.compare("libavcodec") == 0) ||
+        (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["libmodplug"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["libmp3lame"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libnpp"] = (sProjectName.compare("libavfilter") == 0);
