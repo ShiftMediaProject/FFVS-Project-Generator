@@ -132,6 +132,16 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
             } else if (vitLib->compare("openssl") == 0) {
                 //Needs ws2_32 but libavformat needs this even if not using openssl so it is already included
                 sLib = "libssl";
+                //Also need crypto
+                vector<string>::iterator vitList = vLibs.begin();
+                for (vitList; vitList < vLibs.end(); vitList++) {
+                    if (vitList->compare("libcrypto") == 0) {
+                        break;
+                    }
+                }
+                if (vitList == vLibs.end()) {
+                    vLibs.push_back("libcrypto");
+                }
             } else if (vitLib->compare("decklink") == 0) {
                 //doesnt need any additional libs
             } else if (vitLib->compare("opengl") == 0) {
