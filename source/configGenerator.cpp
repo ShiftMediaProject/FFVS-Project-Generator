@@ -579,8 +579,8 @@ bool ConfigGenerator::outputConfig()
     //Output header
     string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
     ofConfigureFile << sHeader << endl;
-    ofConfigureFile << "#ifndef " << m_sProjectName << "_CONFIG_H" << endl;
-    ofConfigureFile << "#define " << m_sProjectName << "_CONFIG_H" << endl;
+    ofConfigureFile << "#ifndef " << "SMP_CONFIG_H" << endl;
+    ofConfigureFile << "#define " << "SMP_CONFIG_H" << endl;
 
     //Build inbuilt force replace list
     DefaultValuesList mReplaceList;
@@ -654,7 +654,7 @@ bool ConfigGenerator::outputConfig()
     }
 
     //Output end header guard
-    ofConfigureFile << "#endif /* " << m_sProjectName << "_CONFIG_H */" << endl;
+    ofConfigureFile << "#endif /* " << "SMP_CONFIG_H */" << endl;
     //Close output files
     ofConfigureFile.close();
     ofASMConfigureFile.close();
@@ -674,8 +674,8 @@ bool ConfigGenerator::outputConfig()
 
     //Output header guard
     ofAVConfigFile << sHeader << endl;
-    ofAVConfigFile << "#ifndef AVUTIL_AVCONFIG_H" << endl;
-    ofAVConfigFile << "#define AVUTIL_AVCONFIG_H" << endl;
+    ofAVConfigFile << "#ifndef SMP_LIBAVUTIL_AVCONFIG_H" << endl;
+    ofAVConfigFile << "#define SMP_LIBAVUTIL_AVCONFIG_H" << endl;
 
     //avconfig.h currently just uses HAVE_LIST_PUB to define its values
     vector<string> vAVConfigList;
@@ -687,7 +687,7 @@ bool ConfigGenerator::outputConfig()
         ValuesList::iterator vitOption = getConfigOption(*vitAVC);
         ofAVConfigFile << "#define " << "AV_HAVE_" << vitOption->m_sOption << " " << vitOption->m_sValue << endl;
     }
-    ofAVConfigFile << "#endif /* AVUTIL_AVCONFIG_H */" << endl;
+    ofAVConfigFile << "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */" << endl;
     ofAVConfigFile.close();
 
     //Output ffversion.h
@@ -715,9 +715,9 @@ bool ConfigGenerator::outputConfig()
     ofVersionFile << sHeader << endl;
 
     //Output info
-    ofVersionFile << "#ifndef AVUTIL_FFVERSION_H\n#define AVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
+    ofVersionFile << "#ifndef SMP_LIBAVUTIL_FFVERSION_H\n#define SMP_LIBAVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
     ofVersionFile << sVersion;
-    ofVersionFile << "\"\n#endif /* AVUTIL_FFVERSION_H */" << endl;
+    ofVersionFile << "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */" << endl;
 
     ofVersionFile.close();
 
@@ -1098,6 +1098,12 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
         cout << "  Error: Failed opening output file (" << sFile << ")" << endl;
         return false;
     }
+
+    //Add copywrite header
+    string sNameNice = sName;
+    replace(sNameNice.begin(), sNameNice.end(), '_', ' ');
+    ofFile << getCopywriteHeader("Available items from " + sNameNice);
+    ofFile << "\n";
 
     //Output header
     ofFile << "static const " << sStruct << " *" << sName << "[] = {" << endl;
