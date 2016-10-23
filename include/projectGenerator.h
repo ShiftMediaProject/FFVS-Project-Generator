@@ -133,7 +133,7 @@ private:
 
     void outputTemplateTags(const string& sProjectName, string& sProjectTemplate, string& sFilterTemplate);
 
-    void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting);
+    void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false);
 
     void outputSourceFiles(const string& sProjectName, string& sProjectTemplate, string& sFilterTemplate);
 

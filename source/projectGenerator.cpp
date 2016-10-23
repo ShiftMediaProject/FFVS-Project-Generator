@@ -1333,7 +1333,7 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
     }
 }
 
-void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting)
+void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)
 {
     //Declare constant strings used in output files
     const string sItemGroup = "\n  <ItemGroup>";
@@ -1347,6 +1347,10 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
     const string sFilterSource = "\n      <Filter>" + sFilterType + " Files";
     const string sSource = sFilterType + " Files";
     const string sFilterEnd = "</Filter>";
+    const string sExcludeConfig = "\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string aBuildConfigsStatic[3] = {"Release", "ReleaseLTO", "Debug"};
+    const string aBuildConfigsShared[4] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "DebugDLLStaticDeps"};
+    const string sExcludeConfigEnd = "'\">true</ExcludedFromBuild>";
 
     if (vFileList.size() > 0) {
         string sTypeFiles = sItemGroup;
@@ -1386,6 +1390,27 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
             sTypeFilesFiltTemp += sFilterEnd;
             sTypeFilesFiltTemp += sTypeIncludeEnd;
 
+            //Check if this file should be disabled under certain configurations
+            bool bClosed = false;
+            if (bStaticOnly || bSharedOnly) {
+                sTypeFilesTemp += sIncludeClose;
+                bClosed = true;
+                const string* p_Configs = NULL;
+                uint32_t uiConfigs = 0;
+                if (bStaticOnly) {
+                    p_Configs = aBuildConfigsShared;
+                    uiConfigs = 4;
+                } else {
+                    p_Configs = aBuildConfigsStatic;
+                    uiConfigs = 3;
+                }
+                for (uint32_t uiI = 0; uiI < uiConfigs; uiI++) {
+                    sTypeFilesTemp += sExcludeConfig;
+                    sTypeFilesTemp += p_Configs[uiI];
+                    sTypeFilesTemp += sExcludeConfigEnd;
+                }
+            }
+
             //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
             if (bCheckExisting && (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end())) {
                 sObjectName = vitInclude->substr(uiPos);
@@ -1393,7 +1418,9 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                 //Replace the extension with obj
                 uiPos2 = sObjectName.rfind('.');
                 sObjectName.resize(uiPos2);
-                sTypeFilesTemp += sIncludeClose;
+                if (!bClosed) {
+                    sTypeFilesTemp += sIncludeClose;
+                }
                 sTypeFilesTemp += sIncludeObject;
                 sTypeFilesTemp += sObjectName;
                 sTypeFilesTemp += sIncludeObjectClose;
@@ -1403,7 +1430,11 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
             } else {
                 vFoundObjects.push_back(sObjectName);
                 //Close the current item
-                sTypeFilesTemp += sIncludeEnd;
+                if (!bClosed) {
+                    sTypeFilesTemp += sIncludeEnd;
+                } else {
+                    sTypeFilesTemp += sTypeIncludeEnd;
+                }
                 //Add to output
                 sTypeFiles += sTypeFilesTemp;
                 sTypeFilesFilt += sTypeFilesFiltTemp;
@@ -1438,6 +1469,15 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
 {
     set<string> vFoundFilters;
     StaticList vFoundObjects;
+
+    //Check if there is a resource file
+    string sResourceFile;
+    if (findSourceFile(sProjectName.substr(3) + "res", ".rc", sResourceFile)) {
+        makeFileProjectRelative(sResourceFile, sResourceFile);
+        StaticList vResources;
+        vResources.push_back(sResourceFile);
+        outputSourceFileType(vResources, "ResourceCompile", "Resource", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false, false, true);
+    }
 
     //Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {

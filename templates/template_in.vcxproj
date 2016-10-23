@@ -61,13 +61,6 @@
   <ItemGroup>
     <None Include=".\template_in.def" />
   </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\template_in\template_shinres.rc">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)'=='ReleaseLTO'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Debug'">true</ExcludedFromBuild>
-    </ResourceCompile>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B4824EFF-C340-425D-A4A8-E2E02A71A7AE}</ProjectGuid>
     <RootNamespace>template_in</RootNamespace>
