@@ -147,15 +147,24 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
             } else if (vitLib->compare("opengl") == 0) {
                 vAddLibs.push_back("Opengl32"); //Add the additional required libs
             } else if (vitLib->compare("opencl") == 0) {
-                vAddLibs.push_back("OpenCL"); //Add the additional required libs
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
+                    vAddLibs.push_back("OpenCL"); //Add the additional required libs
+                }
             } else if (vitLib->compare("openal") == 0) {
                 vAddLibs.push_back("OpenAL32"); //Add the additional required libs
             } else if (vitLib->compare("nvenc") == 0) {
                 //Doesnt require any additional libs
             } else if (vitLib->compare("cuda") == 0) {
-                vAddLibs.push_back("cuda"); //Add the additional required libs
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                    vAddLibs.push_back("cuda"); //Add the additional required libs
+                }
             } else if (vitLib->compare("cuvid") == 0) {
-                vAddLibs.push_back("nvcuvid"); //Add the additional required libs
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
+                    vAddLibs.push_back("nvcuvid"); //Add the additional required libs
+                }
             } else if (vitLib->compare("schannel") == 0) {
                 vAddLibs.push_back("Secur32"); //Add the additional required libs
             } else if (vitLib->compare("sdl") == 0) {
@@ -237,23 +246,26 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
             } else if (mitLib->first.compare("opengl") == 0) {
                 //Requires glext headers to be installed in include dir (does not require the libs)
             } else if (mitLib->first.compare("opencl") == 0) {
-                //Need to check for the existence of environment variables
-                if (GetEnvironmentVariable("AMDAPPSDKROOT", NULL, 0)) {
-                    vIncludeDirs.push_back("$(AMDAPPSDKROOT)/include/");
-                    vLib32Dirs.push_back("$(AMDAPPSDKROOT)/lib/Win32");
-                    vLib64Dirs.push_back("$(AMDAPPSDKROOT)/lib/x64");
-                } else if (GetEnvironmentVariable("INTELOCLSDKROOT", NULL, 0)) {
-                    vIncludeDirs.push_back("$(INTELOCLSDKROOT)/include/");
-                    vLib32Dirs.push_back("$(INTELOCLSDKROOT)/lib/x86");
-                    vLib64Dirs.push_back("$(INTELOCLSDKROOT)/lib/x64");
-                } else if (GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
-                    vIncludeDirs.push_back("$(CUDA_PATH)/include/");
-                    vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                    vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
-                } else {
-                    cout << "  Warning: Could not find an OpenCl SDK environment variable." << endl;
-                    cout << "    Either an OpenCL SDK is not installed or the environment variables are missing." << endl;
-                    cout << "    The location of the OpenCl files will have to be manually specified as otherwise the project will not compile." << endl;
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
+                    //Need to check for the existence of environment variables
+                    if (GetEnvironmentVariable("AMDAPPSDKROOT", NULL, 0)) {
+                        vIncludeDirs.push_back("$(AMDAPPSDKROOT)/include/");
+                        vLib32Dirs.push_back("$(AMDAPPSDKROOT)/lib/Win32");
+                        vLib64Dirs.push_back("$(AMDAPPSDKROOT)/lib/x64");
+                    } else if (GetEnvironmentVariable("INTELOCLSDKROOT", NULL, 0)) {
+                        vIncludeDirs.push_back("$(INTELOCLSDKROOT)/include/");
+                        vLib32Dirs.push_back("$(INTELOCLSDKROOT)/lib/x86");
+                        vLib64Dirs.push_back("$(INTELOCLSDKROOT)/lib/x64");
+                    } else if (GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                        vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                        vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
+                        vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+                    } else {
+                        cout << "  Warning: Could not find an OpenCl SDK environment variable." << endl;
+                        cout << "    Either an OpenCL SDK is not installed or the environment variables are missing." << endl;
+                        cout << "    The location of the OpenCl files will have to be manually specified as otherwise the project will not compile." << endl;
+                    }
                 }
             } else if (mitLib->first.compare("openal") == 0) {
                 if (!GetEnvironmentVariable("OPENAL_SDK", NULL, 0)) {
@@ -265,27 +277,33 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 vLib32Dirs.push_back("$(OPENAL_SDK)/libs/Win32");
                 vLib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
             } else if (mitLib->first.compare("nvenc") == 0) {
-                //Need to check for the existence of environment variables
-                if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
-                    cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
-                    cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
-                    cout << "    NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path." << endl;
-                }
-                //Only add if it hasn’t already been added
-                if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
-                    vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+                    //Need to check for the existence of environment variables
+                    if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                        cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
+                        cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
+                        cout << "    NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path." << endl;
+                    }
+                    //Only add if it hasn’t already been added
+                    if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
+                        vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                    }
                 }
             } else if ((mitLib->first.compare("cuda") == 0) || (mitLib->first.compare("cuvid") == 0)) {
-                //Need to check for the existence of environment variables
-                if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
-                    cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
-                    cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
-                }
-                //Only add if it hasn’t already been added
-                if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
-                    vIncludeDirs.push_back("$(CUDA_PATH)/include/");
-                    vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                    vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+                string sFileName;
+                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                    //Need to check for the existence of environment variables
+                    if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                        cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
+                        cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
+                    }
+                    //Only add if it hasn’t already been added
+                    if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
+                        vIncludeDirs.push_back("$(CUDA_PATH)/include/");
+                        vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
+                        vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+                    }
                 }
             }
         }

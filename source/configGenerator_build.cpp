@@ -215,6 +215,18 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("sdl2", true);
     fastToggleConfigValue("zlib", true);
 
+    string sFileName;
+    if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+        fastToggleConfigValue("cuda", true);
+        fastToggleConfigValue("cuvid", true);
+    }
+    if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+        fastToggleConfigValue("nvenc", true);
+    }
+    if (findFile(m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
+        fastToggleConfigValue("opencl", true);
+    }
+
     return true;
 }
 
