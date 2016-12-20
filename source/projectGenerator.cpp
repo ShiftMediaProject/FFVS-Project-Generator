@@ -32,6 +32,7 @@
 #define TEMPLATE_FILTERS_ID 110
 #define TEMPLATE_PROG_VCXPROJ_ID 112
 #define TEMPLATE_PROG_FILTERS_ID 114
+#define TEMPLATE_STDATOMIC_ID 116
 
 bool ProjectGenerator::passAllMake()
 {
@@ -44,6 +45,10 @@ bool ProjectGenerator::passAllMake()
     }
     copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
     copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h");
+    string sFileName;
+    if (findFile(m_ConfigHelper.m_sRootDirectory + "compat/atomics/win32/stdatomic.h", sFileName)) {
+        copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h");
+    }
 
     //Initialise internal values
     ConfigGenerator::DefaultValuesList Unneeded;
