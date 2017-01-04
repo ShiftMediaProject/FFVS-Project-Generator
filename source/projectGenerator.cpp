@@ -1042,6 +1042,11 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
     if (!findFile(sRetFileName, sFileName)) {
         // Check if this is a built file
         uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
+
+		if (uiSPos == string::npos ) {
+			return false;
+		} 
+
         string sProjectName = m_sProjectDir.substr(uiSPos);
         sRetFileName = m_sProjectDir.substr(0, uiSPos + 1) + "SMP" + sProjectName + sFile + sExtension;
         return findFile(sRetFileName, sFileName);
