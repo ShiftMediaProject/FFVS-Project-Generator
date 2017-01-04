@@ -64,7 +64,7 @@ bool ConfigGenerator::passConfigureFile()
     //Setup initial directories
     if (m_sRootDirectory.length() == 0) {
         //Search paths starting in current directory then checking parents
-        string sPathList[] = {"./", "../", "./ffmpeg", "../ffmpeg", "../../ffmpeg/", "../../libav/", "../../../", "../../"};
+        string sPathList[] = {"./", "../", "./ffmpeg/", "../ffmpeg/", "../../ffmpeg/", "../../libav/", "../../../", "../../"};
         uint uiPathCount = 0;
         uint uiNumPaths = sizeof(sPathList) / sizeof(string);
         for (uiPathCount; uiPathCount < uiNumPaths; uiPathCount++) {
@@ -259,9 +259,9 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         //cout << "  --libdir=DIR             install libs in DIR [PREFIX/lib]" << endl;
         //cout << "  --incdir=DIR             install includes in DIR [PREFIX/include]" << endl;
         cout << "  --rootdir=DIR            location of source configure file [auto]" << endl;
-        cout << "  --projdir=DIR            location of output proect files [ROOT/SMP]" << endl;
+        cout << "  --projdir=DIR            location of output project files [ROOT/SMP]" << endl;
         // Add in custom toolchain string
-        cout << "Toolchain options:" << endl;
+        cout << endl << "Toolchain options:" << endl;
         cout << "  --toolchain=NAME         set tool defaults according to NAME" << endl;
         // Add in reserved values
         vector<string> vReservedItems;
