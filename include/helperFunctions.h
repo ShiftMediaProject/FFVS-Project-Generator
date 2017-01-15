@@ -56,6 +56,8 @@ bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRec
 bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool bRecursive = true);
 
 void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, string& sRetPath);
+
+const string sWhiteSpace = " \t\n\r\f\v";
 };
 
 using namespace project_generate;
