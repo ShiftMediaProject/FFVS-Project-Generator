@@ -889,7 +889,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
     return true;
 }
 
-bool ConfigGenerator::passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn)
+bool ConfigGenerator::passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn, vector<string> * vReturnExterns)
 {
     //Need to find and open the specified file
     string sFile = m_sRootDirectory + sParam3;
@@ -897,6 +897,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
     if (!loadFromFile(sFile, sFindFile)) {
         return false;
     }
+    string sDecl;
 
     //Find the search pattern in the file
     uint uiStart = sFindFile.find(sParam2);
@@ -923,6 +924,22 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
         string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
         //Check to make sure this is a definition not a macro declaration
         if (sTag.compare("X") == 0) {
+            if ((vReturnExterns != NULL) && (sDecl.length() == 0)) {
+                //Get the first occurance of extern then till ; as that gives naming for export as well as type
+                uiStart = sFindFile.find("extern ", uiEnd + 1) + 7;
+                uiEnd = sFindFile.find(';', uiStart + 1);
+                sDecl = sFindFile.substr(uiStart, uiEnd - uiStart);
+                uiStart = sDecl.find("##");
+                while (uiStart != string::npos) {
+                    char cReplace = '@';
+                    if (sDecl.at(uiStart + 2) == 'y') {
+                        cReplace = '$';
+                    }
+                    sDecl.replace(uiStart, ((sDecl.length() - uiStart) > 3) ? 5 : 3, 1, cReplace);
+                    uiStart = sDecl.find("##");
+                }
+            }
+
             //Get next
             uiStart = sFindFile.find(sParam2, uiEnd + 1);
             continue;
@@ -946,9 +963,39 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             //  and create a config option out of it. This is actually incorrect as the source code itself
             //  only uses the first parameter as the config option.
         }
+        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
+        //Add any requested externs
+        if (vReturnExterns != NULL) {
+            //Create new extern by replacing tag with found one
+            uiStart = 0;
+            string sDecTag = sDecl;
+            while ((uiStart = sDecTag.find('@', uiStart)) != std::string::npos) {
+                sDecTag.replace(uiStart, 1, sTag);
+                uiStart += sTag.length();
+            }
+            //Get any remaining tags and add to extern
+            if (sDecTag.find('$') != string::npos) {
+                //Get third tag
+                uiStart = sFindFile.find_first_not_of(" \t", uiEnd + 1);
+                uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",);", uiStart);
+                if ((sFindFile.at(uiEnd) != ')') && (sFindFile.at(uiEnd) != ',')) {
+                    //Get next
+                    uiStart = sFindFile.find(sParam2, uiEnd + 1);
+                    continue;
+                }
+                string sTag3 = sFindFile.substr(uiStart, uiEnd - uiStart);
+                //Replace second tag
+                uiStart = 0;
+                while ((uiStart = sDecTag.find('$', uiStart)) != std::string::npos) {
+                    sDecTag.replace(uiStart, 1, sTag3);
+                    uiStart += sTag3.length();
+                }
+            }
+            //Add to the list
+            vReturnExterns->push_back(sDecTag);
+        }
         sTag = sTag + "_" + sParam1;
         //Add the new value to list
-        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
         vReturn.push_back(sTag);
         //Get next
         uiStart = sFindFile.find(sParam2, uiEnd + 1);

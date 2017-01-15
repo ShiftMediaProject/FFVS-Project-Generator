@@ -97,7 +97,16 @@ private:
 
     bool getConfigList(const string & sList, vector<string> & vReturn, bool bForce = true, uint uiCurrentFilePos = string::npos);
 
-    bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn);
+    /**
+     * Perform the equivalent of configures find_things function.
+     * @param          sParam1        The first parameter.
+     * @param          sParam2        The second parameter.
+     * @param          sParam3        The third parameter.
+     * @param [in,out] vReturn        Returns and detected configure defines.
+     * @param [in,out] vReturnExterns (Optional) If non-null, returns any detected extern variables.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn, vector<string> * vReturnExterns = NULL);
 
     bool passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn);
 
