@@ -70,10 +70,19 @@ bool loadFromResourceFile(int iResourceID, string& sRetString)
     return true;
 }
 
-bool writeToFile(const string & sFileName, const string & sString)
+bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
 {
+    //Check for subdirectories
+    uint uiDirPos = sFileName.rfind('/');
+    if (uiDirPos != string::npos) {
+        string sDir = sFileName.substr(0, uiDirPos);
+        if (!makeDirectory(sDir)) {
+            cout << "  Error: Failed creating local " << sDir << " directory" << endl;
+            return false;
+        }
+    }
     //Open output file
-    ofstream ofOutputFile(sFileName);
+    ofstream ofOutputFile(sFileName, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofOutputFile.is_open()) {
         cout << "  Error: failed opening output file (" << sFileName << ")" << endl;
         return false;

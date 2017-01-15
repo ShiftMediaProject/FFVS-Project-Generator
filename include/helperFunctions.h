@@ -37,7 +37,7 @@ bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary = fa
 
 bool loadFromResourceFile(int iResourceID, string& sRetString);
 
-bool writeToFile(const string& sFileName, const string& sString);
+bool writeToFile(const string& sFileName, const string& sString, bool bBinary = false);
 
 bool copyResourceFile(int iResourceID, const string & sDestinationFile);
 
