@@ -568,19 +568,11 @@ bool ConfigGenerator::outputConfig()
         }
     }
 
-    //Open configure output file
-    string sConfigFile = m_sProjectDirectory + "config.h";
-    ofstream ofConfigureFile(sConfigFile);
-    if (!ofConfigureFile.is_open()) {
-        cout << "  Error: failed opening output configure file (" << sConfigFile << ")" << endl;
-        return false;
-    }
-
-    //Output header
+    //Create header output
     string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
-    ofConfigureFile << sHeader << endl;
-    ofConfigureFile << "#ifndef " << "SMP_CONFIG_H" << endl;
-    ofConfigureFile << "#define " << "SMP_CONFIG_H" << endl;
+    string sConfigureFile = sHeader;
+    sConfigureFile += "\n#ifndef SMP_CONFIG_H\n";
+    sConfigureFile += "#define SMP_CONFIG_H\n";
 
     //Build inbuilt force replace list
     DefaultValuesList mReplaceList;
@@ -611,21 +603,13 @@ bool ConfigGenerator::outputConfig()
     for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
         //Check for forced replacement (only if attribute is not disabled)
         if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceList.find(vitOption->m_sOption) != mReplaceList.end())) {
-            ofConfigureFile << mReplaceList[vitOption->m_sOption] << endl;
+            sConfigureFile += mReplaceList[vitOption->m_sOption] + '\n';
         } else {
-            ofConfigureFile << "#define " << vitOption->m_sOption << " " << vitOption->m_sValue << endl;
+            sConfigureFile += "#define " + vitOption->m_sOption + ' ' + vitOption->m_sValue + '\n';
         }
     }
 
-    //Open asm configure output file
-    sConfigFile = m_sProjectDirectory + "config.asm";
-    ofstream ofASMConfigureFile(sConfigFile);
-    if (!ofASMConfigureFile.is_open()) {
-        cout << "  Error: failed opening output asm configure file (" << sConfigFile << ")" << endl;
-        return false;
-    }
-
-    //Output header
+    //Create ASM config file
     string sHeader2 = sHeader;
     sHeader2.replace(sHeader2.find(" */", sHeader2.length() - 4), 3, ";******");
     size_t ulFindPos = sHeader2.find("/*");
@@ -634,7 +618,7 @@ bool ConfigGenerator::outputConfig()
         sHeader2.replace(ulFindPos, 2, ";* ");
         ulFindPos += 3;
     }
-    ofASMConfigureFile << sHeader2 << endl;
+    string sASMConfigureFile = sHeader2 + '\n';
 
     //Output all internal options
     vitOption = m_vConfigValues.begin();
@@ -642,22 +626,30 @@ bool ConfigGenerator::outputConfig()
         string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
         //Check for forced replacement (only if attribute is not disabled)
         if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceList.find(sTagName) != mReplaceList.end())) {
-            ofConfigureFile << mReplaceList[sTagName] << endl;
+            sConfigureFile += mReplaceList[sTagName] + '\n';
         } else {
-            ofConfigureFile << "#define " << sTagName << " " << vitOption->m_sValue << endl;
+            sConfigureFile += "#define " + sTagName + ' ' + vitOption->m_sValue + '\n';
         }
         if ((vitOption->m_sValue.compare("0") != 0) && (mASMReplaceList.find(sTagName) != mASMReplaceList.end())) {
-            ofASMConfigureFile << mASMReplaceList[sTagName] << endl;
+            sASMConfigureFile += mASMReplaceList[sTagName] + '\n';
         } else {
-            ofASMConfigureFile << "%define " << sTagName << " " << vitOption->m_sValue << endl;
+            sASMConfigureFile += "%define " + sTagName + ' ' + vitOption->m_sValue + '\n';
         }
     }
 
     //Output end header guard
-    ofConfigureFile << "#endif /* " << "SMP_CONFIG_H */" << endl;
-    //Close output files
-    ofConfigureFile.close();
-    ofASMConfigureFile.close();
+    sConfigureFile += "#endif /* SMP_CONFIG_H */\n";
+    //Write output files
+    string sConfigFile = m_sProjectDirectory + "config.h";
+    if (!writeToFile(sConfigFile, sConfigureFile, true)) {
+        cout << "  Error: failed opening output configure file (" << sConfigFile << ")" << endl;
+        return false;
+    }
+    sConfigFile = m_sProjectDirectory + "config.asm";
+    if (!writeToFile(sConfigFile, sASMConfigureFile, true)) {
+        cout << "  Error: failed opening output asm configure file (" << sConfigFile << ")" << endl;
+        return false;
+    }
 
     //Output avconfig.h
     cout << "  Outputting avconfig.h..." << endl;
@@ -665,17 +657,11 @@ bool ConfigGenerator::outputConfig()
         cout << "  Error: Failed creating local libavutil directory" << endl;
         return false;
     }
-    string sAVConfigFile = m_sProjectDirectory + "libavutil/avconfig.h";
-    ofstream ofAVConfigFile(sAVConfigFile);
-    if (!ofAVConfigFile.is_open()) {
-        cout << "  Error: Failed opening output avconfig file (" << sAVConfigFile << ")" << endl;
-        return false;
-    }
 
     //Output header guard
-    ofAVConfigFile << sHeader << endl;
-    ofAVConfigFile << "#ifndef SMP_LIBAVUTIL_AVCONFIG_H" << endl;
-    ofAVConfigFile << "#define SMP_LIBAVUTIL_AVCONFIG_H" << endl;
+    string sAVConfigFile = sHeader + '\n';
+    sAVConfigFile += "#ifndef SMP_LIBAVUTIL_AVCONFIG_H\n";
+    sAVConfigFile += "#define SMP_LIBAVUTIL_AVCONFIG_H\n";
 
     //avconfig.h currently just uses HAVE_LIST_PUB to define its values
     vector<string> vAVConfigList;
@@ -685,10 +671,14 @@ bool ConfigGenerator::outputConfig()
     }
     for (vector<string>::iterator vitAVC = vAVConfigList.begin(); vitAVC < vAVConfigList.end(); vitAVC++) {
         ValuesList::iterator vitOption = getConfigOption(*vitAVC);
-        ofAVConfigFile << "#define " << "AV_HAVE_" << vitOption->m_sOption << " " << vitOption->m_sValue << endl;
+        sAVConfigFile += "#define AV_HAVE_" + vitOption->m_sOption + ' ' + vitOption->m_sValue + '\n';
     }
-    ofAVConfigFile << "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */" << endl;
-    ofAVConfigFile.close();
+    sAVConfigFile += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
+    sConfigFile = m_sProjectDirectory + "libavutil/avconfig.h";
+    if (!writeToFile(sConfigFile, sAVConfigFile, true)) {
+        cout << "  Error: Failed opening output avconfig file (" << sAVConfigFile << ")" << endl;
+        return false;
+    }
 
     //Output ffversion.h
     cout << "  Outputting ffversion.h..." << endl;
@@ -703,23 +693,20 @@ bool ConfigGenerator::outputConfig()
     string sVersion;
     getline(ifVersionDefFile, sVersion);
     ifVersionDefFile.close();
+
+    //Output header
+    string sVersionFile = sHeader + '\n';
+
+    //Output info
+    sVersionFile += "#ifndef SMP_LIBAVUTIL_FFVERSION_H\n#define SMP_LIBAVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
+    sVersionFile += sVersion;
+    sVersionFile += "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */\n";
     //Open output file
-    string sVersionFile = m_sProjectDirectory + "libavutil/ffversion.h";
-    ofstream ofVersionFile(sVersionFile);
-    if (!ofVersionFile.is_open()) {
+    sConfigFile = m_sProjectDirectory + "libavutil/ffversion.h";
+    if (!writeToFile(sConfigFile, sVersionFile, true)) {
         cout << "  Error: Failed opening output version file (" << sVersionFile << ")" << endl;
         return false;
     }
-
-    //Output header
-    ofVersionFile << sHeader << endl;
-
-    //Output info
-    ofVersionFile << "#ifndef SMP_LIBAVUTIL_FFVERSION_H\n#define SMP_LIBAVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
-    ofVersionFile << sVersion;
-    ofVersionFile << "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */" << endl;
-
-    ofVersionFile.close();
 
     //Output enabled components lists
     uint uiStart = m_sConfigureFile.find("print_enabled_components ");
@@ -738,7 +725,7 @@ bool ConfigGenerator::outputConfig()
         string sName = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         //Get config list input parameter
         uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, ++uiStart); //skip precedding '$'
+        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, ++uiStart); //skip preceding '$'
         string sList = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         if (!passEnabledComponents(sFile, sStruct, sName, sList)) {
             return false;
@@ -1084,29 +1071,16 @@ bool ConfigGenerator::passConfigList(const string & sPrefix, const string & sSuf
 bool ConfigGenerator::passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList)
 {
     cout << "  Outputting enabled components file " << sFile << "..." << endl;
-    //Open output file
-    uint uiDirPos = sFile.rfind('/');
-    if (uiDirPos != string::npos) {
-        string sDir = sFile.substr(0, uiDirPos);
-        if (!makeDirectory(m_sProjectDirectory + sDir)) {
-            cout << "  Error: Failed creating local " << sDir << " directory" << endl;
-            return false;
-        }
-    }
-    ofstream ofFile(m_sProjectDirectory + sFile);
-    if (!ofFile.is_open()) {
-        cout << "  Error: Failed opening output file (" << sFile << ")" << endl;
-        return false;
-    }
 
+    string sOutput;
     //Add copywrite header
     string sNameNice = sName;
     replace(sNameNice.begin(), sNameNice.end(), '_', ' ');
-    ofFile << getCopywriteHeader("Available items from " + sNameNice);
-    ofFile << "\n";
+    sOutput += getCopywriteHeader("Available items from " + sNameNice);
+    sOutput += '\n';
 
     //Output header
-    ofFile << "static const " << sStruct << " *" << sName << "[] = {" << endl;
+    sOutput += "static const " + sStruct + " *" + sName + "[] = {\n";
 
     //Output each element of desired list
     vector<string> vList;
@@ -1119,12 +1093,13 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
         if (vitOption->m_sValue.compare("1") == 0) {
             string sOptionLower = vitOption->m_sOption;
             transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
-            ofFile << "    &ff_" << sOptionLower << "," << endl;
+            sOutput += "    &ff_" + sOptionLower + ",\n";
         }
     }
-    ofFile << "    NULL };";
+    sOutput += "    NULL };";
 
-    ofFile.close();
+    //Open output file
+    writeToFile(m_sProjectDirectory + sFile, sOutput, true);
     return true;
 }
 
