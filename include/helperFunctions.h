@@ -57,7 +57,15 @@ bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool
 
 void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, string& sRetPath);
 
-const string sWhiteSpace = " \t\n\r\f\v";
+void removeWhiteSpace(string & sString);
+
+void findAndReplace(string & sString, const string & sSearch, const string & sReplace);
+
+const string sEndLine = "\n\r\f\v";
+const string sWhiteSpace = " \t" + sEndLine;
+const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#";
+const string sNonName = sOperators + sWhiteSpace;
+const string sPreProcessor = "&|()!";
 };
 
 using namespace project_generate;

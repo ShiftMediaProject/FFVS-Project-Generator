@@ -279,4 +279,26 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
     sRetPath.resize(strlen(sRetPath.c_str()));
     replace(sRetPath.begin(), sRetPath.end(), '\\', '/');
 }
+
+void removeWhiteSpace(string & sString)
+{
+    struct RemoveDelimiter
+    {
+        bool operator()(char c)
+        {
+            return (sWhiteSpace.find(c) != string::npos);
+        }
+    };
+
+    sString.erase(remove_if(sString.begin(), sString.end(), RemoveDelimiter()), sString.end());
+}
+
+void findAndReplace(string & sString, const string & sSearch, const string & sReplace)
+{
+    uint uiPos = 0;
+    while ((uiPos = sString.find(sSearch, uiPos)) != std::string::npos) {
+        sString.replace(uiPos, sSearch.length(), sReplace);
+        uiPos += sReplace.length();
+    }
+}
 };
