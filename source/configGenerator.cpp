@@ -641,12 +641,12 @@ bool ConfigGenerator::outputConfig()
     sConfigureFile += "#endif /* SMP_CONFIG_H */\n";
     //Write output files
     string sConfigFile = m_sProjectDirectory + "config.h";
-    if (!writeToFile(sConfigFile, sConfigureFile, true)) {
+    if (!writeToFile(sConfigFile, sConfigureFile)) {
         cout << "  Error: failed opening output configure file (" << sConfigFile << ")" << endl;
         return false;
     }
     sConfigFile = m_sProjectDirectory + "config.asm";
-    if (!writeToFile(sConfigFile, sASMConfigureFile, true)) {
+    if (!writeToFile(sConfigFile, sASMConfigureFile)) {
         cout << "  Error: failed opening output asm configure file (" << sConfigFile << ")" << endl;
         return false;
     }
@@ -675,7 +675,7 @@ bool ConfigGenerator::outputConfig()
     }
     sAVConfigFile += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
     sConfigFile = m_sProjectDirectory + "libavutil/avconfig.h";
-    if (!writeToFile(sConfigFile, sAVConfigFile, true)) {
+    if (!writeToFile(sConfigFile, sAVConfigFile)) {
         cout << "  Error: Failed opening output avconfig file (" << sAVConfigFile << ")" << endl;
         return false;
     }
@@ -703,7 +703,7 @@ bool ConfigGenerator::outputConfig()
     sVersionFile += "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */\n";
     //Open output file
     sConfigFile = m_sProjectDirectory + "libavutil/ffversion.h";
-    if (!writeToFile(sConfigFile, sVersionFile, true)) {
+    if (!writeToFile(sConfigFile, sVersionFile)) {
         cout << "  Error: Failed opening output version file (" << sVersionFile << ")" << endl;
         return false;
     }
@@ -1146,7 +1146,7 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
     sOutput += "    NULL };";
 
     //Open output file
-    writeToFile(m_sProjectDirectory + sFile, sOutput, true);
+    writeToFile(m_sProjectDirectory + sFile, sOutput);
     return true;
 }
 
