@@ -128,6 +128,11 @@ void deleteFolder(const string & sDestinationFolder)
     SHFileOperation(&file_op);
 }
 
+bool copyFile(const string & sSourceFolder, const string & sDestinationFolder)
+{
+    return (CopyFile(sSourceFolder.c_str(), sDestinationFolder.c_str(), false) != 0);
+}
+
 string getCopywriteHeader(const string& sDecription)
 {
     return "/** " + sDecription + "\n\
