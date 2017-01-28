@@ -953,15 +953,17 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             continue;
         }
         string sTag2 = sFindFile.substr(uiStart, uiEnd - uiStart);
-        //Check that both tags match
-        transform(sTag2.begin(), sTag2.end(), sTag2.begin(), ::toupper);
-        if (sTag2.compare(sTag) != 0) {
-            //Get next
-            uiStart = sFindFile.find(sParam2, uiEnd + 1);
-            continue;
-            //This is somewhat incorrect as the official configuration will always take the second tag
-            //  and create a config option out of it. This is actually incorrect as the source code itself
-            //  only uses the first parameter as the config option.
+        if (vReturnExterns == NULL) {
+            //Check that both tags match
+            transform(sTag2.begin(), sTag2.end(), sTag2.begin(), ::toupper);
+            if (sTag2.compare(sTag) != 0) {
+                //Get next
+                uiStart = sFindFile.find(sParam2, uiEnd + 1);
+                continue;
+                //This is somewhat incorrect as the official configuration will always take the second tag
+                //  and create a config option out of it. This is actually incorrect as the source code itself
+                //  only uses the first parameter as the config option.
+            }
         }
         transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
         //Add any requested externs
@@ -970,8 +972,8 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             uiStart = 0;
             string sDecTag = sDecl;
             while ((uiStart = sDecTag.find('@', uiStart)) != std::string::npos) {
-                sDecTag.replace(uiStart, 1, sTag);
-                uiStart += sTag.length();
+                sDecTag.replace(uiStart, 1, sTag2);
+                uiStart += sTag2.length();
             }
             //Get any remaining tags and add to extern
             if (sDecTag.find('$') != string::npos) {
@@ -991,6 +993,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
                     uiStart += sTag3.length();
                 }
             }
+
             //Add to the list
             vReturnExterns->push_back(sDecTag);
         }
