@@ -125,6 +125,15 @@ private:
 
     void buildProjectGUIDs(map<string, string> & mKeys);
 
+    struct DCEParams
+    {
+        string sDefine;
+        string sFile;
+
+        bool operator==(const string & sCompare) { return (sFile.compare(sCompare) == 0); }
+    };
+    void buildProjectDCEs(const string & sProjectName, map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables);
+
     bool checkProjectFiles(const string& sProjectName);
 
     bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes, const string& sProjectName);
@@ -139,6 +148,8 @@ private:
 
     bool outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs);
 
+    bool runMSVC(const std::vector<std::string> & vIncludeDirs, const std::string & sProjectName, std::map<std::string, std::vector<std::string>> &mDirectoryObjects, int iRunType);
+
     void outputBuildEvents(const string& sProjectName, string & sProjectTemplate);
 
     void outputIncludeDirs(const StaticList& vIncludeDirs, string & sProjectTemplate);
@@ -148,6 +159,18 @@ private:
     void outputYASMTools(string & sProjectTemplate);
 
     bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
+
+    bool outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs);
+
+    void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess);
+
+    void outputProgramDCEsResolveDefine(map<string, DCEParams> & mFoundDCEFunctions);
+
+    bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration);
+
+    void outputProjectDCECleanDefine(string & sDefine);
+
+    const string asDCETags[6] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_", "INLINE_"};
 };
 
 #endif

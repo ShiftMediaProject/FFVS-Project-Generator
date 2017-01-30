@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <Windows.h>
+#include <algorithm>
 
 void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
 {
@@ -42,6 +43,7 @@ void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOp
         }
     }
 }
+
 void ProjectGenerator::buildInterDependencies(const string & sProjectName, StaticList & vLibs)
 {
     //Get the lib dependencies from the configure file
@@ -428,5 +430,46 @@ void ProjectGenerator::buildProjectGUIDs(map<string, string> & mKeys)
         mKeys["avconv"] = "4081C77E-F1F7-49FA-9BD8-A4D267C83716";
         mKeys["avplay"] = "E2A6865D-BD68-45B4-8130-EFD620F2C7EB";
         mKeys["avprobe"] = "147A422A-FA63-4724-A5D9-08B1CAFDAB59";
+    }
+}
+
+void ProjectGenerator::buildProjectDCEs(const string & sProjectName, map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables)
+{
+    //Next we need to check for all the configurations that are project specific
+    struct FindThingsVars
+    {
+        string sList;
+        string sSearch;
+        string sFile;
+        string sHeader;
+    };
+    vector<FindThingsVars> vSearchLists;
+    if (sProjectName.compare("libavcodec") == 0) {
+        vSearchLists.push_back({"encoder", "ENC", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
+        vSearchLists.push_back({"decoder", "DEC", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
+        vSearchLists.push_back({"hwaccel", "HWACCEL", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
+        vSearchLists.push_back({"parser", "PARSER", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
+    } else if (sProjectName.compare("libavformat") == 0) {
+        vSearchLists.push_back({"muxer", "_MUX", "libavformat/allformats.c", "libavformat/avformat.h"});
+        vSearchLists.push_back({"demuxer", "DEMUX", "libavformat/allformats.c", "libavformat/avformat.h"});
+    } else if (sProjectName.compare("libavfilter") == 0) {
+        vSearchLists.push_back({"filter", "FILTER", "libavfilter/allfilters.c", "libavfilter/avfilter.h"});
+    } else if (sProjectName.compare("libavdevice") == 0) {
+        vSearchLists.push_back({"outdev", "OUTDEV", "libavdevice/alldevices.c", "libavdevice/avdevice.h"});
+        vSearchLists.push_back({"indev", "_IN", "libavdevice/alldevices.c", "libavdevice/avdevice.h"});
+    }
+
+    for (vector<FindThingsVars>::iterator itLists = vSearchLists.begin(); itLists < vSearchLists.end(); itLists++) {
+        //We need to get the values from each config list
+        StaticList vRet;
+        StaticList vRetExterns;
+        string sList = (*itLists).sList;
+        transform(sList.begin(), sList.end(), sList.begin(), ::toupper);
+        m_ConfigHelper.passFindThings(itLists->sList, itLists->sSearch, itLists->sFile, vRet, &vRetExterns);
+        for (StaticList::iterator itRet = vRet.begin(), itRet2 = vRetExterns.begin(); itRet < vRet.end(); itRet++, itRet2++) {
+            string sType = *itRet2;
+            transform(itRet->begin(), itRet->end(), itRet->begin(), ::toupper);
+            mDCEVariables[sType] = {"CONFIG_" + *itRet, itLists->sHeader};
+        }
     }
 }

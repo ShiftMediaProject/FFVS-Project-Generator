@@ -24,6 +24,10 @@
 #include <algorithm>
 #include <utility>
 
+ //This can be used to force all detected DCE values to be output to file
+ // whether they are enabled in current configuration or not
+#define FORCEALLDCE 0
+
 #define TEMPLATE_COMPAT_ID 100
 #define TEMPLATE_MATH_ID 102
 #define TEMPLATE_UNISTD_ID 104
@@ -132,10 +136,27 @@ bool ProjectGenerator::outputProject()
     string sProjectName = m_sProjectDir.substr(uiSPos, m_sProjectDir.length() - 1 - uiSPos);
 
     //Check all files are correctly located
-    if (!checkProjectFiles(sProjectName))
+    if (!checkProjectFiles(sProjectName)) {
         return false;
+    }
 
-    //We now have complete list of all the files the we need
+    //Get dependency directories
+    StaticList vIncludeDirs;
+    StaticList vLib32Dirs;
+    StaticList vLib64Dirs;
+    buildDependencyDirs(sProjectName, vIncludeDirs, vLib32Dirs, vLib64Dirs);
+
+    //Generate the exports file
+    if (!outputProjectExports(sProjectName, vIncludeDirs)) {
+        return false;
+    }
+
+    //Create missing definitions of functions removed by DCE
+    if (!outputProjectDCE(sProjectName, vIncludeDirs)) {
+        return false;
+    }
+
+    //We now have complete list of all the files that we need
     cout << "  Generating project file (" << sProjectName << ")..." << endl;
 
     //Open the input temp project file
@@ -167,12 +188,6 @@ bool ProjectGenerator::outputProject()
         return false;
     }
 
-    //Get dependency directories
-    StaticList vIncludeDirs;
-    StaticList vLib32Dirs;
-    StaticList vLib64Dirs;
-    buildDependencyDirs(sProjectName, vIncludeDirs, vLib32Dirs, vLib64Dirs);
-
     //Add additional includes to include list
     outputIncludeDirs(vIncludeDirs, sProjectFile);
 
@@ -188,12 +203,6 @@ bool ProjectGenerator::outputProject()
     //Write output filters
     string sOutFiltersFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".vcxproj.filters";
     if (!writeToFile(sOutFiltersFile, sFiltersFile)) {
-        return false;
-    }
-
-    //Open the exports files and get export names
-    cout << "  Generating project exports file (" << sProjectName << ")..." << endl;
-    if (!outputProjectExports(sProjectName, vIncludeDirs)) {
         return false;
     }
 
@@ -221,8 +230,23 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     passProgramMake(sProjectName);
 
     //Check all files are correctly located
-    if (!checkProjectFiles(sProjectName))
+    if (!checkProjectFiles(sProjectName)) {
         return false;
+    }
+
+    //Get dependency directories
+    StaticList vIncludeDirs;
+    StaticList vLib32Dirs;
+    StaticList vLib64Dirs;
+    buildDependencyDirs(sProjectName, vIncludeDirs, vLib32Dirs, vLib64Dirs);
+
+    //Create missing definitions of functions removed by DCE
+    if (!outputProjectDCE(sProjectName, vIncludeDirs)) {
+        return false;
+    }
+
+    //We now have complete list of all the files that we need
+    cout << "  Generating project file (" << sProjectName << ")..." << endl;
 
     //Add all project source files
     outputSourceFiles(sProjectName, sProgramFile, sProgramFiltersFile);
@@ -237,12 +261,6 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     if (!outputDependencyLibs(sProjectName, sProgramFile, true)) {
         return false;
     }
-
-    //Get dependency directories
-    StaticList vIncludeDirs;
-    StaticList vLib32Dirs;
-    StaticList vLib64Dirs;
-    buildDependencyDirs(sProjectName, vIncludeDirs, vLib32Dirs, vLib64Dirs);
 
     //Add additional includes to include list
     outputIncludeDirs(vIncludeDirs, sProgramFile);
@@ -1042,9 +1060,9 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
     if (!findFile(sRetFileName, sFileName)) {
         // Check if this is a built file
         uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
-		if (uiSPos == string::npos ) {
-			return false;
-		}
+        if (uiSPos == string::npos) {
+            return false;
+        }
         string sProjectName = m_sProjectDir.substr(uiSPos);
         sRetFileName = m_ConfigHelper.m_sProjectDirectory + sProjectName + sFile + sExtension;
         return findFile(sRetFileName, sFileName);
@@ -1536,6 +1554,7 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
 
 bool ProjectGenerator::outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs)
 {
+    cout << "  Generating project exports file (" << sProjectName << ")..." << endl;
     string sExportList;
     if (!findFile(this->m_sProjectDir + "/*.v", sExportList)) {
         cout << "  Error: Failed finding project exports (" << sProjectName << ")" << endl;
@@ -1581,27 +1600,6 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         return false;
     }
 
-    //Create a test file to read in definitions
-    string sOutDir = m_ConfigHelper.m_sOutDirectory;
-    makeFileGeneratorRelative(sOutDir, sOutDir);
-    string sCLExtra = "/I\"" + sOutDir + "include/\"";
-    for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
-        string sIncludeDir = *vitIt;
-        uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 9, sOutDir);
-        }
-        uiFindPos2 = sIncludeDir.find("$(");
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 2, "%");
-        }
-        uiFindPos2 = sIncludeDir.find(")");
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 1, "%");
-        }
-        sCLExtra += " /I\"" + sIncludeDir + '\"';
-    }
-
     //Split each source file into different directories to avoid name clashes
     map<string, StaticList> mDirectoryObjects;
     for (StaticList::iterator itI = m_vCIncludes.begin(); itI < m_vCIncludes.end(); itI++) {
@@ -1623,112 +1621,15 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         mDirectoryObjects[sFolderName].push_back(*itI);
     }
 
-    //Use Microsoft compiler to pass the test file and retrieve declarations
-    string sCLLaunchBat = "@echo off \n";
-    sCLLaunchBat += "if exist \"%VS150COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS150COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS140COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS140COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS120COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS120COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS110COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS110COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else ( \n\
-echo fatal error : An installed version of Visual Studio could not be detected. \n\
-exit /b 1 \n\
-) \n\
-:MSVCVarsDone \n";
-    string sProjectNameShort = sProjectName.substr(3); //The full name minus the lib prefix
-    sCLLaunchBat += "mkdir \"" + sProjectNameShort + "\" > nul 2>&1\n";
-    for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
-        //Need to make output directory so cl doesnt fail outputting objs
-        string sDirName = sProjectNameShort + "/" + itI->first;
-        sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
-        const uint uiRowSize = 32;
-        uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
-        uint uiTotalPos = 0;
-
-        //Split calls into groups of 50 to prevent batch file length limit
-        for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
-            sCLLaunchBat += "cl.exe";
-            sCLLaunchBat += " /I\"" + m_ConfigHelper.m_sRootDirectory + "\" /I\"" + m_ConfigHelper.m_sProjectDirectory + "\" " + sCLExtra + " /Fo\"" + sDirName + "/\" /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /FI\"compat.h\" /FR\"" + sDirName + "/\" /c /MP /w /nologo";
-            uint uiStartPos = uiTotalPos;
-            for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
-                makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
-                sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
-            }
-            sCLLaunchBat += " > log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
-        }
-    }
-    sCLLaunchBat += "del /F /S /Q *.obj > nul 2>&1\ndel log.txt > nul 2>&1\n";
-    sCLLaunchBat += "exit /b 0\n:exitFail\nrmdir /S /Q " + sProjectNameShort + "\nexit /b 1";
-    if (!writeToFile("test.bat", sCLLaunchBat)) {
+    if (!runMSVC(vIncludeDirs, sProjectName, mDirectoryObjects, 0))
         return false;
-    }
-
-    if (0 != system("test.bat")) {
-        cout << "  Error: Errors detected during test compilation :-" << endl;
-        string sTestOutput;
-        if (loadFromFile("log.txt", sTestOutput)) {
-            //Output errors from log.txt
-            bool bError = false;
-            bool bMissingVS = false;
-            bool bMissingDeps = false;
-            uiFindPos = sTestOutput.find(" error ");
-            while (uiFindPos != string::npos) {
-                //find end of line
-                uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
-                string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
-                cout << "    " << sTemp << endl;
-                uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
-                //Check what type of error was found
-                if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
-                    bMissingDeps = true;
-                } else if (!bMissingVS && (sTemp.find("Visual Studio could not be detected") != string::npos)) {
-                    bMissingVS = true;
-                } else {
-                    bError = true;
-                }
-            }
-            uiFindPos = sTestOutput.find("internal or external command");
-            if (uiFindPos != string::npos) {
-                uint uiFindPos2 = sTestOutput.find("\n", uiFindPos + 1);
-                uiFindPos = sTestOutput.rfind("\n", uiFindPos);
-                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos;
-                cout << "    " << sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos) << endl;
-                bMissingVS = true;
-            }
-            if (bMissingVS) {
-                cout << endl << "    Based on the above error(s) Visual Studio is not installed correctly on the host system." << endl;
-                cout << "    Install a compatible version of Visual Studio before trying again." << endl;
-            } else if (bMissingDeps) {
-                cout << endl << "    Based on the above error(s) there are files required for dependency libraries that are not available" << endl;
-                cout << "    Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again." << endl;
-                cout << "    Consult the supplied readme for instructions for installing varying dependencies." << endl;
-                cout << "    If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again." << endl;
-                cout << "    Removing the offending configuration option can also be used to remove the error." << endl;
-            } else if (bError) {
-                cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
-            }
-        }
-        //Remove the test header files
-        deleteFile("test.bat");
-        deleteFolder(sProjectNameShort);
-        return false;
-    }
-
-    //Remove the compilation objects
-    deleteFile("test.bat");
 
     //Loaded in the compiler passed files
     StaticList vSBRFiles;
     StaticList vModuleExports;
     StaticList vModuleDataExports;
-    findFiles(sProjectNameShort + "/*.sbr", vSBRFiles);
+    string sProjNameShort = sProjectName.substr(3); //The full name minus the lib prefix
+    findFiles(sProjNameShort + "/*.sbr", vSBRFiles);
     for (StaticList::iterator itSBR = vSBRFiles.begin(); itSBR < vSBRFiles.end(); itSBR++) {
         string sSBRFile;
         loadFromFile(*itSBR, sSBRFile, true);
@@ -1836,7 +1737,7 @@ exit /b 1 \n\
         }
     }
     //Remove the test sbr files
-    deleteFolder(sProjectNameShort);
+    deleteFolder(sProjNameShort);
 
     //Check for any exported functions in asm files
     for (StaticList::iterator itASM = m_vYASMIncludes.begin(); itASM < m_vYASMIncludes.end(); itASM++) {
@@ -1888,7 +1789,7 @@ exit /b 1 \n\
     //Create the export module string
     string sModuleFile = "EXPORTS\n";
     for (StaticList::iterator itI = vModuleExports.begin(); itI < vModuleExports.end(); itI++) {
-        sModuleFile += "    " + *itI + "\n";
+        sModuleFile += "    " + *itI + '\n';
     }
     for (StaticList::iterator itI = vModuleDataExports.begin(); itI < vModuleDataExports.end(); itI++) {
         sModuleFile += "    " + *itI + " DATA\n";
@@ -1898,6 +1799,153 @@ exit /b 1 \n\
     if (!writeToFile(sDestinationFile, sModuleFile)) {
         return false;
     }
+    return true;
+}
+
+bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+{
+    //Create a test file to read in definitions
+    string sOutDir = m_ConfigHelper.m_sOutDirectory;
+    makeFileGeneratorRelative(sOutDir, sOutDir);
+    string sCLExtra = "/I\"" + sOutDir + "include/\"";
+    for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
+        string sIncludeDir = *vitIt;
+        uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.replace(uiFindPos2, 9, sOutDir);
+        }
+        uiFindPos2 = sIncludeDir.find("$(");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.replace(uiFindPos2, 2, "%");
+        }
+        uiFindPos2 = sIncludeDir.find(")");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.replace(uiFindPos2, 1, "%");
+        }
+        sCLExtra += " /I\"" + sIncludeDir + '\"';
+    }
+
+    //Use Microsoft compiler to pass the test file and retrieve declarations
+    string sCLLaunchBat = "@echo off \n";
+    sCLLaunchBat += "if exist \"%VS150COMNTOOLS%\\vsvars32.bat\" ( \n\
+call \"%VS150COMNTOOLS%\\vsvars32.bat\" \n\
+goto MSVCVarsDone \n\
+) else if exist \"%VS140COMNTOOLS%\\vsvars32.bat\" ( \n\
+call \"%VS140COMNTOOLS%\\vsvars32.bat\" \n\
+goto MSVCVarsDone \n\
+) else if exist \"%VS120COMNTOOLS%\\vsvars32.bat\" ( \n\
+call \"%VS120COMNTOOLS%\\vsvars32.bat\" \n\
+goto MSVCVarsDone \n\
+) else if exist \"%VS110COMNTOOLS%\\vsvars32.bat\" ( \n\
+call \"%VS110COMNTOOLS%\\vsvars32.bat\" \n\
+goto MSVCVarsDone \n\
+) else ( \n\
+echo fatal error : An installed version of Visual Studio could not be detected. \n\
+exit /b 1 \n\
+) \n\
+:MSVCVarsDone \n";
+    string sProjectNameShort = sProjectName.substr(3); //The full name minus the lib prefix
+    sCLLaunchBat += "mkdir \"" + sProjectNameShort + "\" > nul 2>&1\n";
+    for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
+        const uint uiRowSize = 32;
+        uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
+        uint uiTotalPos = 0;
+
+        //Check type of msvc call
+        string sDirName = sProjectNameShort + "/" + itI->first;
+        string sRuntype;
+        if (iRunType == 0) {
+            //Need to make output directory so cl doesn't fail outputting objs
+            sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
+            sRuntype = "/FR\"" + sDirName + "/\"" + " /Fo\"" + sDirName + "/\"";
+        } else if (iRunType == 1) {
+            sRuntype = "/EP /P";
+        }
+
+        //Split calls into groups of 50 to prevent batch file length limit
+        for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
+            sCLLaunchBat += "cl.exe";
+            sCLLaunchBat += " /I\"" + m_ConfigHelper.m_sRootDirectory + "\" /I\"" + m_ConfigHelper.m_sProjectDirectory + "\" " + sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
+            uint uiStartPos = uiTotalPos;
+            for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
+                if (iRunType == 0) {
+                    makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
+                }
+                sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
+            }
+            sCLLaunchBat += " > log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
+        }
+    }
+    if (iRunType == 0) {
+        sCLLaunchBat += "del /F /S /Q *.obj >nul 2>&1\n";
+    } else if (iRunType == 1) {
+        sCLLaunchBat += "move *.i " + sProjectNameShort + "/ >nul 2>&1\n";
+    }
+    sCLLaunchBat += "del log.txt >nul 2>&1\n";
+    sCLLaunchBat += "exit /b 0\n:exitFail\n";
+    if (iRunType == 1) {
+        sCLLaunchBat += "move *.i " + sProjectNameShort + "/ >nul 2>&1\n";
+    }
+    sCLLaunchBat += "rmdir /S /Q " + sProjectNameShort + "\nexit /b 1";
+    if (!writeToFile("test.bat", sCLLaunchBat)) {
+        return false;
+    }
+
+    if (0 != system("test.bat")) {
+        cout << "  Error: Errors detected during test compilation :-" << endl;
+        string sTestOutput;
+        if (loadFromFile("log.txt", sTestOutput)) {
+            //Output errors from log.txt
+            bool bError = false;
+            bool bMissingVS = false;
+            bool bMissingDeps = false;
+            uint uiFindPos = sTestOutput.find(" error ");
+            while (uiFindPos != string::npos) {
+                //find end of line
+                uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
+                string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
+                cout << "    " << sTemp << endl;
+                uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
+                //Check what type of error was found
+                if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
+                    bMissingDeps = true;
+                } else if (!bMissingVS && (sTemp.find("Visual Studio could not be detected") != string::npos)) {
+                    bMissingVS = true;
+                } else {
+                    bError = true;
+                }
+            }
+            uiFindPos = sTestOutput.find("internal or external command");
+            if (uiFindPos != string::npos) {
+                uint uiFindPos2 = sTestOutput.find('\n', uiFindPos + 1);
+                uiFindPos = sTestOutput.rfind('\n', uiFindPos);
+                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos;
+                cout << "    " << sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos) << endl;
+                bMissingVS = true;
+            }
+            if (bMissingVS) {
+                cout << endl << "    Based on the above error(s) Visual Studio is not installed correctly on the host system." << endl;
+                cout << "    Install a compatible version of Visual Studio before trying again." << endl;
+                deleteFile("log.txt");
+            } else if (bMissingDeps) {
+                cout << endl << "    Based on the above error(s) there are files required for dependency libraries that are not available" << endl;
+                cout << "    Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again." << endl;
+                cout << "    Consult the supplied readme for instructions for installing varying dependencies." << endl;
+                cout << "    If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again." << endl;
+                cout << "    Removing the offending configuration option can also be used to remove the error." << endl;
+                deleteFile("log.txt");
+            } else if (bError) {
+                cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
+            }
+        }
+        //Remove the test header files
+        deleteFile("test.bat");
+        deleteFolder(sProjectNameShort);
+        return false;
+    }
+
+    //Remove the compilation objects
+    deleteFile("test.bat");
     return true;
 }
 
@@ -2174,4 +2222,901 @@ bool ProjectGenerator::outputDependencyLibs(const string & sProjectName, string 
         }
     }
     return true;
+}
+
+bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs)
+{
+    cout << "  Generating missing DCE symbols (" << sProjectName << ")..." << endl;
+    //Create list of source files to scan
+    StaticList vSearchFiles = m_vCIncludes;
+#if !FORCEALLDCE
+    vSearchFiles.insert(vSearchFiles.end(), m_vCPPIncludes.begin(), m_vCPPIncludes.end());
+    vSearchFiles.insert(vSearchFiles.end(), m_vHIncludes.begin(), m_vHIncludes.end());
+#else
+    findFiles(m_sProjectDir + "*.h", vSearchFiles);
+    findFiles(m_sProjectDir + "*.c", vSearchFiles);
+    findFiles(m_sProjectDir + "*.cpp", vSearchFiles);
+#endif
+    //Ensure we can add extra items to the list without needing reallocs
+    if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
+        vSearchFiles.reserve(vSearchFiles.size() + 250);
+    }
+
+    //Check for DCE constructs
+    map<string, DCEParams> mFoundDCEFunctions;
+    StaticList vPreProcFiles;
+    //Search through each included file
+    for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
+        //Open the input file
+        makeFileGeneratorRelative(*itFile, *itFile);
+        string sFile;
+        if (!loadFromFile(*itFile, sFile)) {
+            return false;
+        }
+        bool bRequiresPreProcess = false;
+        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEFunctions, bRequiresPreProcess);
+        if (bRequiresPreProcess) {
+            vPreProcFiles.push_back(*itFile);
+        }
+
+        //Check if this file includes additional source files
+        uint uiFindPos = sFile.find(".c\"");
+        while (uiFindPos != string::npos) {
+            //Check if this is an include
+            uint uiFindPos2 = sFile.rfind("#include \"", uiFindPos);
+            if ((uiFindPos2 != string::npos) && (uiFindPos - uiFindPos2 < 50)) {
+                //Get the name of the file
+                uiFindPos2 += 10;
+                uiFindPos += 2;
+                string sTemplateFile = sFile.substr(uiFindPos2, uiFindPos - uiFindPos2);
+                //check if file contains current project
+                uint uiProjName = sTemplateFile.find(sProjectName);
+                if (uiProjName != string::npos) {
+                    sTemplateFile = sTemplateFile.substr(uiProjName + sProjectName.length() + 1);
+                }
+                //Check if in sibling directory
+                if (sTemplateFile.find('/') != string::npos) {
+                    sTemplateFile = "../" + sTemplateFile;
+                }
+                string sFound;
+                string sBack = sTemplateFile;
+                sTemplateFile = m_sProjectDir + sBack;
+                if (!findFile(sTemplateFile, sFound)) {
+                    sTemplateFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + '/' + sBack;
+                    if (!findFile(sTemplateFile, sFound)) {
+                        sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
+                        if (!findFile(sTemplateFile, sFound)) {
+                            cout << "  Error: Failed to find included file " << sBack << "  " << endl;
+                            return false;
+                        }
+                    }
+                }
+                //Add the file to the list
+                if (find(vSearchFiles.begin(), vSearchFiles.end(), sTemplateFile) == vSearchFiles.end()) {
+                    vSearchFiles.push_back(sTemplateFile);
+                }
+            }
+            //Check for more
+            uiFindPos = sFile.find(".c\"", uiFindPos + 1);
+        }
+    }
+
+    //Get a list of all header files in current project directory
+#if !FORCEALLDCE
+    vSearchFiles.resize(0);
+    findFiles(m_sProjectDir + "*.h", vSearchFiles);
+    findFiles(m_sProjectDir + "*.c", vSearchFiles);
+    findFiles(m_sProjectDir + "*.cpp", vSearchFiles);
+    //Ensure we can add extra items to the list without needing reallocs
+    if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
+        vSearchFiles.reserve(vSearchFiles.size() + 250);
+    }
+#endif
+
+#if !FORCEALLDCE
+    outputProgramDCEsResolveDefine(mFoundDCEFunctions);
+#endif
+
+    //Now we need to find the declaration of each function
+    map<string, DCEParams> mFoundDCEDefinitions;
+    if (mFoundDCEFunctions.size() > 0) {
+        //Search through each included file
+        for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
+            string sFile;
+            if (!loadFromFile(*itFile, sFile)) {
+                return false;
+            }
+            for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
+                string sReturn;
+                if (outputProjectDCEsFindDeclarations(sFile, itDCE->first, *itFile, sReturn)) {
+                    //Get the declaration file
+                    string sFileName;
+                    makePathsRelative(*itFile, m_ConfigHelper.m_sRootDirectory, sFileName);
+                    if (sFileName.at(0) == '.') {
+                        sFileName = sFileName.substr(2);
+                    }
+                    mFoundDCEDefinitions[sReturn] = {itDCE->second.sDefine, sFileName};
+                    //Remove it from the list
+                    mFoundDCEFunctions.erase(itDCE++);
+                } else {
+                    //Only increment the iterator when nothing has been found
+                    // when we did find something we erased a value from the list so the iterator is still valid
+                    ++itDCE;
+                }
+            }
+        }
+    }
+
+    //Add any files requiring pre-processing to unfound list
+    for (StaticList::iterator itPP = vPreProcFiles.begin(); itPP < vPreProcFiles.end(); itPP++) {
+        mFoundDCEFunctions[*itPP] = {"#", *itPP};
+    }
+
+    //Check if we failed to find any functions
+    if (mFoundDCEFunctions.size() > 0) {
+        string sProjNameShort = sProjectName.substr(3); //The full name minus the lib prefix
+        makeDirectory(sProjNameShort);
+        //Get all the files that include functions
+        map<string, vector<DCEParams>> mFunctionFiles;
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
+            uint uiPos = itDCE->second.sFile.rfind('/');
+            uiPos = (uiPos == string::npos) ? 0 : uiPos + 1;
+            string sFile = sProjNameShort + "/" + itDCE->second.sFile.substr(uiPos);
+            //Copy file to local working directory
+            if (!copyFile(itDCE->second.sFile, sFile)) {
+                return false;
+            }
+            mFunctionFiles[sFile].push_back({itDCE->second.sDefine, itDCE->first});
+        }
+        map<string, vector<string>> mDirectoryObjects;
+        const string asDCETags2[] = {"if (", "if(", "& ", "&", "| ", "|"};
+        for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
+            mDirectoryObjects[""].push_back(itDCE->first);
+            //Modify existing tags so that they are still valid after preprocessing
+            string sFile;
+            if (!loadFromFile(itDCE->first, sFile)) {
+                return false;
+            }
+            for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
+                for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
+                    const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
+                    //Search for all occurrences
+                    uint uiFindPos = 0;
+                    string sReplace = asDCETags2[uiTag2] + "XXX" + asDCETags[uiTag];
+                    while ((uiFindPos = sFile.find(sSearch, uiFindPos)) != string::npos) {
+                        sFile.replace(uiFindPos, sSearch.length(), sReplace);
+                        uiFindPos += sReplace.length() + 1;
+                    }
+                }
+            }
+            if (!writeToFile(itDCE->first, sFile)) {
+                return false;
+            }
+        }
+
+        //Add current directory to include list
+        vector<string> vIncludeDirs2 = vIncludeDirs;
+        vIncludeDirs2.push_back(m_sProjectDir);
+        if (runMSVC(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
+            //Check the file that the function usage was found in to see if it was declared using macro expansion
+            for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
+                string sFile = itDCE->first;
+                sFile.at(sFile.length() - 1) = 'i';
+                if (!loadFromFile(sFile, sFile)) {
+                    return false;
+                }
+
+                //Restore the initial macro names
+                for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
+                    for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
+                        const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
+                        //Search for all occurrences
+                        uint uiFindPos = 0;
+                        string sFind = asDCETags2[uiTag2] + "XXX" + asDCETags[uiTag];
+                        while ((uiFindPos = sFile.find(sFind, uiFindPos)) != string::npos) {
+                            sFile.replace(uiFindPos, sFind.length(), sSearch);
+                            uiFindPos += sSearch.length() + 1;
+                        }
+                    }
+                }
+
+                //Check for any un-found function usage
+                map<string, DCEParams> mNewDCEFunctions;
+                bool bCanIgnore = false;
+                outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEFunctions, bCanIgnore);
+#if !FORCEALLDCE
+                outputProgramDCEsResolveDefine(mNewDCEFunctions);
+#endif
+                for (map<string, DCEParams>::iterator itDCE2 = mNewDCEFunctions.begin(); itDCE2 != mNewDCEFunctions.end(); itDCE2++) {
+                    //Add the file to the list
+                    if (find(itDCE->second.begin(), itDCE->second.end(), itDCE2->first) == itDCE->second.end()) {
+                        itDCE->second.push_back({itDCE2->second.sDefine, itDCE2->first});
+                        mFoundDCEFunctions[itDCE2->first] = itDCE2->second;
+                    }
+                }
+
+                //Search through each function in the current file
+                for (vector<DCEParams>::iterator itDCE2 = itDCE->second.begin(); itDCE2 < itDCE->second.end(); itDCE2++) {
+                    if (itDCE2->sDefine.compare("#") != 0) {
+                        string sReturn;
+                        string sFileName = itDCE->first;
+                        if (outputProjectDCEsFindDeclarations(sFile, itDCE2->sFile, sFileName, sReturn)) {
+                            //Get the declaration file
+                            string sFileName;
+                            makePathsRelative(itDCE->first, m_ConfigHelper.m_sRootDirectory, sFileName);
+                            if (sFileName.at(0) == '.') {
+                                sFileName = sFileName.substr(2);
+                            }
+                            //Add the declaration
+                            mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
+                            //Remove the function from list
+                            mFoundDCEFunctions.erase(itDCE2->sFile);
+                        }
+                    } else {
+                        //Remove the function from list as it was just a preproc file
+                        mFoundDCEFunctions.erase(itDCE2->sFile);
+                    }
+                }
+            }
+
+            //Delete the created temp files
+            deleteFolder(sProjNameShort);
+        }
+    }
+
+    //Get any required hard coded values
+    map<string, DCEParams> mFoundDCEVariables;
+    buildProjectDCEs(sProjectName, mFoundDCEDefinitions, mFoundDCEVariables);
+
+    //Check if we failed to find anything (even after using buildDCEs)
+    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
+        cout << "  Error: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sDefine << endl;
+        return false;
+    }
+
+    //Add definition to new file
+    if ((mFoundDCEDefinitions.size() > 0) || (mFoundDCEVariables.size() > 0)) {
+        StaticList vIncludedHeaders;
+        string sDCEOutFile;
+        //Loop through all functions
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEDefinitions.begin(); itDCE != mFoundDCEDefinitions.end(); itDCE++) {
+            bool bUsePreProc = (itDCE->second.sDefine.length() > 1);
+            //Only include preprocessor guards if its a reserved option
+            if (bUsePreProc) {
+                sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
+            }
+            if (itDCE->second.sFile.find(".h") != string::npos) {
+                //Include header files only once
+                if (find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile) == vIncludedHeaders.end()) {
+                    vIncludedHeaders.push_back(itDCE->second.sFile);
+                }
+            }
+            sDCEOutFile += itDCE->first + " {";
+            //Need to check return type
+            string sReturn = itDCE->first.substr(0, itDCE->first.find_first_of(sWhiteSpace));
+            if (sReturn.compare("void") == 0) {
+                sDCEOutFile += "return;";
+            } else if (sReturn.compare("int") == 0) {
+                sDCEOutFile += "return 0;";
+            } else if (sReturn.compare("unsigned") == 0) {
+                sDCEOutFile += "return 0;";
+            } else if (sReturn.compare("long") == 0) {
+                sDCEOutFile += "return 0;";
+            } else if (sReturn.compare("short") == 0) {
+                sDCEOutFile += "return 0;";
+            } else if (sReturn.compare("float") == 0) {
+                sDCEOutFile += "return 0.0f;";
+            } else if (sReturn.compare("double") == 0) {
+                sDCEOutFile += "return 0.0;";
+            } else if (sReturn.find('*') != string::npos) {
+                sDCEOutFile += "return 0;";
+            } else {
+                sDCEOutFile += "return *(" + sReturn + "*)(0);";
+            }
+            sDCEOutFile += "}\n";
+            if (bUsePreProc) {
+                sDCEOutFile += "#endif\n";
+            }
+        }
+
+        //Loop through all variables
+#if !FORCEALLDCE
+        ConfigGenerator::DefaultValuesList mReserved;
+        ConfigGenerator::DefaultValuesList mIgnored;
+        m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
+#endif
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEVariables.begin(); itDCE != mFoundDCEVariables.end(); itDCE++) {
+            bool bReserved = true; bool bEnabled = false;
+#if !FORCEALLDCE
+            ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(itDCE->second.sDefine);
+            if (ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) {
+                //This config option doesn't exist so it potentially requires the header file to be included first
+            } else {
+                bReserved = (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end());
+                if (!bReserved) {
+                    bEnabled = (ConfigOpt->m_sValue.compare("1") == 0);
+                }
+            }
+#endif
+            //Include only those options that are currently disabled
+            if (!bEnabled) {
+                //Only include preprocessor guards if its a reserved option
+                if (bReserved) {
+                    sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
+                }
+                //Include header files only once
+                if (find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile) == vIncludedHeaders.end()) {
+                    vIncludedHeaders.push_back(itDCE->second.sFile);
+                }
+                sDCEOutFile += itDCE->first + " = {0};\n";
+                if (bReserved) {
+                    sDCEOutFile += "#endif\n";
+                }
+            }
+        }
+
+        string sFinalDCEOutFile = getCopywriteHeader(sProjectName + " DCE definitions") + '\n';
+        sFinalDCEOutFile += "\n#include \"config.h\"\n\n";
+        //Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and h264pred.h)
+        for (StaticList::iterator itHeaders = vIncludedHeaders.end(); itHeaders > vIncludedHeaders.begin(); ) {
+            --itHeaders;
+            sFinalDCEOutFile += "#include \"" + *itHeaders + "\"\n";
+        }
+        sFinalDCEOutFile += '\n' + sDCEOutFile;
+
+        //Output the new file
+        string sOutName = m_ConfigHelper.m_sProjectDirectory + '/' + sProjectName + '/' + "dce_defs.c";
+        writeToFile(sOutName, sFinalDCEOutFile);
+        makeFileProjectRelative(sOutName, sOutName);
+        m_vCIncludes.push_back(sOutName);
+    }
+
+    return true;
+}
+
+void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess)
+{
+    const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
+    const string asFuncIdents[] = {"ff_", "swri_", "avresample_"};
+    for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
+        for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
+            const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
+
+            //Search for all occurrences
+            uint uiFindPos = sFile.find(sSearch);
+            while (uiFindPos != string::npos) {
+                //Get the define tag
+                uint uiFindPos2 = sFile.find(')', uiFindPos + sSearch.length());
+                uiFindPos = uiFindPos + asDCETags2[uiTag2].length();
+                if (uiTag2 >= 2) {
+                    --uiFindPos;
+                }
+                //Skip any '(' found within the parameters itself
+                uint uiFindPos3 = sFile.find('(', uiFindPos);
+                while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiFindPos2)) {
+                    uiFindPos3 = sFile.find('(', uiFindPos3 + 1);
+                    uiFindPos2 = sFile.find(')', uiFindPos2 + 1);
+                }
+                string sDefine = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
+
+                //Check if define contains pre-processor tags
+                if (sDefine.find("##") != string::npos) {
+                    bRequiresPreProcess = true;
+                    return;
+                }
+                outputProjectDCECleanDefine(sDefine);
+
+                //Get the block of code being wrapped
+                string sCode;
+                uiFindPos = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
+                if (sFile.at(uiFindPos) == '{') {
+                    //Need to get the entire block of code being wrapped
+                    uiFindPos2 = sFile.find('}', uiFindPos + 1);
+                    //Skip any '{' found within the parameters itself
+                    uint uiFindPos5 = sFile.find('{', uiFindPos + 1);
+                    while ((uiFindPos5 != string::npos) && (uiFindPos5 < uiFindPos2)) {
+                        uiFindPos5 = sFile.find('{', uiFindPos5 + 1);
+                        uiFindPos2 = sFile.find('}', uiFindPos2 + 1);
+                    }
+                } else {
+                    //This is a single line of code
+                    uiFindPos2 = sFile.find_first_of(sEndLine, uiFindPos + 1);
+                }
+                sCode = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
+
+                //Get name of any functions
+                for (unsigned uiIdents = 0; uiIdents < sizeof(asFuncIdents) / sizeof(string); uiIdents++) {
+                    uiFindPos = sCode.find(asFuncIdents[uiIdents]);
+                    while (uiFindPos != string::npos) {
+                        bool bValid = false;
+                        //Check if this is a valid function call
+                        uint uiFindPos3 = sCode.find_first_of("(;", uiFindPos + 1);
+                        if ((uiFindPos3 != 0) && (uiFindPos3 != string::npos)) {
+                            uint uiFindPos4 = sCode.find_last_of(sNonName, uiFindPos3 - 1);
+                            uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
+                            //Check if valid function
+                            if (uiFindPos4 == uiFindPos) {
+                                if (sCode.at(uiFindPos3) == '(') {
+                                    bValid = true;
+                                } else {
+                                    uiFindPos4 = sCode.find_last_not_of(sWhiteSpace, uiFindPos4 - 1);
+                                    if (sCode.at(uiFindPos4) == '=') {
+                                        bValid = true;
+                                    }
+                                }
+                            } else {
+                                //Check if this is a macro expansion
+                                uiFindPos4 = sCode.find('#', uiFindPos + 1);
+                                if (uiFindPos4 < uiFindPos3) {
+                                    //We need to add this to the list of files that require preprocessing
+                                    bRequiresPreProcess = true;
+                                    return;
+                                }
+                            }
+                        }
+                        if (bValid) {
+                            string sAdd = sCode.substr(uiFindPos, uiFindPos3 - uiFindPos);
+                            //Check if there are any other DCE conditions
+                            string sFuncDefine = sDefine;
+                            for (unsigned uiTagB = 0; uiTagB < sizeof(asDCETags) / sizeof(string); uiTagB++) {
+                                for (unsigned uiTag2B = 0; uiTag2B < sizeof(asDCETags2) / sizeof(string); uiTag2B++) {
+                                    const string sSearch2 = asDCETags2[uiTag2B] + asDCETags[uiTagB];
+
+                                    //Search for all occurrences
+                                    uint uiFindPos7 = sCode.rfind(sSearch2, uiFindPos);
+                                    while (uiFindPos7 != string::npos) {
+                                        //Get the define tag
+                                        uint uiFindPos4 = sCode.find(')', uiFindPos7 + sSearch.length());
+                                        uint uiFindPos8 = uiFindPos7 + asDCETags2[uiTag2B].length();
+                                        if (uiTag2B >= 2) {
+                                            --uiFindPos8;
+                                        }
+                                        //Skip any '(' found within the parameters itself
+                                        uint uiFindPos9 = sCode.find('(', uiFindPos8);
+                                        while ((uiFindPos9 != string::npos) && (uiFindPos9 < uiFindPos4)) {
+                                            uiFindPos9 = sCode.find('(', uiFindPos9 + 1);
+                                            uiFindPos4 = sCode.find(')', uiFindPos4 + 1);
+                                        }
+                                        string sDefine2 = sCode.substr(uiFindPos8, uiFindPos4 - uiFindPos8);
+
+                                        outputProjectDCECleanDefine(sDefine2);
+
+                                        //Get the block of code being wrapped
+                                        string sCode2;
+                                        uiFindPos8 = sCode.find_first_not_of(sWhiteSpace, uiFindPos4 + 1);
+                                        if (sCode.at(uiFindPos8) == '{') {
+                                            //Need to get the entire block of code being wrapped
+                                            uiFindPos4 = sCode.find('}', uiFindPos8 + 1);
+                                            //Skip any '{' found within the parameters itself
+                                            uint uiFindPos5 = sCode.find('{', uiFindPos8 + 1);
+                                            while ((uiFindPos5 != string::npos) && (uiFindPos5 < uiFindPos4)) {
+                                                uiFindPos5 = sCode.find('{', uiFindPos5 + 1);
+                                                uiFindPos4 = sCode.find('}', uiFindPos4 + 1);
+                                            }
+                                            sCode2 = sCode.substr(uiFindPos8, uiFindPos4 - uiFindPos8);
+                                        } else {
+                                            //This is a single line of code
+                                            uiFindPos4 = sCode.find_first_of(sEndLine, uiFindPos8 + 1);
+                                            sCode2 = sCode.substr(uiFindPos8, uiFindPos4 - uiFindPos8);
+                                        }
+
+                                        //Check if function is actually effected by this DCE
+                                        if (sCode2.find(sAdd) != string::npos) {
+                                            //Add the additional define
+                                            string sCond = "&&";
+                                            if (sDefine2.find_first_of("&|") != string::npos) {
+                                                sCond = '(' + sDefine2 + ')' + sCond;
+                                            } else {
+                                                sCond = sDefine2 + sCond;
+                                            }
+                                            if (sFuncDefine.find_first_of("&|") != string::npos) {
+                                                sCond += '(' + sFuncDefine + ')';
+                                            } else {
+                                                sCond += sFuncDefine;
+                                            }
+                                            sFuncDefine = sCond;
+                                        }
+
+                                        //Search for next occurrence
+                                        uiFindPos7 = sCode.rfind(sSearch, uiFindPos7 - 1);
+                                    }
+                                }
+                            }
+
+                            //Check if not already added
+                            map<string, DCEParams>::iterator itFind = mFoundDCEFunctions.find(sAdd);
+                            if (itFind == mFoundDCEFunctions.end()) {
+                                mFoundDCEFunctions[sAdd] = {sFuncDefine, sFileName};
+                            } else if (itFind->second.sDefine.compare(sFuncDefine) != 0) {
+                                //Check if either string contains the other
+                                if (itFind->second.sDefine.find(sFuncDefine) != string::npos) {
+                                    //keep the existing one
+                                } else if (sFuncDefine.find(itFind->second.sDefine) != string::npos) {
+                                    //use the new one in place of the original
+                                    mFoundDCEFunctions[sAdd] = {sFuncDefine, sFileName};
+                                } else {
+                                    //Add the additional define
+                                    string sCond = "||";
+                                    if (itFind->second.sDefine.find_first_of("&|") != string::npos) {
+                                        sCond = '(' + itFind->second.sDefine + ')' + sCond;
+                                    } else {
+                                        sCond = itFind->second.sDefine + sCond;
+                                    }
+                                    if (sFuncDefine.find_first_of("&|") != string::npos) {
+                                        sCond += '(' + sFuncDefine + ')';
+                                    } else {
+                                        sCond += sFuncDefine;
+                                    }
+                                    mFoundDCEFunctions[sAdd] = {sCond, sFileName};
+                                }
+                            }
+                        }
+                        //Search for next occurrence
+                        uiFindPos = sCode.find(asFuncIdents[uiIdents], uiFindPos + 1);
+                    }
+                }
+
+                //Search for next occurrence
+                uiFindPos = sFile.find(sSearch, uiFindPos2 + 1);
+            }
+        }
+    }
+}
+
+void ProjectGenerator::outputProgramDCEsResolveDefine(map<string, DCEParams> & mFoundDCEFunctions)
+{
+    //Check all configurations are enabled early to avoid later lookups of unused functions
+    ConfigGenerator::DefaultValuesList mReserved;
+    ConfigGenerator::DefaultValuesList mIgnored;
+    m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
+    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
+        //Complex combinations of config options require determining exact values
+        uint uiStartTag = itDCE->second.sDefine.find_first_not_of(sPreProcessor);
+        while (uiStartTag != string::npos) {
+            //Get the next tag
+            uint uiDiv = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
+            string sTag = itDCE->second.sDefine.substr(uiStartTag, uiDiv - uiStartTag);
+            //Check if tag is enabled
+            ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(sTag);
+            if ((ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) ||
+                (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end())) {
+                //This config option doesn't exist but it is potentially included in its corresponding header file
+                // Or this is a reserved value
+            } else {
+                //Replace the option with its value
+                itDCE->second.sDefine.replace(uiStartTag, uiDiv - uiStartTag, ConfigOpt->m_sValue);
+                uiDiv = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
+            }
+
+            //Get next
+            uiStartTag = itDCE->second.sDefine.find_first_not_of(sPreProcessor, uiDiv);
+        }
+        //Process the string to combine values
+        findAndReplace(itDCE->second.sDefine, "&&", "&");
+        findAndReplace(itDCE->second.sDefine, "||", "|");
+
+        //Need to search through for !, &&,  || in correct order of occurrence
+        const char acOps[] = {'!', '&', '|'};
+        for (unsigned uiOp = 0; uiOp < sizeof(acOps) / sizeof(char); uiOp++) {
+            uiStartTag = itDCE->second.sDefine.find(acOps[uiOp]);
+            while (uiStartTag != string::npos) {
+                //Get right tag
+                ++uiStartTag;
+                uint uiRight = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
+                //Skip any '(' found within the function parameters itself
+                if ((uiRight != string::npos) && (itDCE->second.sDefine.at(uiRight) == '(')) {
+                    uint uiBack = uiRight + 1;
+                    uiRight = itDCE->second.sDefine.find(')', uiBack) + 1;
+                    uint uiFindPos3 = itDCE->second.sDefine.find('(', uiBack);
+                    while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiRight)) {
+                        uiFindPos3 = itDCE->second.sDefine.find('(', uiFindPos3 + 1);
+                        uiRight = itDCE->second.sDefine.find(')', uiRight + 1) + 1;
+                    }
+                }
+                string sRight = itDCE->second.sDefine.substr(uiStartTag, uiRight - uiStartTag);
+                --uiStartTag;
+
+                //Check current operation
+                if (acOps[uiOp] == '!') {
+                    if (sRight.compare("0") == 0) {
+                        //!0 = 1
+                        itDCE->second.sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '1');
+                    } else if (sRight.compare("1") == 0) {
+                        //!1 = 0
+                        itDCE->second.sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '0');
+                    } else {
+                        //!X = (!X)
+                        if (uiRight == string::npos) {
+                            itDCE->second.sDefine += ')';
+                        } else {
+                            itDCE->second.sDefine.insert(uiRight, 1, ')');
+                        }
+                        itDCE->second.sDefine.insert(uiStartTag, 1, '(');
+                        uiStartTag += 2;
+                    }
+                } else {
+                    //Get left tag
+                    uint uiLeft = itDCE->second.sDefine.find_last_of(sPreProcessor, uiStartTag - 1);
+                    //Skip any ')' found within the function parameters itself
+                    if ((uiLeft != string::npos) && (itDCE->second.sDefine.at(uiLeft) == ')')) {
+                        uint uiBack = uiLeft - 1;
+                        uiLeft = itDCE->second.sDefine.rfind('(', uiBack);
+                        uint uiFindPos3 = itDCE->second.sDefine.rfind(')', uiBack);
+                        while ((uiFindPos3 != string::npos) && (uiFindPos3 > uiLeft)) {
+                            uiFindPos3 = itDCE->second.sDefine.rfind(')', uiFindPos3 - 1);
+                            uiLeft = itDCE->second.sDefine.rfind('(', uiLeft - 1);
+                        }
+                    } else {
+                        uiLeft = (uiLeft == 0) ? 0 : uiLeft + 1;
+                    }
+                    string sLeft = itDCE->second.sDefine.substr(uiLeft, uiStartTag - uiLeft);
+
+                    //Check current operation
+                    if (acOps[uiOp] == '&') {
+                        if ((sLeft.compare("0") == 0) || (sRight.compare("0") == 0)) {
+                            //0&&X or X&&0 == 0
+                            itDCE->second.sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
+                            uiStartTag = uiLeft;
+                        } else if (sLeft.compare("1") == 0) {
+                            //1&&X = X
+                            ++uiStartTag;
+                            itDCE->second.sDefine.erase(uiLeft, uiStartTag - uiLeft);
+                            uiStartTag = uiLeft;
+                        } else if (sRight.compare("1") == 0) {
+                            //X&&1 = X
+                            itDCE->second.sDefine.erase(uiStartTag, uiRight - uiStartTag);
+                        } else {
+                            //X&&X = (X&&X)
+                            if (uiRight == string::npos) {
+                                itDCE->second.sDefine += ')';
+                            } else {
+                                itDCE->second.sDefine.insert(uiRight, 1, ')');
+                            }
+                            itDCE->second.sDefine.insert(uiLeft, 1, '(');
+                            uiStartTag += 2;
+                        }
+                    } else {
+                        if ((sLeft.compare("1") == 0) || (sRight.compare("1") == 0)) {
+                            //1||X or X||1 == 1
+                            ++uiStartTag;
+                            itDCE->second.sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
+                            uiStartTag = uiLeft;
+                        } else if (sLeft.compare("0") == 0) {
+                            //0||X = X
+                            ++uiStartTag;
+                            itDCE->second.sDefine.erase(uiLeft, uiStartTag - uiLeft);
+                            uiStartTag = uiLeft;
+                        } else if (sRight.compare("0") == 0) {
+                            //X||0 == X
+                            itDCE->second.sDefine.erase(uiStartTag, uiRight - uiStartTag);
+                        } else {
+                            //X||X = (X||X)
+                            if (uiRight == string::npos) {
+                                itDCE->second.sDefine += ')';
+                            } else {
+                                itDCE->second.sDefine.insert(uiRight, 1, ')');
+                            }
+                            itDCE->second.sDefine.insert(uiLeft, 1, '(');
+                            uiStartTag += 2;
+                        }
+                    }
+                }
+                findAndReplace(itDCE->second.sDefine, "(0)", "0");
+                findAndReplace(itDCE->second.sDefine, "(1)", "1");
+
+                //Get next
+                uiStartTag = itDCE->second.sDefine.find(acOps[uiOp], uiStartTag);
+            }
+        }
+        //Remove any (RESERV)
+        uiStartTag = itDCE->second.sDefine.find('(');
+        while (uiStartTag != string::npos) {
+            uint uiEndTag = itDCE->second.sDefine.find(')', uiStartTag);
+            ++uiStartTag;
+            //Skip any '(' found within the function parameters itself
+            uint uiFindPos3 = itDCE->second.sDefine.find('(', uiStartTag);
+            while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiEndTag)) {
+                uiFindPos3 = itDCE->second.sDefine.find('(', uiFindPos3 + 1);
+                uiEndTag = itDCE->second.sDefine.find(')', uiEndTag + 1);
+            }
+
+            string sTag = itDCE->second.sDefine.substr(uiStartTag, uiEndTag - uiStartTag);
+            if ((sTag.find_first_of("&|()") == string::npos) ||
+                ((uiStartTag == 1) && (uiEndTag == itDCE->second.sDefine.length() - 1))) {
+                itDCE->second.sDefine.erase(uiEndTag, 1);
+                itDCE->second.sDefine.erase(--uiStartTag, 1);
+            }
+            uiStartTag = itDCE->second.sDefine.find('(', uiStartTag);
+        }
+
+        findAndReplace(itDCE->second.sDefine, "&", " && ");
+        findAndReplace(itDCE->second.sDefine, "|", " || ");
+
+        if (itDCE->second.sDefine.compare("1") == 0) {
+            //remove from the list
+            mFoundDCEFunctions.erase(itDCE++);
+        } else {
+            ++itDCE;
+        }
+    }
+}
+
+bool ProjectGenerator::outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration)
+{
+    const string asFuncEndTags[] = {"(", " (", "["};
+    for (unsigned uiEndTag = 0; uiEndTag < sizeof(asFuncEndTags) / sizeof(string); uiEndTag++) {
+        const string sSearch = sFunction + asFuncEndTags[uiEndTag];
+        uint uiFindPos = sFile.find(sSearch);
+        while (uiFindPos != string::npos) {
+            if (uiEndTag < 2) {
+                //Check if this is a function call or an actual declaration
+                uint uiFindPos2 = sFile.find(')', uiFindPos + sSearch.length());
+                if (uiFindPos2 != string::npos) {
+                    //Skip any '(' found within the function parameters itself
+                    uint uiFindPos3 = sFile.find('(', uiFindPos + sSearch.length() + 1);
+                    while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiFindPos2)) {
+                        uiFindPos3 = sFile.find('(', uiFindPos3 + 1);
+                        uiFindPos2 = sFile.find(')', uiFindPos2 + 1);
+                    }
+                    uiFindPos3 = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
+                    if (sFile.at(uiFindPos3) == ';') {
+                        uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos - 1);
+                        if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
+                            //Get the return type
+                            uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
+                            uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+                            //Return the declaration
+                            sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                            return true;
+                        } else if (sFile.at(uiFindPos3) == '*') {
+                            //Return potentially contains a pointer
+                            --uiFindPos3;
+                            uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos3 - 1);
+                            if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
+                                //Get the return type
+                                uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
+                                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+                                //Return the declaration
+                                sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } else {
+                //This is an array/table
+                //TODO
+                cout << "Warning: Found usage of array/table. This functionality is not yet implemented." << endl;
+            }
+
+            //Search for next occurrence
+            uiFindPos = sFile.find(sSearch, uiFindPos + sSearch.length());
+        }
+    }
+    return false;
+}
+
+void ProjectGenerator::outputProjectDCECleanDefine(string & sDefine)
+{
+    const string asTagReplace[] = {"EXTERNAL", "INTERNAL", "INLINE"};
+    const string asTagReplaceRemove[] = {"_FAST", "_SLOW"};
+    //There are some macro tags that require conversion
+    for (unsigned uiRep = 0; uiRep < sizeof(asTagReplace) / sizeof(string); uiRep++) {
+        string sSearch = asTagReplace[uiRep] + '_';
+        uint uiFindPos = 0;
+        while ((uiFindPos = sDefine.find(sSearch, uiFindPos)) != string::npos) {
+            uint uiFindPos4 = sDefine.find_first_of('(', uiFindPos + 1);
+            uint uiFindPosBack = uiFindPos;
+            uiFindPos += sSearch.length();
+            string sTagPart = sDefine.substr(uiFindPos, uiFindPos4 - uiFindPos);
+            //Remove conversion values
+            for (unsigned uiRem = 0; uiRem < sizeof(asTagReplaceRemove) / sizeof(string); uiRem++) {
+                uint uiFindRem = 0;
+                while ((uiFindRem = sTagPart.find(asTagReplaceRemove[uiRem], uiFindRem)) != string::npos) {
+                    sTagPart.erase(uiFindRem, asTagReplaceRemove[uiRem].length());
+                }
+            }
+            sTagPart = "HAVE_" + sTagPart + '_' + asTagReplace[uiRep];
+            uint uiFindPos6 = sDefine.find_first_of(')', uiFindPos4 + 1);
+            //Skip any '(' found within the parameters itself
+            uint uiFindPos5 = sDefine.find('(', uiFindPos4 + 1);
+            while ((uiFindPos5 != string::npos) && (uiFindPos5 < uiFindPos6)) {
+                uiFindPos5 = sDefine.find('(', uiFindPos5 + 1);
+                uiFindPos6 = sDefine.find(')', uiFindPos6 + 1);
+            }
+            //Update tag with replacement
+            uint uiRepLength = uiFindPos6 - uiFindPosBack + 1;
+            sDefine.replace(uiFindPosBack, uiRepLength, sTagPart);
+            uiFindPos = uiFindPosBack + sTagPart.length();
+        }
+    }
+
+    //Check if the tag contains multiple conditionals
+    removeWhiteSpace(sDefine);
+    uint uiFindPos = sDefine.find_first_of("&|");
+    while (uiFindPos != string::npos) {
+        uint uiFindPos4 = uiFindPos++;
+        if ((sDefine.at(uiFindPos) == '&') || (sDefine.at(uiFindPos) == '|')) {
+            ++uiFindPos;
+        }
+        if (sDefine.at(uiFindPos) == '!') {
+            ++uiFindPos;
+        }
+        while (sDefine.at(uiFindPos) == '(') {
+            ++uiFindPos;
+            uiFindPos4 = uiFindPos;
+            if (sDefine.at(uiFindPos) == '!') {
+                ++uiFindPos;
+            }
+        }
+
+        //Check if each conditional is valid
+        bool bValid = false;
+        for (unsigned uiTagk = 0; uiTagk < sizeof(asDCETags) / sizeof(string); uiTagk++) {
+            if (sDefine.find(asDCETags[uiTagk], uiFindPos) == uiFindPos) {
+                // We have found a valid additional tag
+                bValid = true;
+                break;
+            }
+        }
+
+        if (!bValid && isupper(sDefine.at(uiFindPos))) {
+            string sUnknown = sDefine.substr(uiFindPos, sDefine.find_first_of("&|)", uiFindPos + 1) - uiFindPos);
+            if ((sUnknown.find("AV_") != 0) && (sUnknown.find("FF_") != 0)) {
+                cout << "  Warning: Found unknown macro in DCE condition " << sUnknown << endl;
+            }
+        }
+
+        if (!bValid) {
+            //Remove invalid components out of string
+            uiFindPos = sDefine.find_first_of("&|)", uiFindPos + 1);
+            bool bCutTail = false;
+            if ((sDefine.at(uiFindPos4 - 1) == '(') && ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) != ')'))) {
+                //Trim operators after tag instead of before it
+                uiFindPos = sDefine.find_first_not_of("&|", uiFindPos + 1);
+                bCutTail = true;
+            } else if ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) == ')') && ((uiFindPos4 == 0) || (sDefine.at(uiFindPos4 - 1) != '('))) {
+                //This is a function call that should get cut out
+                ++uiFindPos;
+                uiFindPos = (uiFindPos >= sDefine.size()) ? string::npos : uiFindPos;
+            }
+            bool bCutBrackets = false;
+            while ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) == ')') && (uiFindPos4 != 0) && (sDefine.at(uiFindPos4 - 1) == '(')) {
+                //Remove any ()'s that are no longer needed
+                --uiFindPos4;
+                ++uiFindPos;
+                uiFindPos = (uiFindPos >= sDefine.size()) ? string::npos : uiFindPos;
+                bCutBrackets = true;
+            }
+            if (bCutBrackets && (sDefine.find_first_of("&|!)", uiFindPos) != uiFindPos)) {
+                //This was a typecast
+                uiFindPos = sDefine.find_first_of("&|!)", uiFindPos);
+                if ((uiFindPos != string::npos) && (uiFindPos4 != 0) && (sDefine.at(uiFindPos4 - 1) == '(')) {
+                    bCutBrackets = false;
+                    uiFindPos = sDefine.find_first_not_of("&|", uiFindPos + 1);
+                    bCutTail = true;
+                }
+            }
+            if (bCutBrackets && (uiFindPos4 > 0)) {
+                //Need to cut back preceding operators
+                uiFindPos4 = sDefine.find_last_not_of("&|!", uiFindPos4 - 1);
+                uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
+            }
+            uint uiFindPos3 = (uiFindPos == string::npos) ? uiFindPos : uiFindPos - uiFindPos4;
+            sDefine.erase(uiFindPos4, uiFindPos3);
+            uiFindPos = (uiFindPos4 >= sDefine.size() - 1) ? string::npos : uiFindPos4;
+            if (bCutTail) {
+                //Set start back at previously conditional operation
+                uiFindPos = sDefine.find_last_not_of("!&|(", uiFindPos - 1);
+                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+            }
+        } else {
+            uiFindPos = sDefine.find_first_of("&|", uiFindPos + 1);
+        }
+    }
+    //Remove any surrounding braces that may be left
+    while (sDefine.at(0) == '(' && sDefine.at(sDefine.size() - 1) == ')') {
+        sDefine.erase(0, 1);
+        sDefine.pop_back();
+    }
 }
