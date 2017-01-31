@@ -625,11 +625,47 @@ bool ConfigGenerator::outputConfig()
     for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
         string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
         //Check for forced replacement (only if attribute is not disabled)
+        string sAddConfig;
         if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceList.find(sTagName) != mReplaceList.end())) {
-            sConfigureFile += mReplaceList[sTagName] + '\n';
+            sAddConfig = mReplaceList[sTagName];
         } else {
-            sConfigureFile += "#define " + sTagName + ' ' + vitOption->m_sValue + '\n';
+            sAddConfig = "#define " + sTagName + ' ';
+            //Check if it depends on a replace value
+            bool bReservedDeps = false;
+            if (vitOption->m_sValue.compare("1") == 0) {
+                string sOptionLower = vitOption->m_sOption;
+                transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+                string sCheckFunc = sOptionLower + "_deps";
+                vector<string> vCheckList;
+                if (getConfigList(sCheckFunc, vCheckList, false)) {
+                    vector<string>::iterator vitCheckItem = vCheckList.begin();
+                    for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+                        //Check if this is a not !
+                        bool bToggle = false;
+                        if (vitCheckItem->at(0) == '!') {
+                            vitCheckItem->erase(0, 1);
+                            bToggle = true;
+                        }
+                        ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
+                        if (vitTemp != m_vConfigValues.end()) {
+                            string sReplaceCheck = vitTemp->m_sPrefix + vitTemp->m_sOption;
+                            transform(sReplaceCheck.begin(), sReplaceCheck.end(), sReplaceCheck.begin(), ::toupper);
+                            DefaultValuesList::iterator mitDep = mReplaceList.find(sReplaceCheck);
+                            if (mitDep != mReplaceList.end()) {
+                                if (bToggle)
+                                    sAddConfig += '!';
+                                sAddConfig += sReplaceCheck;
+                                bReservedDeps = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!bReservedDeps) {
+                sAddConfig += vitOption->m_sValue;
+            }
         }
+        sConfigureFile += sAddConfig + '\n';
         if ((vitOption->m_sValue.compare("0") != 0) && (mASMReplaceList.find(sTagName) != mASMReplaceList.end())) {
             sASMConfigureFile += mASMReplaceList[sTagName] + '\n';
         } else {
