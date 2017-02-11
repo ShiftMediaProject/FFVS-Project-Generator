@@ -1628,8 +1628,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
     StaticList vSBRFiles;
     StaticList vModuleExports;
     StaticList vModuleDataExports;
-    string sProjNameShort = sProjectName.substr(3); //The full name minus the lib prefix
-    findFiles(sProjNameShort + "/*.sbr", vSBRFiles);
+    findFiles(sProjectName + "/*.sbr", vSBRFiles);
     for (StaticList::iterator itSBR = vSBRFiles.begin(); itSBR < vSBRFiles.end(); itSBR++) {
         string sSBRFile;
         loadFromFile(*itSBR, sSBRFile, true);
@@ -1737,7 +1736,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         }
     }
     //Remove the test sbr files
-    deleteFolder(sProjNameShort);
+    deleteFolder(sProjectName);
 
     //Check for any exported functions in asm files
     for (StaticList::iterator itASM = m_vYASMIncludes.begin(); itASM < m_vYASMIncludes.end(); itASM++) {
@@ -1844,19 +1843,18 @@ echo fatal error : An installed version of Visual Studio could not be detected. 
 exit /b 1 \n\
 ) \n\
 :MSVCVarsDone \n";
-    string sProjectNameShort = sProjectName.substr(3); //The full name minus the lib prefix
-    sCLLaunchBat += "mkdir \"" + sProjectNameShort + "\" > nul 2>&1\n";
+    sCLLaunchBat += "mkdir \"" + sProjectName + "\" > nul 2>&1\n";
     for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
         const uint uiRowSize = 32;
         uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
         uint uiTotalPos = 0;
 
         //Check type of msvc call
-        string sDirName = sProjectNameShort + "/" + itI->first;
+        string sDirName = sProjectName + "/" + itI->first;
+        //Need to make output directory so cl doesn't fail outputting objs
+        sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
         string sRuntype;
         if (iRunType == 0) {
-            //Need to make output directory so cl doesn't fail outputting objs
-            sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
             sRuntype = "/FR\"" + sDirName + "/\"" + " /Fo\"" + sDirName + "/\"";
         } else if (iRunType == 1) {
             sRuntype = "/EP /P";
@@ -1875,18 +1873,19 @@ exit /b 1 \n\
             }
             sCLLaunchBat += " > log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
+        if (iRunType == 1) {
+            sCLLaunchBat += "move *.i " + sDirName + "/ >nul 2>&1\n";
+        }
     }
     if (iRunType == 0) {
         sCLLaunchBat += "del /F /S /Q *.obj >nul 2>&1\n";
-    } else if (iRunType == 1) {
-        sCLLaunchBat += "move *.i " + sProjectNameShort + "/ >nul 2>&1\n";
     }
     sCLLaunchBat += "del log.txt >nul 2>&1\n";
     sCLLaunchBat += "exit /b 0\n:exitFail\n";
     if (iRunType == 1) {
-        sCLLaunchBat += "move *.i " + sProjectNameShort + "/ >nul 2>&1\n";
+        sCLLaunchBat += "del /F /S /Q *.i >nul 2>&1\n";
     }
-    sCLLaunchBat += "rmdir /S /Q " + sProjectNameShort + "\nexit /b 1";
+    sCLLaunchBat += "rmdir /S /Q " + sProjectName + "\nexit /b 1";
     if (!writeToFile("test.bat", sCLLaunchBat)) {
         return false;
     }
@@ -1940,7 +1939,7 @@ exit /b 1 \n\
         }
         //Remove the test header files
         deleteFile("test.bat");
-        deleteFolder(sProjectNameShort);
+        deleteFolder(sProjectName);
         return false;
     }
 
@@ -2233,9 +2232,9 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     vSearchFiles.insert(vSearchFiles.end(), m_vCPPIncludes.begin(), m_vCPPIncludes.end());
     vSearchFiles.insert(vSearchFiles.end(), m_vHIncludes.begin(), m_vHIncludes.end());
 #else
-    findFiles(m_sProjectDir + "*.h", vSearchFiles);
-    findFiles(m_sProjectDir + "*.c", vSearchFiles);
-    findFiles(m_sProjectDir + "*.cpp", vSearchFiles);
+    findFiles(m_sProjectDir + "*.h", vSearchFiles, false);
+    findFiles(m_sProjectDir + "*.c", vSearchFiles, false);
+    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, false);
 #endif
     //Ensure we can add extra items to the list without needing reallocs
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
@@ -2301,8 +2300,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         }
     }
 
-    //Get a list of all header files in current project directory
-#if !FORCEALLDCE
+    //Get a list of all files in current project directory (including subdirectories)
     vSearchFiles.resize(0);
     findFiles(m_sProjectDir + "*.h", vSearchFiles);
     findFiles(m_sProjectDir + "*.c", vSearchFiles);
@@ -2311,7 +2309,6 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
         vSearchFiles.reserve(vSearchFiles.size() + 250);
     }
-#endif
 
 #if !FORCEALLDCE
     outputProgramDCEsResolveDefine(mFoundDCEFunctions);
@@ -2319,6 +2316,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
     //Now we need to find the declaration of each function
     map<string, DCEParams> mFoundDCEDefinitions;
+    map<string, DCEParams> mFoundDCEVariables;
     if (mFoundDCEFunctions.size() > 0) {
         //Search through each included file
         for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
@@ -2328,14 +2326,20 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             }
             for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
                 string sReturn;
-                if (outputProjectDCEsFindDeclarations(sFile, itDCE->first, *itFile, sReturn)) {
+                bool bIsFunc;
+                if (outputProjectDCEsFindDeclarations(sFile, itDCE->first, *itFile, sReturn, bIsFunc)) {
                     //Get the declaration file
                     string sFileName;
                     makePathsRelative(*itFile, m_ConfigHelper.m_sRootDirectory, sFileName);
                     if (sFileName.at(0) == '.') {
                         sFileName = sFileName.substr(2);
                     }
-                    mFoundDCEDefinitions[sReturn] = {itDCE->second.sDefine, sFileName};
+                    if (bIsFunc) {
+                        mFoundDCEDefinitions[sReturn] = {itDCE->second.sDefine, sFileName};
+                    } else {
+                        mFoundDCEVariables[sReturn] = {itDCE->second.sDefine, sFileName};
+                    }
+
                     //Remove it from the list
                     mFoundDCEFunctions.erase(itDCE++);
                 } else {
@@ -2354,14 +2358,18 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
     //Check if we failed to find any functions
     if (mFoundDCEFunctions.size() > 0) {
-        string sProjNameShort = sProjectName.substr(3); //The full name minus the lib prefix
-        makeDirectory(sProjNameShort);
+        vector<string> vIncludeDirs2 = vIncludeDirs;
+        makeDirectory(sProjectName);
         //Get all the files that include functions
         map<string, vector<DCEParams>> mFunctionFiles;
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
-            uint uiPos = itDCE->second.sFile.rfind('/');
-            uiPos = (uiPos == string::npos) ? 0 : uiPos + 1;
-            string sFile = sProjNameShort + "/" + itDCE->second.sFile.substr(uiPos);
+            //Remove project dir from start of file
+            uint uiPos = itDCE->second.sFile.find(m_sProjectDir);
+            uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
+            string sFile = sProjectName + '/' + itDCE->second.sFile.substr(uiPos);
+            if (sFile.find('/', sProjectName.length() + 1) != string::npos) {
+                makeDirectory(sFile.substr(0, sFile.rfind('/')));
+            }
             //Copy file to local working directory
             if (!copyFile(itDCE->second.sFile, sFile)) {
                 return false;
@@ -2371,7 +2379,17 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         map<string, vector<string>> mDirectoryObjects;
         const string asDCETags2[] = {"if (", "if(", "& ", "&", "| ", "|"};
         for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
-            mDirectoryObjects[""].push_back(itDCE->first);
+            //Get subdirectory
+            string sSubFolder = "";
+            if (itDCE->first.find('/', sProjectName.length() + 1) != string::npos) {
+                sSubFolder = m_sProjectDir + itDCE->first.substr(sProjectName.length() + 1, itDCE->first.rfind('/') - sProjectName.length() - 1);
+                if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), sSubFolder) == vIncludeDirs2.end()) {
+                    //Need to add subdirectory to inlude list
+                    vIncludeDirs2.push_back(sSubFolder);
+                }
+                sSubFolder = sSubFolder.substr(m_sProjectDir.length());
+            }
+            mDirectoryObjects[sSubFolder].push_back(itDCE->first);
             //Modify existing tags so that they are still valid after preprocessing
             string sFile;
             if (!loadFromFile(itDCE->first, sFile)) {
@@ -2393,10 +2411,9 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 return false;
             }
         }
-
-        //Add current directory to include list
-        vector<string> vIncludeDirs2 = vIncludeDirs;
+        //Add current directory to include list (must be done last to ensure correct include order)
         vIncludeDirs2.push_back(m_sProjectDir);
+
         if (runMSVC(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
             //Check the file that the function usage was found in to see if it was declared using macro expansion
             for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
@@ -2439,16 +2456,24 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 for (vector<DCEParams>::iterator itDCE2 = itDCE->second.begin(); itDCE2 < itDCE->second.end(); itDCE2++) {
                     if (itDCE2->sDefine.compare("#") != 0) {
                         string sReturn;
-                        string sFileName = itDCE->first;
-                        if (outputProjectDCEsFindDeclarations(sFile, itDCE2->sFile, sFileName, sReturn)) {
+                        bool bIsFunc;
+                        if (outputProjectDCEsFindDeclarations(sFile, itDCE2->sFile, itDCE->first, sReturn, bIsFunc)) {
                             //Get the declaration file
                             string sFileName;
                             makePathsRelative(itDCE->first, m_ConfigHelper.m_sRootDirectory, sFileName);
                             if (sFileName.at(0) == '.') {
                                 sFileName = sFileName.substr(2);
                             }
-                            //Add the declaration
-                            mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
+                            //Add the declaration (ensure not to stomp a function found before needing pre-processing)
+                            if (bIsFunc) {
+                                if (mFoundDCEDefinitions.find(sReturn) == mFoundDCEDefinitions.end()) {
+                                    mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
+                                }
+                            } else {
+                                if (mFoundDCEVariables.find(sReturn) == mFoundDCEVariables.end()) {
+                                    mFoundDCEVariables[sReturn] = {itDCE2->sDefine, sFileName};
+                                }
+                            }
                             //Remove the function from list
                             mFoundDCEFunctions.erase(itDCE2->sFile);
                         }
@@ -2460,17 +2485,18 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             }
 
             //Delete the created temp files
-            deleteFolder(sProjNameShort);
+            deleteFolder(sProjectName);
         }
     }
 
     //Get any required hard coded values
-    map<string, DCEParams> mFoundDCEVariables;
     buildProjectDCEs(sProjectName, mFoundDCEDefinitions, mFoundDCEVariables);
 
     //Check if we failed to find anything (even after using buildDCEs)
-    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
-        cout << "  Error: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sDefine << endl;
+    if (mFoundDCEFunctions.size() > 0) {
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
+            cout << "  Error: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sFile << endl;
+        }
         return false;
     }
 
@@ -2941,57 +2967,89 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(map<string, DCEParams> & m
     }
 }
 
-bool ProjectGenerator::outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration)
+bool ProjectGenerator::outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction)
 {
-    const string asFuncEndTags[] = {"(", " (", "["};
-    for (unsigned uiEndTag = 0; uiEndTag < sizeof(asFuncEndTags) / sizeof(string); uiEndTag++) {
-        const string sSearch = sFunction + asFuncEndTags[uiEndTag];
-        uint uiFindPos = sFile.find(sSearch);
-        while (uiFindPos != string::npos) {
-            if (uiEndTag < 2) {
-                //Check if this is a function call or an actual declaration
-                uint uiFindPos2 = sFile.find(')', uiFindPos + sSearch.length());
-                if (uiFindPos2 != string::npos) {
-                    //Skip any '(' found within the function parameters itself
-                    uint uiFindPos3 = sFile.find('(', uiFindPos + sSearch.length() + 1);
-                    while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiFindPos2)) {
-                        uiFindPos3 = sFile.find('(', uiFindPos3 + 1);
-                        uiFindPos2 = sFile.find(')', uiFindPos2 + 1);
-                    }
-                    uiFindPos3 = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
-                    if (sFile.at(uiFindPos3) == ';') {
-                        uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos - 1);
+    uint uiFindPos = sFile.find(sFunction);
+    while (uiFindPos != string::npos) {
+        uint uiFindPos4 = sFile.find_first_not_of(sWhiteSpace, uiFindPos + sFunction.length());
+        if (sFile.at(uiFindPos4) == '(') {
+            //Check if this is a function call or an actual declaration
+            uint uiFindPos2 = sFile.find(')', uiFindPos4 + 1);
+            if (uiFindPos2 != string::npos) {
+                //Skip any '(' found within the function parameters itself
+                uint uiFindPos3 = sFile.find('(', uiFindPos4 + 1);
+                while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiFindPos2)) {
+                    uiFindPos3 = sFile.find('(', uiFindPos3 + 1);
+                    uiFindPos2 = sFile.find(')', uiFindPos2 + 1);
+                }
+                uiFindPos3 = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
+                //If this is a definition (i.e. '{') then that means no declaration could be found (headers are searched before code files)
+                if ((sFile.at(uiFindPos3) == ';') || (sFile.at(uiFindPos3) == '{')) {
+                    uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos - 1);
+                    if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
+                        //Get the return type
+                        uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
+                        uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+                        //Return the declaration
+                        sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                        bIsFunction = true;
+                        return true;
+                    } else if (sFile.at(uiFindPos3) == '*') {
+                        //Return potentially contains a pointer
+                        --uiFindPos3;
+                        uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos3 - 1);
                         if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
                             //Get the return type
                             uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
                             uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
                             //Return the declaration
                             sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                            bIsFunction = true;
                             return true;
-                        } else if (sFile.at(uiFindPos3) == '*') {
-                            //Return potentially contains a pointer
-                            --uiFindPos3;
-                            uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos3 - 1);
-                            if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
-                                //Get the return type
-                                uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
-                                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
-                                //Return the declaration
-                                sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
-                                return true;
-                            }
                         }
                     }
                 }
-            } else {
-                //This is an array/table
-                //TODO
-                cout << "Warning: Found usage of array/table. This functionality is not yet implemented." << endl;
             }
-
-            //Search for next occurrence
-            uiFindPos = sFile.find(sSearch, uiFindPos + sSearch.length());
+        } else if (sFile.at(uiFindPos4) == '[') {
+            //This is an array/table
+            //Check if this is an definition or an declaration
+            uint uiFindPos2 = sFile.find(']', uiFindPos4 + 1);
+            if (uiFindPos2 != string::npos) {
+                //Skip multidimensional array
+                while ((uiFindPos2 + 1 < sFile.length()) && (sFile.at(uiFindPos2 + 1) == '[')) {
+                    uiFindPos2 = sFile.find(']', uiFindPos2 + 1);
+                }
+                uint uiFindPos3 = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
+                if (sFile.at(uiFindPos3) == '=') {
+                    uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos - 1);
+                    if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
+                        //Get the array type
+                        uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
+                        uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+                        //Return the definition
+                        sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                        bIsFunction = false;
+                        return true;
+                    } else if (sFile.at(uiFindPos3) == '*') {
+                        //Type potentially contains a pointer
+                        --uiFindPos3;
+                        uiFindPos3 = sFile.find_last_not_of(sWhiteSpace, uiFindPos3 - 1);
+                        if (sNonName.find(sFile.at(uiFindPos3)) == string::npos) {
+                            //Get the array type
+                            uiFindPos = sFile.find_last_of(sWhiteSpace, uiFindPos3 - 1);
+                            uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+                            //Return the definition
+                            sRetDeclaration = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos + 1);
+                            bIsFunction = false;
+                            return true;
+                        }
+                    }
+                }
+            }
         }
+
+        //Search for next occurrence
+        uiFindPos = sFile.find(sFunction, uiFindPos + sFunction.length() + 1);
     }
     return false;
 }

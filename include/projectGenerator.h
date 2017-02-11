@@ -166,7 +166,7 @@ private:
 
     void outputProgramDCEsResolveDefine(map<string, DCEParams> & mFoundDCEFunctions);
 
-    bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration);
+    bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction);
 
     void outputProjectDCECleanDefine(string & sDefine);
 
