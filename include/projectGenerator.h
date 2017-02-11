@@ -164,7 +164,7 @@ private:
 
     void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess);
 
-    void outputProgramDCEsResolveDefine(map<string, DCEParams> & mFoundDCEFunctions);
+    void outputProgramDCEsResolveDefine(string & sDefine, ConfigGenerator::DefaultValuesList mReserved);
 
     bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction);
 

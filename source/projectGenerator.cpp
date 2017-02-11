@@ -2311,7 +2311,19 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     }
 
 #if !FORCEALLDCE
-    outputProgramDCEsResolveDefine(mFoundDCEFunctions);
+    //Check all configurations are enabled early to avoid later lookups of unused functions
+    ConfigGenerator::DefaultValuesList mReserved;
+    ConfigGenerator::DefaultValuesList mIgnored;
+    m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
+    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
+        outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
+        if (itDCE->second.sDefine.compare("1") == 0) {
+            //remove from the list
+            mFoundDCEFunctions.erase(itDCE++);
+        } else {
+            ++itDCE;
+        }
+    }
 #endif
 
     //Now we need to find the declaration of each function
@@ -2442,7 +2454,15 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 bool bCanIgnore = false;
                 outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEFunctions, bCanIgnore);
 #if !FORCEALLDCE
-                outputProgramDCEsResolveDefine(mNewDCEFunctions);
+                for (map<string, DCEParams>::iterator itDCE = mNewDCEFunctions.begin(); itDCE != mNewDCEFunctions.end(); ) {
+                    outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
+                    if (itDCE->second.sDefine.compare("1") == 0) {
+                        //remove from the list
+                        mNewDCEFunctions.erase(itDCE++);
+                    } else {
+                        ++itDCE;
+                    }
+                }
 #endif
                 for (map<string, DCEParams>::iterator itDCE2 = mNewDCEFunctions.begin(); itDCE2 != mNewDCEFunctions.end(); itDCE2++) {
                     //Add the file to the list
@@ -2546,11 +2566,6 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         }
 
         //Loop through all variables
-#if !FORCEALLDCE
-        ConfigGenerator::DefaultValuesList mReserved;
-        ConfigGenerator::DefaultValuesList mIgnored;
-        m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
-#endif
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEVariables.begin(); itDCE != mFoundDCEVariables.end(); itDCE++) {
             bool bReserved = true; bool bEnabled = false;
 #if !FORCEALLDCE
@@ -2789,182 +2804,169 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
     }
 }
 
-void ProjectGenerator::outputProgramDCEsResolveDefine(map<string, DCEParams> & mFoundDCEFunctions)
+void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGenerator::DefaultValuesList mReserved)
 {
-    //Check all configurations are enabled early to avoid later lookups of unused functions
-    ConfigGenerator::DefaultValuesList mReserved;
-    ConfigGenerator::DefaultValuesList mIgnored;
-    m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
-    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
-        //Complex combinations of config options require determining exact values
-        uint uiStartTag = itDCE->second.sDefine.find_first_not_of(sPreProcessor);
-        while (uiStartTag != string::npos) {
-            //Get the next tag
-            uint uiDiv = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
-            string sTag = itDCE->second.sDefine.substr(uiStartTag, uiDiv - uiStartTag);
-            //Check if tag is enabled
-            ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(sTag);
-            if ((ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) ||
-                (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end())) {
-                //This config option doesn't exist but it is potentially included in its corresponding header file
-                // Or this is a reserved value
-            } else {
-                //Replace the option with its value
-                itDCE->second.sDefine.replace(uiStartTag, uiDiv - uiStartTag, ConfigOpt->m_sValue);
-                uiDiv = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
-            }
-
-            //Get next
-            uiStartTag = itDCE->second.sDefine.find_first_not_of(sPreProcessor, uiDiv);
+    //Complex combinations of config options require determining exact values
+    uint uiStartTag = sDefine.find_first_not_of(sPreProcessor);
+    while (uiStartTag != string::npos) {
+        //Get the next tag
+        uint uiDiv = sDefine.find_first_of(sPreProcessor, uiStartTag);
+        string sTag = sDefine.substr(uiStartTag, uiDiv - uiStartTag);
+        //Check if tag is enabled
+        ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(sTag);
+        if ((ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) ||
+            (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end())) {
+            //This config option doesn't exist but it is potentially included in its corresponding header file
+            // Or this is a reserved value
+        } else {
+            //Replace the option with its value
+            sDefine.replace(uiStartTag, uiDiv - uiStartTag, ConfigOpt->m_sValue);
+            uiDiv = sDefine.find_first_of(sPreProcessor, uiStartTag);
         }
-        //Process the string to combine values
-        findAndReplace(itDCE->second.sDefine, "&&", "&");
-        findAndReplace(itDCE->second.sDefine, "||", "|");
 
-        //Need to search through for !, &&,  || in correct order of occurrence
-        const char acOps[] = {'!', '&', '|'};
-        for (unsigned uiOp = 0; uiOp < sizeof(acOps) / sizeof(char); uiOp++) {
-            uiStartTag = itDCE->second.sDefine.find(acOps[uiOp]);
-            while (uiStartTag != string::npos) {
-                //Get right tag
-                ++uiStartTag;
-                uint uiRight = itDCE->second.sDefine.find_first_of(sPreProcessor, uiStartTag);
-                //Skip any '(' found within the function parameters itself
-                if ((uiRight != string::npos) && (itDCE->second.sDefine.at(uiRight) == '(')) {
-                    uint uiBack = uiRight + 1;
-                    uiRight = itDCE->second.sDefine.find(')', uiBack) + 1;
-                    uint uiFindPos3 = itDCE->second.sDefine.find('(', uiBack);
-                    while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiRight)) {
-                        uiFindPos3 = itDCE->second.sDefine.find('(', uiFindPos3 + 1);
-                        uiRight = itDCE->second.sDefine.find(')', uiRight + 1) + 1;
-                    }
+        //Get next
+        uiStartTag = sDefine.find_first_not_of(sPreProcessor, uiDiv);
+    }
+    //Process the string to combine values
+    findAndReplace(sDefine, "&&", "&");
+    findAndReplace(sDefine, "||", "|");
+
+    //Need to search through for !, &&,  || in correct order of occurrence
+    const char acOps[] = {'!', '&', '|'};
+    for (unsigned uiOp = 0; uiOp < sizeof(acOps) / sizeof(char); uiOp++) {
+        uiStartTag = sDefine.find(acOps[uiOp]);
+        while (uiStartTag != string::npos) {
+            //Get right tag
+            ++uiStartTag;
+            uint uiRight = sDefine.find_first_of(sPreProcessor, uiStartTag);
+            //Skip any '(' found within the function parameters itself
+            if ((uiRight != string::npos) && (sDefine.at(uiRight) == '(')) {
+                uint uiBack = uiRight + 1;
+                uiRight = sDefine.find(')', uiBack) + 1;
+                uint uiFindPos3 = sDefine.find('(', uiBack);
+                while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiRight)) {
+                    uiFindPos3 = sDefine.find('(', uiFindPos3 + 1);
+                    uiRight = sDefine.find(')', uiRight + 1) + 1;
                 }
-                string sRight = itDCE->second.sDefine.substr(uiStartTag, uiRight - uiStartTag);
-                --uiStartTag;
+            }
+            string sRight = sDefine.substr(uiStartTag, uiRight - uiStartTag);
+            --uiStartTag;
+
+            //Check current operation
+            if (acOps[uiOp] == '!') {
+                if (sRight.compare("0") == 0) {
+                    //!0 = 1
+                    sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '1');
+                } else if (sRight.compare("1") == 0) {
+                    //!1 = 0
+                    sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '0');
+                } else {
+                    //!X = (!X)
+                    if (uiRight == string::npos) {
+                        sDefine += ')';
+                    } else {
+                        sDefine.insert(uiRight, 1, ')');
+                    }
+                    sDefine.insert(uiStartTag, 1, '(');
+                    uiStartTag += 2;
+                }
+            } else {
+                //Get left tag
+                uint uiLeft = sDefine.find_last_of(sPreProcessor, uiStartTag - 1);
+                //Skip any ')' found within the function parameters itself
+                if ((uiLeft != string::npos) && (sDefine.at(uiLeft) == ')')) {
+                    uint uiBack = uiLeft - 1;
+                    uiLeft = sDefine.rfind('(', uiBack);
+                    uint uiFindPos3 = sDefine.rfind(')', uiBack);
+                    while ((uiFindPos3 != string::npos) && (uiFindPos3 > uiLeft)) {
+                        uiFindPos3 = sDefine.rfind(')', uiFindPos3 - 1);
+                        uiLeft = sDefine.rfind('(', uiLeft - 1);
+                    }
+                } else {
+                    uiLeft = (uiLeft == 0) ? 0 : uiLeft + 1;
+                }
+                string sLeft = sDefine.substr(uiLeft, uiStartTag - uiLeft);
 
                 //Check current operation
-                if (acOps[uiOp] == '!') {
-                    if (sRight.compare("0") == 0) {
-                        //!0 = 1
-                        itDCE->second.sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '1');
+                if (acOps[uiOp] == '&') {
+                    if ((sLeft.compare("0") == 0) || (sRight.compare("0") == 0)) {
+                        //0&&X or X&&0 == 0
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
+                        uiStartTag = uiLeft;
+                    } else if (sLeft.compare("1") == 0) {
+                        //1&&X = X
+                        ++uiStartTag;
+                        sDefine.erase(uiLeft, uiStartTag - uiLeft);
+                        uiStartTag = uiLeft;
                     } else if (sRight.compare("1") == 0) {
-                        //!1 = 0
-                        itDCE->second.sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '0');
+                        //X&&1 = X
+                        sDefine.erase(uiStartTag, uiRight - uiStartTag);
                     } else {
-                        //!X = (!X)
+                        //X&&X = (X&&X)
                         if (uiRight == string::npos) {
-                            itDCE->second.sDefine += ')';
+                            sDefine += ')';
                         } else {
-                            itDCE->second.sDefine.insert(uiRight, 1, ')');
+                            sDefine.insert(uiRight, 1, ')');
                         }
-                        itDCE->second.sDefine.insert(uiStartTag, 1, '(');
+                        sDefine.insert(uiLeft, 1, '(');
                         uiStartTag += 2;
                     }
                 } else {
-                    //Get left tag
-                    uint uiLeft = itDCE->second.sDefine.find_last_of(sPreProcessor, uiStartTag - 1);
-                    //Skip any ')' found within the function parameters itself
-                    if ((uiLeft != string::npos) && (itDCE->second.sDefine.at(uiLeft) == ')')) {
-                        uint uiBack = uiLeft - 1;
-                        uiLeft = itDCE->second.sDefine.rfind('(', uiBack);
-                        uint uiFindPos3 = itDCE->second.sDefine.rfind(')', uiBack);
-                        while ((uiFindPos3 != string::npos) && (uiFindPos3 > uiLeft)) {
-                            uiFindPos3 = itDCE->second.sDefine.rfind(')', uiFindPos3 - 1);
-                            uiLeft = itDCE->second.sDefine.rfind('(', uiLeft - 1);
-                        }
+                    if ((sLeft.compare("1") == 0) || (sRight.compare("1") == 0)) {
+                        //1||X or X||1 == 1
+                        ++uiStartTag;
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
+                        uiStartTag = uiLeft;
+                    } else if (sLeft.compare("0") == 0) {
+                        //0||X = X
+                        ++uiStartTag;
+                        sDefine.erase(uiLeft, uiStartTag - uiLeft);
+                        uiStartTag = uiLeft;
+                    } else if (sRight.compare("0") == 0) {
+                        //X||0 == X
+                        sDefine.erase(uiStartTag, uiRight - uiStartTag);
                     } else {
-                        uiLeft = (uiLeft == 0) ? 0 : uiLeft + 1;
-                    }
-                    string sLeft = itDCE->second.sDefine.substr(uiLeft, uiStartTag - uiLeft);
-
-                    //Check current operation
-                    if (acOps[uiOp] == '&') {
-                        if ((sLeft.compare("0") == 0) || (sRight.compare("0") == 0)) {
-                            //0&&X or X&&0 == 0
-                            itDCE->second.sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
-                            uiStartTag = uiLeft;
-                        } else if (sLeft.compare("1") == 0) {
-                            //1&&X = X
-                            ++uiStartTag;
-                            itDCE->second.sDefine.erase(uiLeft, uiStartTag - uiLeft);
-                            uiStartTag = uiLeft;
-                        } else if (sRight.compare("1") == 0) {
-                            //X&&1 = X
-                            itDCE->second.sDefine.erase(uiStartTag, uiRight - uiStartTag);
+                        //X||X = (X||X)
+                        if (uiRight == string::npos) {
+                            sDefine += ')';
                         } else {
-                            //X&&X = (X&&X)
-                            if (uiRight == string::npos) {
-                                itDCE->second.sDefine += ')';
-                            } else {
-                                itDCE->second.sDefine.insert(uiRight, 1, ')');
-                            }
-                            itDCE->second.sDefine.insert(uiLeft, 1, '(');
-                            uiStartTag += 2;
+                            sDefine.insert(uiRight, 1, ')');
                         }
-                    } else {
-                        if ((sLeft.compare("1") == 0) || (sRight.compare("1") == 0)) {
-                            //1||X or X||1 == 1
-                            ++uiStartTag;
-                            itDCE->second.sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
-                            uiStartTag = uiLeft;
-                        } else if (sLeft.compare("0") == 0) {
-                            //0||X = X
-                            ++uiStartTag;
-                            itDCE->second.sDefine.erase(uiLeft, uiStartTag - uiLeft);
-                            uiStartTag = uiLeft;
-                        } else if (sRight.compare("0") == 0) {
-                            //X||0 == X
-                            itDCE->second.sDefine.erase(uiStartTag, uiRight - uiStartTag);
-                        } else {
-                            //X||X = (X||X)
-                            if (uiRight == string::npos) {
-                                itDCE->second.sDefine += ')';
-                            } else {
-                                itDCE->second.sDefine.insert(uiRight, 1, ')');
-                            }
-                            itDCE->second.sDefine.insert(uiLeft, 1, '(');
-                            uiStartTag += 2;
-                        }
+                        sDefine.insert(uiLeft, 1, '(');
+                        uiStartTag += 2;
                     }
                 }
-                findAndReplace(itDCE->second.sDefine, "(0)", "0");
-                findAndReplace(itDCE->second.sDefine, "(1)", "1");
-
-                //Get next
-                uiStartTag = itDCE->second.sDefine.find(acOps[uiOp], uiStartTag);
             }
-        }
-        //Remove any (RESERV)
-        uiStartTag = itDCE->second.sDefine.find('(');
-        while (uiStartTag != string::npos) {
-            uint uiEndTag = itDCE->second.sDefine.find(')', uiStartTag);
-            ++uiStartTag;
-            //Skip any '(' found within the function parameters itself
-            uint uiFindPos3 = itDCE->second.sDefine.find('(', uiStartTag);
-            while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiEndTag)) {
-                uiFindPos3 = itDCE->second.sDefine.find('(', uiFindPos3 + 1);
-                uiEndTag = itDCE->second.sDefine.find(')', uiEndTag + 1);
-            }
+            findAndReplace(sDefine, "(0)", "0");
+            findAndReplace(sDefine, "(1)", "1");
 
-            string sTag = itDCE->second.sDefine.substr(uiStartTag, uiEndTag - uiStartTag);
-            if ((sTag.find_first_of("&|()") == string::npos) ||
-                ((uiStartTag == 1) && (uiEndTag == itDCE->second.sDefine.length() - 1))) {
-                itDCE->second.sDefine.erase(uiEndTag, 1);
-                itDCE->second.sDefine.erase(--uiStartTag, 1);
-            }
-            uiStartTag = itDCE->second.sDefine.find('(', uiStartTag);
-        }
-
-        findAndReplace(itDCE->second.sDefine, "&", " && ");
-        findAndReplace(itDCE->second.sDefine, "|", " || ");
-
-        if (itDCE->second.sDefine.compare("1") == 0) {
-            //remove from the list
-            mFoundDCEFunctions.erase(itDCE++);
-        } else {
-            ++itDCE;
+            //Get next
+            uiStartTag = sDefine.find(acOps[uiOp], uiStartTag);
         }
     }
+    //Remove any (RESERV)
+    uiStartTag = sDefine.find('(');
+    while (uiStartTag != string::npos) {
+        uint uiEndTag = sDefine.find(')', uiStartTag);
+        ++uiStartTag;
+        //Skip any '(' found within the function parameters itself
+        uint uiFindPos3 = sDefine.find('(', uiStartTag);
+        while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiEndTag)) {
+            uiFindPos3 = sDefine.find('(', uiFindPos3 + 1);
+            uiEndTag = sDefine.find(')', uiEndTag + 1);
+        }
+
+        string sTag = sDefine.substr(uiStartTag, uiEndTag - uiStartTag);
+        if ((sTag.find_first_of("&|()") == string::npos) ||
+            ((uiStartTag == 1) && (uiEndTag == sDefine.length() - 1))) {
+            sDefine.erase(uiEndTag, 1);
+            sDefine.erase(--uiStartTag, 1);
+        }
+        uiStartTag = sDefine.find('(', uiStartTag);
+    }
+
+    findAndReplace(sDefine, "&", " && ");
+    findAndReplace(sDefine, "|", " || ");
 }
 
 bool ProjectGenerator::outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction)
