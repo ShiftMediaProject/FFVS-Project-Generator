@@ -132,6 +132,13 @@ private:
 
         bool operator==(const string & sCompare) { return (sFile.compare(sCompare) == 0); }
     };
+
+    /**
+     * Builds project spefic DCE functions and variables that are not automatically detected.
+     * @param       sProjectName    Name of the project.
+     * @param [out] mDCEDefinitions The return list of built DCE functions.
+     * @param [out] mDCEVariables   The return list of built DCE variables.
+     */
     void buildProjectDCEs(const string & sProjectName, map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables);
 
     bool checkProjectFiles(const string& sProjectName);
@@ -148,7 +155,15 @@ private:
 
     bool outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs);
 
-    bool runMSVC(const std::vector<std::string> & vIncludeDirs, const std::string & sProjectName, std::map<std::string, std::vector<std::string>> &mDirectoryObjects, int iRunType);
+    /**
+     * Executes a batch script to perform operations using the msvc compiler.
+     * @param vIncludeDirs The list of current directories to look for included files.
+     * @param          sProjectName      Name of the currentproject.
+     * @param [in,out] mDirectoryObjects A list of subdirectories whith each one containing a vector of files contained within it.
+     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=preprocess to.i file).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
     void outputBuildEvents(const string& sProjectName, string & sProjectTemplate);
 
@@ -160,14 +175,49 @@ private:
 
     bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
 
+    /**
+     * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
+     * file os then created and added to the project that contains hull definitions for any missing functions.
+     * @param sProjectName Name of the current project.
+     * @param vIncludeDirs The list of current directories to look for included files.
+     * @return True if it succeeds, false if it fails.
+     */
     bool outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs);
 
+    /**
+     * Passes an input file and looks for any function usage within a block of code elimated by DCE.
+     * @param       sFile               The loaded file to search for DCE usage in.
+     * @param       sProjectName        Name of the current project.
+     * @param       sFileName           Filename of the file currently being searched.
+     * @param [out] mFoundDCEFunctions  The return list of found DCE functions.
+     * @param [out] bRequiresPreProcess The requires pre process.
+     */
     void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess);
 
+    /**
+     * Resolves a pre-processor define conditional string by replacing with current configuration settings.
+     * @param [in,out] sDefine   The pre-processor define string.
+     * @param          mReserved Pre-generated list of reserved configure values.
+     */
     void outputProgramDCEsResolveDefine(string & sDefine, ConfigGenerator::DefaultValuesList mReserved);
 
+    /**
+     * Find any declaration of a specified function. Can also find a definition of the function if no declaration as
+     * found first.
+     * @param       sFile           The loaded file to search for function in.
+     * @param       sFunction       The name of the function to serach for.
+     * @param       sFileName       Filename of the file being searched through.
+     * @param [out] sRetDeclaration Returns the complete declaration for the found function.
+     * @param [out] bIsFunction     Returns if the found declaration was actually for a function or an incorrectly
+     *                              identified table/array declaration.
+     * @return True if it succeeds finding the function, false if it fails.
+     */
     bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction);
 
+    /**
+     * Cleans a pre-processor define conditional string to remove any invalid values.
+     * @param [in,out] sDefine The pre-processor define string to clean.
+     */
     void outputProjectDCECleanDefine(string & sDefine);
 
     const string asDCETags[6] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_", "INLINE_"};
