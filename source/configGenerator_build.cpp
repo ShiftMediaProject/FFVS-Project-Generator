@@ -440,6 +440,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["videotoolbox_encoder"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferHEVC"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
+    mAdditionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
+    mAdditionalDependencies["VAEncPictureParameterBufferVP8"] = false;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
