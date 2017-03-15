@@ -1404,8 +1404,10 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
             sObjectName.resize(uiPos2);
 
             //Add the filters Filter
-            uiPos = vitInclude->rfind("../");
-            uiPos = (uiPos == string::npos) ? 0 : uiPos + 3;
+            string sSourceDir;
+            makeFileProjectRelative(this->m_ConfigHelper.m_sRootDirectory, sSourceDir);
+            uiPos = vitInclude->rfind(sSourceDir);
+            uiPos = (uiPos == string::npos) ? 0 : uiPos + sSourceDir.length();
             sTypeFilesFiltTemp += sIncludeClose;
             sTypeFilesFiltTemp += sFilterSource;
             uint uiFolderLength = vitInclude->rfind('/') - uiPos;
