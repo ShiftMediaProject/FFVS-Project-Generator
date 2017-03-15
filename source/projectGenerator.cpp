@@ -1980,20 +1980,20 @@ mkdir $(OutDir)\\include\\";
     transform(sLicenseName.begin(), sLicenseName.end(), sLicenseName.begin(), ::tolower);
     const string sLicenseEnd = " $(OutDir)\\licenses\\" + sLicenseName + ".txt";
     const string sPrebuild = "\n    <PreBuildEvent>\n\
-      <Command>if exist ..\\config.h (\n\
-del ..\\config.h\n\
+      <Command>if exist template_rootdirconfig.h (\n\
+del template_rootdirconfig.h\n\
 )\n\
-if exist ..\\version.h (\n\
-del ..\\version.h\n\
+if exist template_rootdirversion.h (\n\
+del template_rootdirversion.h\n\
 )\n\
-if exist ..\\config.asm (\n\
-del ..\\config.asm\n\
+if exist template_rootdirconfig.asm (\n\
+del template_rootdirconfig.asm\n\
 )\n\
-if exist ..\\libavutil\\avconfig.h (\n\
-del ..\\libavutil\\avconfig.h\n\
+if exist template_rootdirlibavutil\\avconfig.h (\n\
+del template_rootdirlibavutil\\avconfig.h\n\
 )\n\
-if exist ..\\libavutil\\ffversion.h (\n\
-del ..\\libavutil\\ffversion.h\n\
+if exist template_rootdirlibavutil\\ffversion.h (\n\
+del template_rootdirlibavutil\\ffversion.h\n\
 )";
     const string sPrebuildDir = "\nif exist $(OutDir)\\include\\" + sProjectName + " (\n\
 rd /s /q $(OutDir)\\include\\" + sProjectName + "\n\
@@ -2004,15 +2004,15 @@ cd $(ProjectDir)\n\
     //Get the correct license file
     string sLicenseFile;
     if (m_ConfigHelper.getConfigOption("nonfree")->m_sValue.compare("1") == 0) {
-        sLicenseFile = "..\\COPYING.GPLv3"; //Technically this has no license as it is unredistributable but we get the closest thing for now
+        sLicenseFile = "template_rootdirCOPYING.GPLv3"; //Technically this has no license as it is unredistributable but we get the closest thing for now
     } else if (m_ConfigHelper.getConfigOption("gplv3")->m_sValue.compare("1") == 0) {
-        sLicenseFile = "..\\COPYING.GPLv3";
+        sLicenseFile = "template_rootdirCOPYING.GPLv3";
     } else if (m_ConfigHelper.getConfigOption("lgplv3")->m_sValue.compare("1") == 0) {
-        sLicenseFile = "..\\COPYING.LGPLv3";
+        sLicenseFile = "template_rootdirCOPYING.LGPLv3";
     } else if (m_ConfigHelper.getConfigOption("gpl")->m_sValue.compare("1") == 0) {
-        sLicenseFile = "..\\COPYING.GPLv2";
+        sLicenseFile = "template_rootdirCOPYING.GPLv2";
     } else {
-        sLicenseFile = "..\\COPYING.LGPLv2.1";
+        sLicenseFile = "template_rootdirCOPYING.LGPLv2.1";
     }
     //Generate the pre build and post build string
     string sAdditional;
