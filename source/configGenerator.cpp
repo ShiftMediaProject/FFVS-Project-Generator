@@ -277,8 +277,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         if (sToolChain.compare("msvc") == 0) {
             //Dont disable inline as the configure header will auto header guard it our anyway. This allows for changing on the fly afterwards
         } else if (sToolChain.compare("icl") == 0) {
-            //This is the default so dont have to do anything
-            // Inline asm by default is turned on
+            //Inline asm by default is turned on if icl is detected
         } else {
             cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
             cout << "  Excepted toolchains (msvc, icl)" << endl;
@@ -292,6 +291,10 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         string sValue = stOption.substr(9);
         m_sOutDirectory = sValue;
+        //Check if directory has trailing '/'
+        if ((m_sOutDirectory.back() != '/') && (m_sOutDirectory.back() != '\\')) {
+            m_sOutDirectory += '/';
+        }
     } else if (stOption.find("--rootdir") == 0) {
         //A output dir has been specified
         if (stOption.at(9) != '=') {
@@ -315,6 +318,10 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         string sValue = stOption.substr(10);
         m_sProjectDirectory = sValue;
+        //Check if directory has trailing '/'
+        if ((m_sProjectDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
+            m_sProjectDirectory += '/';
+        }
     } else if (stOption.find("--list-") == 0) {
         string sOption = stOption.substr(7);
         string sOptionList = sOption;
