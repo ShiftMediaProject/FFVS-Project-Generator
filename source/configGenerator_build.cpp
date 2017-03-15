@@ -519,8 +519,14 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
 
 void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string> & vForceDisable)
 {
-    // Currently disable values are exact opposite of the corresponding enable ones
-    buildForcedEnables(sOptionLower, vForceDisable);
+    if (sOptionLower.compare("sdl") == 0) {
+        fastToggleConfigValue("sdl2", false); //must use fastToggle to prevent infinite cycle
+    } else if (sOptionLower.compare("sdl2") == 0) {
+        fastToggleConfigValue("sdl", false); //must use fastToggle to prevent infinite cycle
+    } else {
+        // Currently disable values are exact opposite of the corresponding enable ones
+        buildForcedEnables(sOptionLower, vForceDisable);
+    }
 }
 
 void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
