@@ -109,8 +109,20 @@ private:
 
     bool findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles);
 
+    /**
+     * Makes a files path relative to the project directory.
+     * @remark Assumes input file path is relative to the generator.
+     * @param       sFileName    Filename of the file.
+     * @param [out] sRetFileName Filename with the path modified.
+     */
     void makeFileProjectRelative(const string & sFileName, string & sRetFileName);
 
+    /**
+     * Makes a files path relative to the generator directory.
+     * @remark Assumes input file path is relative to the project.
+     * @param       sFileName    Filename of the file.
+     * @param [out] sRetFileName Filename with the path modified.
+     */
     void makeFileGeneratorRelative(const string & sFileName, string & sRetFileName);
 
     void buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs);

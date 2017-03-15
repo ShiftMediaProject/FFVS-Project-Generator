@@ -171,9 +171,6 @@ bool ProjectGenerator::outputProject()
         return false;
     }
 
-    //Replace all template tag arguments
-    outputTemplateTags(sProjectName, sProjectFile, sFiltersFile);
-
     //Add all project source files
     outputSourceFiles(sProjectName, sProjectFile, sFiltersFile);
 
@@ -194,6 +191,9 @@ bool ProjectGenerator::outputProject()
     //Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProjectFile);
 
+    //Replace all template tag arguments
+    outputTemplateTags(sProjectName, sProjectFile, sFiltersFile);
+
     //Write output project
     string sOutProjectFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".vcxproj";
     if (!writeToFile(sOutProjectFile, sProjectFile)) {
@@ -211,21 +211,6 @@ bool ProjectGenerator::outputProject()
 
 bool ProjectGenerator::outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile)
 {
-    //Open the template program
-    string sProgramFile;
-    if (!loadFromResourceFile(TEMPLATE_PROG_VCXPROJ_ID, sProgramFile)) {
-        return false;
-    }
-
-    //Open the template program filters
-    string sProgramFiltersFile;
-    if (!loadFromResourceFile(TEMPLATE_PROG_FILTERS_ID, sProgramFiltersFile)) {
-        return false;
-    }
-
-    //Replace all template tag arguments
-    outputTemplateTags(sProjectName, sProgramFile, sProgramFiltersFile);
-
     //Pass makefile for program
     passProgramMake(sProjectName);
 
@@ -248,13 +233,25 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     //We now have complete list of all the files that we need
     cout << "  Generating project file (" << sProjectName << ")..." << endl;
 
+    //Open the template program
+    string sProgramFile;
+    if (!loadFromResourceFile(TEMPLATE_PROG_VCXPROJ_ID, sProgramFile)) {
+        return false;
+    }
+
+    //Open the template program filters
+    string sProgramFiltersFile;
+    if (!loadFromResourceFile(TEMPLATE_PROG_FILTERS_ID, sProgramFiltersFile)) {
+        return false;
+    }
+
     //Add all project source files
     outputSourceFiles(sProjectName, sProgramFile, sProgramFiltersFile);
 
     //Add the build events
     outputBuildEvents(sProjectName, sProgramFile);
 
-    //Add YASM requirements (currently there are not any but just in case)
+    //Add YASM requirements
     outputYASMTools(sProgramFile);
 
     //Add the dependency libraries
@@ -267,6 +264,9 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
 
     //Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProgramFile);
+
+    //Replace all template tag arguments
+    outputTemplateTags(sProjectName, sProgramFile, sProgramFiltersFile);
 
     //Write program file
     if (!writeToFile(sDestinationFile, sProgramFile)) {
@@ -1278,7 +1278,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
 
 void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & sProjectTemplate, string& sFiltersTemplate)
 {
-    //Change all occurance of template_in with project name
+    //Change all occurrences of template_in with project name
     const string sFFSearchTag = "template_in";
     uint uiFindPos = sProjectTemplate.find(sFFSearchTag);
     while (uiFindPos != string::npos) {
@@ -1295,7 +1295,7 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
         uiFindPosFilt = sFiltersTemplate.find(sFFSearchTag, uiFindPosFilt + 1);
     }
 
-    //Change all occurance of template_shin with short project name
+    //Change all occurrences of template_shin with short project name
     const string sFFShortSearchTag = "template_shin";
     uiFindPos = sProjectTemplate.find(sFFShortSearchTag);
     string sProjectNameShort = sProjectName.substr(3); //The full name minus the lib prefix
@@ -1313,7 +1313,7 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
         uiFindPosFilt = sFiltersTemplate.find(sFFShortSearchTag, uiFindPosFilt + 1);
     }
 
-    //Change all occurance of template_platform with specified project toolchain
+    //Change all occurrences of template_platform with specified project toolchain
     string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>";
@@ -1345,7 +1345,7 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
         sProjectTemplate.replace(uiFindPos, mKeys[sProjectName].length(), mKeys[sProjectName]);
     }
 
-    //Change all occurance of template_outdir with configured output directory
+    //Change all occurrences of template_outdir with configured output directory
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     replace(sOutDir.begin(), sOutDir.end(), '/', '\\');
     if (sOutDir.at(0) == '.') {
@@ -1358,6 +1358,19 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
         sProjectTemplate.replace(uiFindPos, sFFOutSearchTag.length(), sOutDir);
         //Get next
         uiFindPos = sProjectTemplate.find(sFFOutSearchTag, uiFindPos + 1);
+    }
+
+    //Change all occurrences of template_rootdir with configured output directory
+    string sRootDir = m_ConfigHelper.m_sRootDirectory;
+    makeFileProjectRelative(sRootDir, sRootDir);
+    replace(sRootDir.begin(), sRootDir.end(), '/', '\\');
+    const string sFFRootSearchTag = "template_rootdir";
+    uiFindPos = sProjectTemplate.find(sFFRootSearchTag);
+    while (uiFindPos != string::npos) {
+        //Replace
+        sProjectTemplate.replace(uiFindPos, sFFRootSearchTag.length(), sRootDir);
+        //Get next
+        uiFindPos = sProjectTemplate.find(sFFRootSearchTag, uiFindPos + 1);
     }
 }
 
@@ -2096,7 +2109,7 @@ void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
 {
     const string sYASMDefines = "\n\
     <YASM>\n\
-      <IncludePaths>..\\;.\\;..\\libavcodec;%(IncludePaths)</IncludePaths>\n\
+      <IncludePaths>.\\;template_rootdir;%(IncludePaths)</IncludePaths>\n\
       <PreIncludeFile>config.asm</PreIncludeFile>\n\
       <Debug>true</Debug>\n\
     </YASM>";
