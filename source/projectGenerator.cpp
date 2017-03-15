@@ -2292,6 +2292,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 }
                 //Add the file to the list
                 if (find(vSearchFiles.begin(), vSearchFiles.end(), sTemplateFile) == vSearchFiles.end()) {
+                    makeFileProjectRelative(sTemplateFile, sTemplateFile);
                     vSearchFiles.push_back(sTemplateFile);
                 }
             }
