@@ -353,7 +353,8 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["libiec61883"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libilbc"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libkvazaar"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libmfx"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) || (sProjectName.compare("libavcodec") == 0) ||
+    mProjectDeps["libmfx"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) || 
+        (sProjectName.compare("libavcodec") == 0) || ((sProjectName.compare("libavfilter") == 0) && findSourceFile("vf_deinterlace_qsv", ".c", sNotUsed)) ||
         (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["libmodplug"] = (sProjectName.compare("libavformat") == 0);
     mProjectDeps["libmp3lame"] = (sProjectName.compare("libavcodec") == 0);
