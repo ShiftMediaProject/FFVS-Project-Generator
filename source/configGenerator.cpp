@@ -575,6 +575,56 @@ bool ConfigGenerator::outputConfig()
         }
     }
 
+    //Check the current options are valid for selected license
+    if (getConfigOption("nonfree")->m_sValue.compare("1") != 0) {
+        vector<string> vLicenseList;
+        //Check for existance of specific license lists
+        if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", vLicenseList, false)) {
+            for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
+                if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+                    cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                    return false;
+                }
+            }
+            //Check for gpl3 lists
+            if (getConfigOption("gplv3")->m_sValue.compare("1") != 0) {
+                vLicenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_GPLV3_LIST", vLicenseList, false)) {
+                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
+                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            return false;
+                        }
+                    }
+                }
+            }
+            //Check for version3 lists
+            if ((getConfigOption("lgplv3")->m_sValue.compare("1") != 0) && (getConfigOption("gplv3")->m_sValue.compare("1") != 0)) {
+                vLicenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_VERSION3_LIST", vLicenseList, false)) {
+                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
+                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            return false;
+                        }
+                    }
+                }
+            }
+            //Check for gpl lists
+            if (getConfigOption("gpl")->m_sValue.compare("1") != 0) {
+                vLicenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_GPL_LIST", vLicenseList, false)) {
+                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
+                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     //Create header output
     string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
     string sConfigureFile = sHeader;
