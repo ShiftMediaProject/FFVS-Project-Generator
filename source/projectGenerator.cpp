@@ -24,9 +24,13 @@
 #include <algorithm>
 #include <utility>
 
- //This can be used to force all detected DCE values to be output to file
- // whether they are enabled in current configuration or not
+//This can be used to force all detected DCE values to be output to file
+// whether they are enabled in current configuration or not
 #define FORCEALLDCE 0
+
+//This can be used to change between outputting projects using either nasm 
+// or yasm assembler
+#define USENASM 0
 
 #define TEMPLATE_COMPAT_ID 100
 #define TEMPLATE_MATH_ID 102
@@ -177,8 +181,8 @@ bool ProjectGenerator::outputProject()
     //Add the build events
     outputBuildEvents(sProjectName, sProjectFile);
 
-    //Add YASM requirements
-    outputYASMTools(sProjectFile);
+    //Add ASM requirements
+    outputASMTools(sProjectFile);
 
     //Add the dependency libraries
     if (!outputDependencyLibs(sProjectName, sProjectFile)) {
@@ -251,8 +255,8 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     //Add the build events
     outputBuildEvents(sProjectName, sProgramFile);
 
-    //Add YASM requirements
-    outputYASMTools(sProgramFile);
+    //Add ASM requirements
+    outputASMTools(sProgramFile);
 
     //Add the dependency libraries
     if (!outputDependencyLibs(sProjectName, sProgramFile, true)) {
@@ -1528,7 +1532,7 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
 
     //Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
-        outputSourceFileType(m_vASMIncludes, "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+        outputSourceFileType(m_vASMIncludes, (USENASM)? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
     }
 
     //Output C files
@@ -2195,6 +2199,15 @@ void ProjectGenerator::outputNASMTools(string & sProjectTemplate)
         sProjectTemplate.insert(uiFindPos, sNASMTargets);
         uiFindPos += sNASMTargets.length();
     }
+}
+
+void ProjectGenerator::outputASMTools(string & sProjectTemplate)
+{
+#if USENASM
+    outputNASMTools(sProjectTemplate);
+#else
+    outputYASMTools(sProjectTemplate);
+#endif
 }
 
 bool ProjectGenerator::outputDependencyLibs(const string & sProjectName, string & sProjectTemplate, bool bProgram)

@@ -195,6 +195,13 @@ private:
      */
     void outputNASMTools(string & sProjectTemplate);
 
+    /**
+     * Output asm tools to project template.
+     * @remark Either yasm or nasm tools will be used based on current configuration.
+     * @param [in,out] sProjectTemplate The project template.
+     */
+    void outputASMTools(string & sProjectTemplate);
+
     bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
 
     /**
