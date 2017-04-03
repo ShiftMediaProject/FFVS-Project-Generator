@@ -36,7 +36,7 @@ private:
     StaticList      m_vIncludes;
     StaticList      m_vCPPIncludes;
     StaticList      m_vCIncludes;
-    StaticList      m_vYASMIncludes;
+    StaticList      m_vASMIncludes;
     StaticList      m_vHIncludes;
     UnknownList     m_mReplaceIncludes;
     StaticList      m_vLibs;
@@ -183,7 +183,17 @@ private:
 
     void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string & sProjectTemplate);
 
+    /**
+     * Output yasm tools to project template.
+     * @param [in,out] sProjectTemplate The project template.
+     */
     void outputYASMTools(string & sProjectTemplate);
+
+    /**
+     * Output nasm tools to project template.
+     * @param [in,out] sProjectTemplate The project template.
+     */
+    void outputNASMTools(string & sProjectTemplate);
 
     bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
 
