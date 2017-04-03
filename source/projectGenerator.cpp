@@ -2118,16 +2118,16 @@ void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
     const string sYASMDefines = "\n\
     <YASM>\n\
       <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;%(IncludePaths)</IncludePaths>\n\
-      <PreIncludeFile>config.asm;%(PreIncludeFile)</PreIncludeFile>\n\
-      <Debug>true</Debug>\n\
+      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\n\
+      <GenerateDebugInformation>true</GenerateDebugInformation>\n\
     </YASM>";
     const string sYASMProps = "\n\
   <ImportGroup Label=\"ExtensionSettings\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\vsyasm.props\" />\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.props\" />\n\
   </ImportGroup>";
     const string sYASMTargets = "\n\
   <ImportGroup Label=\"ExtensionTargets\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\vsyasm.targets\" />\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.targets\" />\n\
   </ImportGroup>";
     const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
     const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
