@@ -82,7 +82,7 @@ bool ConfigGenerator::passConfigureFile()
         //Open configure file
         string sConfigFile = m_sRootDirectory + "configure";
         if (!loadFromFile(sConfigFile, m_sConfigureFile, false, false)) {
-            cout << "  Error: failed to find a 'configure' file in specified root diretory" << endl;
+            cout << "  Error: failed to find a 'configure' file in specified root directory" << endl;
             return false;
         }
     }
@@ -275,7 +275,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         //A tool chain has been specified
         string sToolChain = stOption.substr(12);
         if (sToolChain.compare("msvc") == 0) {
-            //Dont disable inline as the configure header will auto header guard it our anyway. This allows for changing on the fly afterwards
+            //Don’t disable inline as the configure header will auto header guard it out anyway. This allows for changing on the fly afterwards
         } else if (sToolChain.compare("icl") == 0) {
             //Inline asm by default is turned on if icl is detected
         } else {

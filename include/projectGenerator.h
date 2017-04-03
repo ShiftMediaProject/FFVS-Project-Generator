@@ -146,7 +146,7 @@ private:
     };
 
     /**
-     * Builds project spefic DCE functions and variables that are not automatically detected.
+     * Builds project specific DCE functions and variables that are not automatically detected.
      * @param       sProjectName    Name of the project.
      * @param [out] mDCEDefinitions The return list of built DCE functions.
      * @param [out] mDCEVariables   The return list of built DCE variables.
@@ -170,8 +170,8 @@ private:
     /**
      * Executes a batch script to perform operations using the msvc compiler.
      * @param vIncludeDirs The list of current directories to look for included files.
-     * @param          sProjectName      Name of the currentproject.
-     * @param [in,out] mDirectoryObjects A list of subdirectories whith each one containing a vector of files contained within it.
+     * @param          sProjectName      Name of the current project.
+     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained within it.
      * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=preprocess to.i file).
      * @return True if it succeeds, false if it fails.
      */
@@ -227,7 +227,7 @@ private:
      * Find any declaration of a specified function. Can also find a definition of the function if no declaration as
      * found first.
      * @param       sFile           The loaded file to search for function in.
-     * @param       sFunction       The name of the function to serach for.
+     * @param       sFunction       The name of the function to search for.
      * @param       sFileName       Filename of the file being searched through.
      * @param [out] sRetDeclaration Returns the complete declaration for the found function.
      * @param [out] bIsFunction     Returns if the found declaration was actually for a function or an incorrectly
