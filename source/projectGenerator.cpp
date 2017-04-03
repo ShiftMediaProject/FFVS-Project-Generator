@@ -1841,8 +1841,8 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string
 
     //Use Microsoft compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "@echo off \n";
-    sCLLaunchBat += "if exist \"%VS150COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS150COMNTOOLS%\\vsvars32.bat\" \n\
+    sCLLaunchBat += "if exist \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" ( \n\
+call \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" >NUL 2>NUL \n\
 goto MSVCVarsDone \n\
 ) else if exist \"%VS140COMNTOOLS%\\vsvars32.bat\" ( \n\
 call \"%VS140COMNTOOLS%\\vsvars32.bat\" \n\
