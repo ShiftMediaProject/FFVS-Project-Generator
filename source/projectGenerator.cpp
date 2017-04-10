@@ -28,7 +28,7 @@
 // whether they are enabled in current configuration or not
 #define FORCEALLDCE 0
 
-//This can be used to change between outputting projects using either nasm 
+//This can be used to change between outputting projects using either nasm
 // or yasm assembler
 #define USENASM 0
 
@@ -1532,7 +1532,7 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
 
     //Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
-        outputSourceFileType(m_vASMIncludes, (USENASM)? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+        outputSourceFileType(m_vASMIncludes, (USENASM) ? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
     }
 
     //Output C files
@@ -2349,20 +2349,19 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 if (uiProjName != string::npos) {
                     sTemplateFile = sTemplateFile.substr(uiProjName + sProjectName.length() + 1);
                 }
-                //Check if in sibling directory
-                if (sTemplateFile.find('/') != string::npos) {
-                    sTemplateFile = "../" + sTemplateFile;
-                }
                 string sFound;
                 string sBack = sTemplateFile;
                 sTemplateFile = m_sProjectDir + sBack;
                 if (!findFile(sTemplateFile, sFound)) {
-                    sTemplateFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + '/' + sBack;
+                    sTemplateFile = m_ConfigHelper.m_sRootDirectory + '/' + sBack;
                     if (!findFile(sTemplateFile, sFound)) {
-                        sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
+                        sTemplateFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + '/' + sBack;
                         if (!findFile(sTemplateFile, sFound)) {
-                            cout << "  Error: Failed to find included file " << sBack << "  " << endl;
-                            return false;
+                            sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
+                            if (!findFile(sTemplateFile, sFound)) {
+                                cout << "  Error: Failed to find included file " << sBack << "  " << endl;
+                                return false;
+                            }
                         }
                     }
                 }
