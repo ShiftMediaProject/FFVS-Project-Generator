@@ -2591,9 +2591,10 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     //Check if we failed to find anything (even after using buildDCEs)
     if (mFoundDCEFunctions.size() > 0) {
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
-            cout << "  Error: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sFile << endl;
+            cout << "  Warning: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sFile << endl;
+            //Just output a blank definition and hope it works
+            mFoundDCEDefinitions["void " + itDCE->first + "()"] = {itDCE->second.sDefine, itDCE->second.sFile};
         }
-        return false;
     }
 
     //Add definition to new file
