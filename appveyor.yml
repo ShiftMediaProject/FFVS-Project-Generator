@@ -23,7 +23,7 @@ build:
 
 after_build:
 # Copy over readme to artifact folder
-- cmd: copy /y %APPVEYOR_BUILD_FOLDER%\readme.txt %APPVEYOR_BUILD_FOLDER%\bin
+- cmd: copy /y %APPVEYOR_BUILD_FOLDER%\README.md %APPVEYOR_BUILD_FOLDER%\bin
 # GitLink the genrated pdb
 - cmd: GitLink . -f project_generate.sln -c %CONFIGURATION% -p %PLATFORM% -u https://github.com/%APPVEYOR_REPO_NAME%.git -s %APPVEYOR_REPO_COMMIT%
 
