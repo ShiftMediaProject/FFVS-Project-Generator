@@ -27,6 +27,10 @@
     <ClCompile Include="source\configGenerator.cpp" />
     <ClCompile Include="source\configGenerator_build.cpp" />
     <ClCompile Include="source\helperFunctions.cpp" />
+    <ClCompile Include="source\projectGenerator_compiler.cpp" />
+    <ClCompile Include="source\projectGenerator_dce.cpp" />
+    <ClCompile Include="source\projectGenerator_files.cpp" />
+    <ClCompile Include="source\projectGenerator_pass.cpp" />
     <ClCompile Include="source\project_generate.cpp" />
     <ClCompile Include="source\projectGenerator.cpp" />
     <ClCompile Include="source\projectGenerator_build.cpp" />
