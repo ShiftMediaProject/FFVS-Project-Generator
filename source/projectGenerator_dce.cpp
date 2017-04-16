@@ -32,11 +32,12 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 {
     cout << "  Generating missing DCE symbols (" << sProjectName << ")..." << endl;
     //Create list of source files to scan
-    StaticList vSearchFiles = m_vCIncludes;
 #if !FORCEALLDCE
+    StaticList vSearchFiles = m_vCIncludes;
     vSearchFiles.insert(vSearchFiles.end(), m_vCPPIncludes.begin(), m_vCPPIncludes.end());
     vSearchFiles.insert(vSearchFiles.end(), m_vHIncludes.begin(), m_vHIncludes.end());
 #else
+    StaticList vSearchFiles;
     findFiles(m_sProjectDir + "*.h", vSearchFiles, false);
     findFiles(m_sProjectDir + "*.c", vSearchFiles, false);
     findFiles(m_sProjectDir + "*.cpp", vSearchFiles, false);
@@ -105,17 +106,18 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         }
     }
 
+#if !FORCEALLDCE
     //Get a list of all files in current project directory (including subdirectories)
+    bool bRecurse = (m_sProjectDir.compare(this->m_ConfigHelper.m_sRootDirectory) != 0);
     vSearchFiles.resize(0);
-    findFiles(m_sProjectDir + "*.h", vSearchFiles);
-    findFiles(m_sProjectDir + "*.c", vSearchFiles);
-    findFiles(m_sProjectDir + "*.cpp", vSearchFiles);
+    findFiles(m_sProjectDir + "*.h", vSearchFiles, bRecurse);
+    findFiles(m_sProjectDir + "*.c", vSearchFiles, bRecurse);
+    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, bRecurse);
     //Ensure we can add extra items to the list without needing reallocs
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
         vSearchFiles.reserve(vSearchFiles.size() + 250);
     }
 
-#if !FORCEALLDCE
     //Check all configurations are enabled early to avoid later lookups of unused functions
     ConfigGenerator::DefaultValuesList mReserved;
     ConfigGenerator::DefaultValuesList mIgnored;
@@ -424,7 +426,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess)
 {
     const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
-    const string asFuncIdents[] = {"ff_", "swri_", "avresample_"};
+    const string asFuncIdents[] = {"ff_", "swri_", "avutil_", "avcodec_", "avformat_", "avdevice_", "avfilter_",
+        "avresample_", "swscale_", "swresample_", "postproc_"};
     for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
         for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
             const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
@@ -467,7 +470,8 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                     }
                 } else {
                     //This is a single line of code
-                    uiFindPos2 = sFile.find_first_of(sEndLine, uiFindPos + 1);
+                    uiFindPos2 = sFile.find_first_of(sEndLine + ';', uiFindPos + 1);
+                    uiFindPos2 = (sFile.at(uiFindPos2) == ';') ? uiFindPos2 + 1 : uiFindPos2; //must include the ;
                 }
                 sCode = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
 
@@ -637,11 +641,15 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
     findAndReplace(sDefine, "&&", "&");
     findAndReplace(sDefine, "||", "|");
 
-    //Need to search through for !, &&,  || in correct order of occurrence
-    const char acOps[] = {'!', '&', '|'};
+    //Need to search through for !, !=, ==, &&, || in correct order of precendence
+    const char acOps[] = {'!', '=', '&', '|'};
     for (unsigned uiOp = 0; uiOp < sizeof(acOps) / sizeof(char); uiOp++) {
         uiStartTag = sDefine.find(acOps[uiOp]);
         while (uiStartTag != string::npos) {
+            //Check for != or ==
+            if (sDefine.at(uiStartTag + 1) == '=') {
+                ++uiStartTag;
+            }
             //Get right tag
             ++uiStartTag;
             uint uiRight = sDefine.find_first_of(sPreProcessor, uiStartTag);
@@ -659,7 +667,7 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
             --uiStartTag;
 
             //Check current operation
-            if (acOps[uiOp] == '!') {
+            if (sDefine.at(uiStartTag) == '!') {
                 if (sRight.compare("0") == 0) {
                     //!0 = 1
                     sDefine.replace(uiStartTag, uiRight - uiStartTag, 1, '1');
@@ -677,6 +685,10 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
                     uiStartTag += 2;
                 }
             } else {
+                //Check for != or ==
+                if (sDefine.at(uiStartTag) == '=') {
+                    --uiStartTag;
+                }
                 //Get left tag
                 uint uiLeft = sDefine.find_last_of(sPreProcessor, uiStartTag - 1);
                 //Skip any ')' found within the function parameters itself
@@ -689,7 +701,7 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
                         uiLeft = sDefine.rfind('(', uiLeft - 1);
                     }
                 } else {
-                    uiLeft = (uiLeft == 0) ? 0 : uiLeft + 1;
+                    uiLeft = (uiLeft == string::npos) ? 0 : uiLeft + 1;
                 }
                 string sLeft = sDefine.substr(uiLeft, uiStartTag - uiLeft);
 
@@ -717,10 +729,9 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
                         sDefine.insert(uiLeft, 1, '(');
                         uiStartTag += 2;
                     }
-                } else {
+                } else if (acOps[uiOp] == '|') {
                     if ((sLeft.compare("1") == 0) || (sRight.compare("1") == 0)) {
                         //1||X or X||1 == 1
-                        ++uiStartTag;
                         sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
                         uiStartTag = uiLeft;
                     } else if (sLeft.compare("0") == 0) {
@@ -733,6 +744,52 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
                         sDefine.erase(uiStartTag, uiRight - uiStartTag);
                     } else {
                         //X||X = (X||X)
+                        if (uiRight == string::npos) {
+                            sDefine += ')';
+                        } else {
+                            sDefine.insert(uiRight, 1, ')');
+                        }
+                        sDefine.insert(uiLeft, 1, '(');
+                        uiStartTag += 2;
+                    }
+                } else if (acOps[uiOp] == '!') {
+                    if ((sLeft.compare("1") == 0) && (sRight.compare("1") == 0)) {
+                        //1!=1 == 0
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
+                        uiStartTag = uiLeft;
+                    } else if ((sLeft.compare("1") == 0) && (sRight.compare("0") == 0)) {
+                        //1!=0 == 1
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
+                        uiStartTag = uiLeft;
+                    } else if ((sLeft.compare("0") == 0) && (sRight.compare("1") == 0)) {
+                        //0!=1 == 1
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
+                        uiStartTag = uiLeft;
+                    } else {
+                        //X!=X = (X!=X)
+                        if (uiRight == string::npos) {
+                            sDefine += ')';
+                        } else {
+                            sDefine.insert(uiRight, 1, ')');
+                        }
+                        sDefine.insert(uiLeft, 1, '(');
+                        uiStartTag += 2;
+                    }
+                } else if (acOps[uiOp] == '=') {
+                    if ((sLeft.compare("1") == 0) && (sRight.compare("1") == 0)) {
+                        //1==1 == 1
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '1');
+                        uiStartTag = uiLeft;
+                    } else if ((sLeft.compare("1") == 0) && (sRight.compare("0") == 0)) {
+                        //1==0 == 0
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
+                        uiStartTag = uiLeft;
+                    } else if ((sLeft.compare("0") == 0) && (sRight.compare("1") == 0)) {
+                        //0==1 == 0
+                        sDefine.replace(uiLeft, uiRight - uiLeft, 1, '0');
+                        uiStartTag = uiLeft;
+                    } else {
+                        //X==X == (X==X)
                         if (uiRight == string::npos) {
                             sDefine += ')';
                         } else {
@@ -899,90 +956,56 @@ void ProjectGenerator::outputProjectDCECleanDefine(string & sDefine)
 
     //Check if the tag contains multiple conditionals
     removeWhiteSpace(sDefine);
-    uint uiFindPos = sDefine.find_first_of("&|");
-    while (uiFindPos != string::npos) {
-        uint uiFindPos4 = uiFindPos++;
-        if ((sDefine.at(uiFindPos) == '&') || (sDefine.at(uiFindPos) == '|')) {
-            ++uiFindPos;
-        }
-        if (sDefine.at(uiFindPos) == '!') {
-            ++uiFindPos;
-        }
-        while (sDefine.at(uiFindPos) == '(') {
-            ++uiFindPos;
-            uiFindPos4 = uiFindPos;
-            if (sDefine.at(uiFindPos) == '!') {
-                ++uiFindPos;
-            }
-        }
-
+    uint uiStartTag = sDefine.find_first_not_of(sPreProcessor);
+    while (uiStartTag != string::npos) {
         //Check if each conditional is valid
         bool bValid = false;
         for (unsigned uiTagk = 0; uiTagk < sizeof(asDCETags) / sizeof(string); uiTagk++) {
-            if (sDefine.find(asDCETags[uiTagk], uiFindPos) == uiFindPos) {
+            if (sDefine.find(asDCETags[uiTagk], uiStartTag) == uiStartTag) {
                 // We have found a valid additional tag
                 bValid = true;
                 break;
             }
         }
 
-        if (!bValid && isupper(sDefine.at(uiFindPos))) {
-            string sUnknown = sDefine.substr(uiFindPos, sDefine.find_first_of("&|)", uiFindPos + 1) - uiFindPos);
-            if ((sUnknown.find("AV_") != 0) && (sUnknown.find("FF_") != 0)) {
-                cout << "  Warning: Found unknown macro in DCE condition " << sUnknown << endl;
-            }
-        }
-
         if (!bValid) {
-            //Remove invalid components out of string
-            uiFindPos = sDefine.find_first_of("&|)", uiFindPos + 1);
-            bool bCutTail = false;
-            if ((sDefine.at(uiFindPos4 - 1) == '(') && ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) != ')'))) {
-                //Trim operators after tag instead of before it
-                uiFindPos = sDefine.find_first_not_of("&|", uiFindPos + 1);
-                bCutTail = true;
-            } else if ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) == ')') && ((uiFindPos4 == 0) || (sDefine.at(uiFindPos4 - 1) != '('))) {
-                //This is a function call that should get cut out
-                ++uiFindPos;
-                uiFindPos = (uiFindPos >= sDefine.size()) ? string::npos : uiFindPos;
-            }
-            bool bCutBrackets = false;
-            while ((uiFindPos != string::npos) && (sDefine.at(uiFindPos) == ')') && (uiFindPos4 != 0) && (sDefine.at(uiFindPos4 - 1) == '(')) {
-                //Remove any ()'s that are no longer needed
-                --uiFindPos4;
-                ++uiFindPos;
-                uiFindPos = (uiFindPos >= sDefine.size()) ? string::npos : uiFindPos;
-                bCutBrackets = true;
-            }
-            if (bCutBrackets && (sDefine.find_first_of("&|!)", uiFindPos) != uiFindPos)) {
-                //This was a typecast
-                uiFindPos = sDefine.find_first_of("&|!)", uiFindPos);
-                if ((uiFindPos != string::npos) && (uiFindPos4 != 0) && (sDefine.at(uiFindPos4 - 1) == '(')) {
-                    bCutBrackets = false;
-                    uiFindPos = sDefine.find_first_not_of("&|", uiFindPos + 1);
-                    bCutTail = true;
+            //Get right tag
+            uint uiRight = sDefine.find_first_of(sPreProcessor, uiStartTag);
+            //Skip any '(' found within the function parameters itself
+            if ((uiRight != string::npos) && (sDefine.at(uiRight) == '(')) {
+                uint uiBack = uiRight + 1;
+                uiRight = sDefine.find(')', uiBack) + 1;
+                uint uiFindPos3 = sDefine.find('(', uiBack);
+                while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiRight)) {
+                    uiFindPos3 = sDefine.find('(', uiFindPos3 + 1);
+                    uiRight = sDefine.find(')', uiRight + 1) + 1;
                 }
             }
-            if (bCutBrackets && (uiFindPos4 > 0)) {
-                //Need to cut back preceding operators
-                uiFindPos4 = sDefine.find_last_not_of("&|!", uiFindPos4 - 1);
-                uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
+
+            if (!bValid && isupper(sDefine.at(uiStartTag))) {
+                string sRight(sDefine.substr(uiStartTag, uiRight - uiStartTag));
+                if ((sRight.find("AV_") != 0) && (sRight.find("FF_") != 0)) {
+                    cout << "  Warning: Found unknown macro in DCE condition " << sRight << endl;
+                }
             }
-            uint uiFindPos3 = (uiFindPos == string::npos) ? uiFindPos : uiFindPos - uiFindPos4;
-            sDefine.erase(uiFindPos4, uiFindPos3);
-            uiFindPos = (uiFindPos4 >= sDefine.size() - 1) ? string::npos : uiFindPos4;
-            if (bCutTail) {
-                //Set start back at previously conditional operation
-                uiFindPos = sDefine.find_last_not_of("!&|(", uiFindPos - 1);
-                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos + 1;
+
+            while ((uiStartTag != 0) && ((sDefine.at(uiStartTag - 1) == '(') && (sDefine.at(uiRight) == ')'))) {
+                //Remove the ()'s
+                --uiStartTag;
+                ++uiRight;
             }
+            if ((uiStartTag == 0) || ((sDefine.at(uiStartTag - 1) == '(') && (sDefine.at(uiRight) != ')'))) {
+                //Trim operators after tag instead of before it
+                uiRight = sDefine.find_first_not_of("|&!=", uiRight + 1); //Must not search for ()'s
+            } else {
+                //Trim operators before tag
+                uiStartTag = sDefine.find_last_not_of("|&!=", uiStartTag - 1) + 1; //Must not search for ()'s
+            }
+            sDefine.erase(uiStartTag, uiRight - uiStartTag);
+            uiStartTag = sDefine.find_first_not_of(sPreProcessor, uiStartTag);
         } else {
-            uiFindPos = sDefine.find_first_of("&|", uiFindPos + 1);
+            uiStartTag = sDefine.find_first_of(sPreProcessor, uiStartTag + 1);
+            uiStartTag = (uiStartTag != string::npos) ? sDefine.find_first_not_of(sPreProcessor, uiStartTag + 1) : uiStartTag;
         }
-    }
-    //Remove any surrounding braces that may be left
-    while (sDefine.at(0) == '(' && sDefine.at(sDefine.size() - 1) == ')') {
-        sDefine.erase(0, 1);
-        sDefine.pop_back();
     }
 }

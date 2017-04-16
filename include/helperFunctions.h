@@ -153,9 +153,9 @@ void findAndReplace(string & sString, const string & sSearch, const string & sRe
 
 const string sEndLine = "\n\r\f\v";
 const string sWhiteSpace = " \t" + sEndLine;
-const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#";
+const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
 const string sNonName = sOperators + sWhiteSpace;
-const string sPreProcessor = "&|()!";
+const string sPreProcessor = "&|()!=";
 };
 
 using namespace project_generate;
