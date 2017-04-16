@@ -38,9 +38,10 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     vSearchFiles.insert(vSearchFiles.end(), m_vHIncludes.begin(), m_vHIncludes.end());
 #else
     StaticList vSearchFiles;
-    findFiles(m_sProjectDir + "*.h", vSearchFiles, false);
-    findFiles(m_sProjectDir + "*.c", vSearchFiles, false);
-    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, false);
+    bool bRecurse = (m_sProjectDir.compare(this->m_ConfigHelper.m_sRootDirectory) != 0);
+    findFiles(m_sProjectDir + "*.h", vSearchFiles, bRecurse);
+    findFiles(m_sProjectDir + "*.c", vSearchFiles, bRecurse);
+    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, bRecurse);
 #endif
     //Ensure we can add extra items to the list without needing reallocs
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
@@ -426,8 +427,41 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess)
 {
     const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
-    const string asFuncIdents[] = {"ff_", "swri_", "avutil_", "avcodec_", "avformat_", "avdevice_", "avfilter_",
-        "avresample_", "swscale_", "swresample_", "postproc_"};
+    StaticList vFuncIdents = {"ff_"};
+    if ((sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("ffprobe") == 0) ||
+        (sProjectName.compare("avconv") == 0) || (sProjectName.compare("avplay") == 0) || (sProjectName.compare("avprobe") == 0)) {
+        vFuncIdents.push_back("avcodec_");
+        vFuncIdents.push_back("avdevice_");
+        vFuncIdents.push_back("avfilter_");
+        vFuncIdents.push_back("avformat_");
+        vFuncIdents.push_back("avutil_");
+        vFuncIdents.push_back("av_");
+        vFuncIdents.push_back("avresample_");
+        vFuncIdents.push_back("postproc_");
+        vFuncIdents.push_back("swri_");
+        vFuncIdents.push_back("swresample_");
+        vFuncIdents.push_back("swscale_");
+    } else if (sProjectName.compare("libavcodec") == 0) {
+        vFuncIdents.push_back("avcodec_");
+    } else if (sProjectName.compare("libavdevice") == 0) {
+        vFuncIdents.push_back("avdevice_");
+    } else if (sProjectName.compare("libavfilter") == 0) {
+        vFuncIdents.push_back("avfilter_");
+    } else if (sProjectName.compare("libavformat") == 0) {
+        vFuncIdents.push_back("avformat_");
+    } else if (sProjectName.compare("libavutil") == 0) {
+        vFuncIdents.push_back("avutil_");
+        vFuncIdents.push_back("av_");
+    } else if (sProjectName.compare("libavresample") == 0) {
+        vFuncIdents.push_back("avresample_");
+    } else if (sProjectName.compare("libpostproc") == 0) {
+        vFuncIdents.push_back("postproc_");
+    } else if (sProjectName.compare("libswresample") == 0) {
+        vFuncIdents.push_back("swri_");
+        vFuncIdents.push_back("swresample_");
+    } else if (sProjectName.compare("libswscale") == 0) {
+        vFuncIdents.push_back("swscale_");
+    }
     for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
         for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
             const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
@@ -476,8 +510,8 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                 sCode = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
 
                 //Get name of any functions
-                for (unsigned uiIdents = 0; uiIdents < sizeof(asFuncIdents) / sizeof(string); uiIdents++) {
-                    uiFindPos = sCode.find(asFuncIdents[uiIdents]);
+                for (StaticList::iterator itIdent = vFuncIdents.begin(); itIdent < vFuncIdents.end(); itIdent++) {
+                    uiFindPos = sCode.find(*itIdent);
                     while (uiFindPos != string::npos) {
                         bool bValid = false;
                         //Check if this is a valid function call
@@ -603,7 +637,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                             }
                         }
                         //Search for next occurrence
-                        uiFindPos = sCode.find(asFuncIdents[uiIdents], uiFindPos + 1);
+                        uiFindPos = sCode.find(*itIdent, uiFindPos + 1);
                     }
                 }
 
