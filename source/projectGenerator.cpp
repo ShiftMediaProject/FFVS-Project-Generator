@@ -712,7 +712,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                 sTypeFilesTemp += sIncludeClose;
                 bClosed = true;
                 const string* p_Configs = NULL;
-                uint32_t uiConfigs = 0;
+                uint uiConfigs = 0;
                 if (bStaticOnly) {
                     p_Configs = aBuildConfigsShared;
                     uiConfigs = 4;
@@ -720,7 +720,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                     p_Configs = aBuildConfigsStatic;
                     uiConfigs = 3;
                 }
-                for (uint32_t uiI = 0; uiI < uiConfigs; uiI++) {
+                for (uint uiI = 0; uiI < uiConfigs; uiI++) {
                     sTypeFilesTemp += sExcludeConfig;
                     sTypeFilesTemp += p_Configs[uiI];
                     sTypeFilesTemp += sExcludeConfigEnd;
