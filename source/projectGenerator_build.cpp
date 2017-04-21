@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2014 Matthew Oliver
+ * copyright (c) 2017 Matthew Oliver
  *
  * This file is part of ShiftMediaProject.
  *
@@ -21,7 +21,6 @@
 #include "projectGenerator.h"
 
 #include <iostream>
-#include <Windows.h>
 #include <algorithm>
 
 void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
@@ -251,15 +250,15 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 string sFileName;
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
                     //Need to check for the existence of environment variables
-                    if (GetEnvironmentVariable("AMDAPPSDKROOT", NULL, 0)) {
+                    if (findEnvironmentVariable("AMDAPPSDKROOT")) {
                         vIncludeDirs.push_back("$(AMDAPPSDKROOT)/include/");
                         vLib32Dirs.push_back("$(AMDAPPSDKROOT)/lib/Win32");
                         vLib64Dirs.push_back("$(AMDAPPSDKROOT)/lib/x64");
-                    } else if (GetEnvironmentVariable("INTELOCLSDKROOT", NULL, 0)) {
+                    } else if (findEnvironmentVariable("INTELOCLSDKROOT")) {
                         vIncludeDirs.push_back("$(INTELOCLSDKROOT)/include/");
                         vLib32Dirs.push_back("$(INTELOCLSDKROOT)/lib/x86");
                         vLib64Dirs.push_back("$(INTELOCLSDKROOT)/lib/x64");
-                    } else if (GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                    } else if (findEnvironmentVariable("CUDA_PATH")) {
                         vIncludeDirs.push_back("$(CUDA_PATH)/include/");
                         vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
                         vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
@@ -270,7 +269,7 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                     }
                 }
             } else if (mitLib->first.compare("openal") == 0) {
-                if (!GetEnvironmentVariable("OPENAL_SDK", NULL, 0)) {
+                if (!findEnvironmentVariable("OPENAL_SDK")) {
                     cout << "  Warning: Could not find the OpenAl SDK environment variable." << endl;
                     cout << "    Either the OpenAL SDK is not installed or the environment variable is missing." << endl;
                     cout << "    Using the default environment variable of 'OPENAL_SDK'." << endl;
@@ -282,7 +281,7 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 string sFileName;
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                     //Need to check for the existence of environment variables
-                    if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                    if (!findEnvironmentVariable("CUDA_PATH")) {
                         cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
                         cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
                         cout << "    NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path." << endl;
@@ -296,7 +295,7 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 string sFileName;
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     //Need to check for the existence of environment variables
-                    if (!GetEnvironmentVariable("CUDA_PATH", NULL, 0)) {
+                    if (!findEnvironmentVariable("CUDA_PATH")) {
                         cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
                         cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
                     }
@@ -353,7 +352,7 @@ void ProjectGenerator::buildProjectDependencies(const string & sProjectName, map
     mProjectDeps["libiec61883"] = (sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libilbc"] = (sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libkvazaar"] = (sProjectName.compare("libavcodec") == 0);
-    mProjectDeps["libmfx"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) || 
+    mProjectDeps["libmfx"] = ((sProjectName.compare("libavutil") == 0) && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) ||
         (sProjectName.compare("libavcodec") == 0) || ((sProjectName.compare("libavfilter") == 0) && findSourceFile("vf_deinterlace_qsv", ".c", sNotUsed)) ||
         (sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("avconv") == 0);
     mProjectDeps["libmodplug"] = (sProjectName.compare("libavformat") == 0);
@@ -436,6 +435,7 @@ void ProjectGenerator::buildProjectGUIDs(map<string, string> & mKeys)
 
 void ProjectGenerator::buildProjectDCEs(const string & sProjectName, map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables)
 {
+    //TODO: Detect these automatically
     //Next we need to check for all the configurations that are project specific
     struct FindThingsVars
     {
