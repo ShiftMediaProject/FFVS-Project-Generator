@@ -53,16 +53,36 @@ public:
 
     ConfigGenerator m_ConfigHelper;
 
+    /**
+     * Checks all found Makefiles based on current configuration and generates project files and a solution files as
+     * needed.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passAllMake();
 
+    /** Deletes any files that may have been created by previous runs. */
     void deleteCreatedFiles();
 
 private:
-
+    /**
+     * Outputs a project file for the current project directory.
+     * @return True if it succeeds, false if it fails.
+     */
     bool outputProject();
 
+    /**
+     * Output a project file for a program (ffplay etc.).
+     * @param sProjectName           Name of the project.
+     * @param sDestinationFile       Destination project file.
+     * @param sDestinationFilterFile Destination project filter file.
+     * @return True if it succeeds, false if it fails.
+     */
     bool outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile);
 
+    /**
+     * Outputs a solution file (Also calls outputProgramProject for any programs).
+     * @return True if it succeeds, false if it fails.
+     */
     bool outputSolution();
 
     bool passStaticIncludeObject(uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes);
@@ -101,12 +121,35 @@ private:
 
     bool passDLibUnknown();
 
+    /**
+     * Passes the makefile for the current project directory.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passMake();
 
+    /**
+     * Pass the makefile for a specified program.
+     * @param sProjectName Name of the program.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passProgramMake(const string& sProjectName);
 
+    /**
+     * Searches for the first source file.
+     * @param       sFile        The file name.
+     * @param       sExtension   The file extension.
+     * @param [out] sRetFileName Filename of the found file.
+     * @return True if it succeeds, false if it fails.
+     */
     bool findSourceFile(const string & sFile, const string & sExtension, string & sRetFileName);
 
+    /**
+     * Searches for matching source files.
+     * @param          sFile      The file name.
+     * @param          sExtension The file extension.
+     * @param [in,out] vRetFiles  The returned list of matching files.
+     * @return True if it succeeds, false if it fails.
+     */
     bool findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles);
 
     /**
@@ -231,7 +274,7 @@ private:
 
     /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
-     * file os then created and added to the project that contains hull definitions for any missing functions.
+     * file is then created and added to the project that contains hull definitions for any missing functions.
      * @param sProjectName Name of the current project.
      * @param vIncludeDirs The list of current directories to look for included files.
      * @return True if it succeeds, false if it fails.
@@ -239,7 +282,7 @@ private:
     bool outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs);
 
     /**
-     * Passes an input file and looks for any function usage within a block of code elimated by DCE.
+     * Passes an input file and looks for any function usage within a block of code eliminated by DCE.
      * @param       sFile               The loaded file to search for DCE usage in.
      * @param       sProjectName        Name of the current project.
      * @param       sFileName           Filename of the file currently being searched.

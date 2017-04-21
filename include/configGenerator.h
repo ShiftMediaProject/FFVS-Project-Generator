@@ -66,6 +66,7 @@ private:
     bool m_bUsingExistingConfig;
 
 public:
+    /** Default constructor. */
     ConfigGenerator();
 
     /**
@@ -153,7 +154,7 @@ private:
      * @return True if it succeeds, false if it fails.
      */
     bool fastToggleConfigValue(const string & sOption, bool bEnable);
-    
+
     /**
      * Update configuration option and perform any dependency option updates as well.
      * @param sOption The option to update.
@@ -176,6 +177,11 @@ private:
      */
     ValuesList::iterator getConfigOptionPrefixed(const string & sOption);
 
+    /**
+     * Queries if a configuration option is enabled.
+     * @param sOption The option.
+     * @return True if the configuration option is enabled, false if not.
+     */
     bool isConfigOptionEnabled(const string & sOption);
 
     bool passDependencyCheck(const ValuesList::iterator vitOption);
