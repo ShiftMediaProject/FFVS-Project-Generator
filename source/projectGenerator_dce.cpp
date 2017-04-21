@@ -234,87 +234,88 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         //Add current directory to include list (must be done last to ensure correct include order)
         vIncludeDirs2.push_back(m_sProjectDir);
 
-        if (runMSVC(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
-            //Check the file that the function usage was found in to see if it was declared using macro expansion
-            for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
-                string sFile = itDCE->first;
-                sFile.at(sFile.length() - 1) = 'i';
-                if (!loadFromFile(sFile, sFile)) {
-                    return false;
-                }
+        if (!runMSVC(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
+            return false;
+        }
+        //Check the file that the function usage was found in to see if it was declared using macro expansion
+        for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
+            string sFile = itDCE->first;
+            sFile.at(sFile.length() - 1) = 'i';
+            if (!loadFromFile(sFile, sFile)) {
+                return false;
+            }
 
-                //Restore the initial macro names
-                for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
-                    for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
-                        const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
-                        //Search for all occurrences
-                        uint uiFindPos = 0;
-                        string sFind = asDCETags2[uiTag2] + "XXX" + asDCETags[uiTag];
-                        while ((uiFindPos = sFile.find(sFind, uiFindPos)) != string::npos) {
-                            sFile.replace(uiFindPos, sFind.length(), sSearch);
-                            uiFindPos += sSearch.length() + 1;
-                        }
-                    }
-                }
-
-                //Check for any un-found function usage
-                map<string, DCEParams> mNewDCEFunctions;
-                bool bCanIgnore = false;
-                outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEFunctions, bCanIgnore);
-#if !FORCEALLDCE
-                for (map<string, DCEParams>::iterator itDCE = mNewDCEFunctions.begin(); itDCE != mNewDCEFunctions.end(); ) {
-                    outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
-                    if (itDCE->second.sDefine.compare("1") == 0) {
-                        //remove from the list
-                        mNewDCEFunctions.erase(itDCE++);
-                    } else {
-                        ++itDCE;
-                    }
-                }
-#endif
-                for (map<string, DCEParams>::iterator itDCE2 = mNewDCEFunctions.begin(); itDCE2 != mNewDCEFunctions.end(); itDCE2++) {
-                    //Add the file to the list
-                    if (find(itDCE->second.begin(), itDCE->second.end(), itDCE2->first) == itDCE->second.end()) {
-                        itDCE->second.push_back({itDCE2->second.sDefine, itDCE2->first});
-                        mFoundDCEFunctions[itDCE2->first] = itDCE2->second;
-                    }
-                }
-
-                //Search through each function in the current file
-                for (vector<DCEParams>::iterator itDCE2 = itDCE->second.begin(); itDCE2 < itDCE->second.end(); itDCE2++) {
-                    if (itDCE2->sDefine.compare("#") != 0) {
-                        string sReturn;
-                        bool bIsFunc;
-                        if (outputProjectDCEsFindDeclarations(sFile, itDCE2->sFile, itDCE->first, sReturn, bIsFunc)) {
-                            //Get the declaration file
-                            string sFileName;
-                            makePathsRelative(itDCE->first, m_ConfigHelper.m_sRootDirectory, sFileName);
-                            if (sFileName.at(0) == '.') {
-                                sFileName = sFileName.substr(2);
-                            }
-                            //Add the declaration (ensure not to stomp a function found before needing pre-processing)
-                            if (bIsFunc) {
-                                if (mFoundDCEDefinitions.find(sReturn) == mFoundDCEDefinitions.end()) {
-                                    mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
-                                }
-                            } else {
-                                if (mFoundDCEVariables.find(sReturn) == mFoundDCEVariables.end()) {
-                                    mFoundDCEVariables[sReturn] = {itDCE2->sDefine, sFileName};
-                                }
-                            }
-                            //Remove the function from list
-                            mFoundDCEFunctions.erase(itDCE2->sFile);
-                        }
-                    } else {
-                        //Remove the function from list as it was just a preproc file
-                        mFoundDCEFunctions.erase(itDCE2->sFile);
+            //Restore the initial macro names
+            for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
+                for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
+                    const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
+                    //Search for all occurrences
+                    uint uiFindPos = 0;
+                    string sFind = asDCETags2[uiTag2] + "XXX" + asDCETags[uiTag];
+                    while ((uiFindPos = sFile.find(sFind, uiFindPos)) != string::npos) {
+                        sFile.replace(uiFindPos, sFind.length(), sSearch);
+                        uiFindPos += sSearch.length() + 1;
                     }
                 }
             }
 
-            //Delete the created temp files
-            deleteFolder(sProjectName);
+            //Check for any un-found function usage
+            map<string, DCEParams> mNewDCEFunctions;
+            bool bCanIgnore = false;
+            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEFunctions, bCanIgnore);
+#if !FORCEALLDCE
+            for (map<string, DCEParams>::iterator itDCE = mNewDCEFunctions.begin(); itDCE != mNewDCEFunctions.end(); ) {
+                outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
+                if (itDCE->second.sDefine.compare("1") == 0) {
+                    //remove from the list
+                    mNewDCEFunctions.erase(itDCE++);
+                } else {
+                    ++itDCE;
+                }
+            }
+#endif
+            for (map<string, DCEParams>::iterator itDCE2 = mNewDCEFunctions.begin(); itDCE2 != mNewDCEFunctions.end(); itDCE2++) {
+                //Add the file to the list
+                if (find(itDCE->second.begin(), itDCE->second.end(), itDCE2->first) == itDCE->second.end()) {
+                    itDCE->second.push_back({itDCE2->second.sDefine, itDCE2->first});
+                    mFoundDCEFunctions[itDCE2->first] = itDCE2->second;
+                }
+            }
+
+            //Search through each function in the current file
+            for (vector<DCEParams>::iterator itDCE2 = itDCE->second.begin(); itDCE2 < itDCE->second.end(); itDCE2++) {
+                if (itDCE2->sDefine.compare("#") != 0) {
+                    string sReturn;
+                    bool bIsFunc;
+                    if (outputProjectDCEsFindDeclarations(sFile, itDCE2->sFile, itDCE->first, sReturn, bIsFunc)) {
+                        //Get the declaration file
+                        string sFileName;
+                        makePathsRelative(itDCE->first, m_ConfigHelper.m_sRootDirectory, sFileName);
+                        if (sFileName.at(0) == '.') {
+                            sFileName = sFileName.substr(2);
+                        }
+                        //Add the declaration (ensure not to stomp a function found before needing pre-processing)
+                        if (bIsFunc) {
+                            if (mFoundDCEDefinitions.find(sReturn) == mFoundDCEDefinitions.end()) {
+                                mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
+                            }
+                        } else {
+                            if (mFoundDCEVariables.find(sReturn) == mFoundDCEVariables.end()) {
+                                mFoundDCEVariables[sReturn] = {itDCE2->sDefine, sFileName};
+                            }
+                        }
+                        //Remove the function from list
+                        mFoundDCEFunctions.erase(itDCE2->sFile);
+                    }
+                } else {
+                    //Remove the function from list as it was just a preproc file
+                    mFoundDCEFunctions.erase(itDCE2->sFile);
+                }
+            }
         }
+
+        //Delete the created temp files
+        deleteFolder(sProjectName);
     }
 
     //Get any required hard coded values
