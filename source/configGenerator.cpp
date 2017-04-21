@@ -28,7 +28,8 @@
 ConfigGenerator::ConfigGenerator() :
     m_sToolchain("msvc"),
     m_bLibav(false),
-    m_sProjectName("FFMPEG")
+    m_sProjectName("FFMPEG"),
+    m_bDCEOnly(false)
 {
 }
 
@@ -262,6 +263,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         // Add in custom toolchain string
         cout << endl << "Toolchain options:" << endl;
         cout << "  --toolchain=NAME         set tool defaults according to NAME" << endl;
+        cout << "  --dce-only               do not output a project and only generate missing DCE files" << endl;
         // Add in reserved values
         vector<string> vReservedItems;
         buildReservedValues(vReservedItems);
@@ -321,6 +323,9 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         if ((m_sProjectDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
             m_sProjectDirectory += '/';
         }
+    } else if (stOption.compare("--dce-only") == 0) {
+        //This has no parameters and just sets internal value
+        m_bDCEOnly = true;
     } else if (stOption.find("--list-") == 0) {
         string sOption = stOption.substr(7);
         string sOptionList = sOption;

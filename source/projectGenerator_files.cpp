@@ -134,6 +134,11 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
         return false;
     }
 
+    if (m_ConfigHelper.m_bDCEOnly) {
+        //Don't need to check for replace files
+        return true;
+    }
+
     //Check all source files associated with replaced config values
     StaticList vReplaceIncludes, vReplaceCPPIncludes, vReplaceCIncludes, vReplaceYASMIncludes;
     for (UnknownList::iterator itIt = m_mReplaceIncludes.begin(); itIt != m_mReplaceIncludes.end(); itIt++) {

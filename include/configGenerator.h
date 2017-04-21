@@ -62,6 +62,7 @@ private:
     string m_sRootDirectory;
     string m_sProjectDirectory;
     string m_sOutDirectory;
+    bool m_bDCEOnly;
 
 public:
     ConfigGenerator();

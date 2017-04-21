@@ -159,13 +159,18 @@ bool ProjectGenerator::outputProject()
     StaticList vLib64Dirs;
     buildDependencyDirs(sProjectName, vIncludeDirs, vLib32Dirs, vLib64Dirs);
 
-    //Generate the exports file
-    if (!outputProjectExports(sProjectName, vIncludeDirs)) {
+    //Create missing definitions of functions removed by DCE
+    if (!outputProjectDCE(sProjectName, vIncludeDirs)) {
         return false;
     }
 
-    //Create missing definitions of functions removed by DCE
-    if (!outputProjectDCE(sProjectName, vIncludeDirs)) {
+    if (m_ConfigHelper.m_bDCEOnly) {
+        //Exit here to prevent outputting project files
+        return true;
+    }
+
+    //Generate the exports file
+    if (!outputProjectExports(sProjectName, vIncludeDirs)) {
         return false;
     }
 
@@ -225,7 +230,9 @@ bool ProjectGenerator::outputProject()
 bool ProjectGenerator::outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile)
 {
     //Pass makefile for program
-    passProgramMake(sProjectName);
+    if (!passProgramMake(sProjectName)) {
+        return false;
+    }
 
     //Check all files are correctly located
     if (!checkProjectFiles(sProjectName)) {
@@ -241,6 +248,11 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     //Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(sProjectName, vIncludeDirs)) {
         return false;
+    }
+
+    if (m_ConfigHelper.m_bDCEOnly) {
+        //Exit here to prevent outputting project files
+        return true;
     }
 
     //We now have complete list of all the files that we need
@@ -306,8 +318,39 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
 
 bool ProjectGenerator::outputSolution()
 {
-    cout << "  Generating solution file..." << endl;
+    //Create program list
+    map<string, string> mProgramList;
+    if (!m_ConfigHelper.m_bLibav) {
+        mProgramList["ffmpeg"] = "CONFIG_FFMPEG";
+        mProgramList["ffplay"] = "CONFIG_FFPLAY";
+        mProgramList["ffprobe"] = "CONFIG_FFPROBE";
+    } else {
+        mProgramList["avconv"] = "CONFIG_AVCONV";
+        mProgramList["avplay"] = "CONFIG_AVPLAY";
+        mProgramList["avprobe"] = "CONFIG_AVPROBE";
+    }
     m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
+
+    //Next add the projects
+    map<string, string>::iterator mitPrograms = mProgramList.begin();
+    while (mitPrograms != mProgramList.end()) {
+        //Check if program is enabled
+        if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_sValue.compare("1") == 0) {
+            //Create project files for program
+            const string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj";
+            const string sDestinationFilterFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj.filters";
+            outputProgramProject(mitPrograms->first, sDestinationFile, sDestinationFilterFile);
+        }
+        //next
+        ++mitPrograms;
+    }
+
+    if (m_ConfigHelper.m_bDCEOnly) {
+        //Don't output solution and just exit early
+        return true;
+    }
+
+    cout << "  Generating solution file..." << endl;
     //Open the input temp project file
     string sSolutionFile;
     if (!loadFromResourceFile(TEMPLATE_SLN_ID, sSolutionFile)) {
@@ -339,76 +382,62 @@ bool ProjectGenerator::outputSolution()
 
     map<string, StaticList>::iterator mitLibraries = m_mProjectLibs.begin();
     while (mitLibraries != m_mProjectLibs.end()) {
-        //Check if this library has a known key (to lazy to auto generate at this time)
-        if (mKeys.find(mitLibraries->first) == mKeys.end()) {
-            cout << "  Error: Unknown library. Could not determine solution key (" << mitLibraries->first << ")" << endl;
-            return false;
-        }
-        //Add the library to the solution
-        string sProjectAdd = sProject;
-        sProjectAdd += sSolutionKey;
-        sProjectAdd += sProject2;
-        sProjectAdd += mitLibraries->first;
-        sProjectAdd += sProject3;
-        sProjectAdd += mitLibraries->first;
-        sProjectAdd += sProject4;
-        sProjectAdd += mKeys[mitLibraries->first];
-        sProjectAdd += sProjectEnd;
-
-        //Add the key to the used key list
-        vAddedKeys.push_back(mKeys[mitLibraries->first]);
-
-        //Add the dependencies
-        if (mitLibraries->second.size() > 0) {
-            sProjectAdd += sDepend;
-            for (StaticList::iterator vitIt = mitLibraries->second.begin(); vitIt < mitLibraries->second.end(); vitIt++) {
-                //Check if this library has a known key
-                if (mKeys.find(*vitIt) == mKeys.end()) {
-                    cout << "  Error: Unknown library dependency. Could not determine solution key (" << *vitIt << ")" << endl;
-                    return false;
-                }
-                sProjectAdd += sSubDepend;
-                sProjectAdd += mKeys[*vitIt];
-                sProjectAdd += sSubDepend2;
-                sProjectAdd += mKeys[*vitIt];
-                sProjectAdd += sSubDependEnd;
+        //Check if this is a library or a program
+        if (mProgramList.find(mitLibraries->first) == mProgramList.end()) {
+            //Check if this library has a known key (to lazy to auto generate at this time)
+            if (mKeys.find(mitLibraries->first) == mKeys.end()) {
+                cout << "  Error: Unknown library. Could not determine solution key (" << mitLibraries->first << ")" << endl;
+                return false;
             }
-            sProjectAdd += sDependClose;
-        }
-        sProjectAdd += sProjectClose;
+            //Add the library to the solution
+            string sProjectAdd = sProject;
+            sProjectAdd += sSolutionKey;
+            sProjectAdd += sProject2;
+            sProjectAdd += mitLibraries->first;
+            sProjectAdd += sProject3;
+            sProjectAdd += mitLibraries->first;
+            sProjectAdd += sProject4;
+            sProjectAdd += mKeys[mitLibraries->first];
+            sProjectAdd += sProjectEnd;
 
-        //Insert into solution string
-        sSolutionFile.insert(uiPos, sProjectAdd);
-        uiPos += sProjectAdd.length();
+            //Add the key to the used key list
+            vAddedKeys.push_back(mKeys[mitLibraries->first]);
+
+            //Add the dependencies
+            if (mitLibraries->second.size() > 0) {
+                sProjectAdd += sDepend;
+                for (StaticList::iterator vitIt = mitLibraries->second.begin(); vitIt < mitLibraries->second.end(); vitIt++) {
+                    //Check if this library has a known key
+                    if (mKeys.find(*vitIt) == mKeys.end()) {
+                        cout << "  Error: Unknown library dependency. Could not determine solution key (" << *vitIt << ")" << endl;
+                        return false;
+                    }
+                    sProjectAdd += sSubDepend;
+                    sProjectAdd += mKeys[*vitIt];
+                    sProjectAdd += sSubDepend2;
+                    sProjectAdd += mKeys[*vitIt];
+                    sProjectAdd += sSubDependEnd;
+                }
+                sProjectAdd += sDependClose;
+            }
+            sProjectAdd += sProjectClose;
+
+            //Insert into solution string
+            sSolutionFile.insert(uiPos, sProjectAdd);
+            uiPos += sProjectAdd.length();
+        }
 
         //next
         ++mitLibraries;
     }
 
-    //Create program list
-    map<string, string> mProgramList;
-    if (!m_ConfigHelper.m_bLibav) {
-        mProgramList["ffmpeg"] = "CONFIG_FFMPEG";
-        mProgramList["ffplay"] = "CONFIG_FFPLAY";
-        mProgramList["ffprobe"] = "CONFIG_FFPROBE";
-    } else {
-        mProgramList["avconv"] = "CONFIG_AVCONV";
-        mProgramList["avplay"] = "CONFIG_AVPLAY";
-        mProgramList["avprobe"] = "CONFIG_AVPROBE";
-    }
-
     //Next add the projects
     string sProjectAdd;
     vector<string> vAddedPrograms;
-    map<string, string>::iterator mitPrograms = mProgramList.begin();
+    mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
         //Check if program is enabled
-        const string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj";
-        const string sDestinationFilterFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj.filters";
         if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_sValue.compare("1") == 0) {
-            //Create project files for program
-            outputProgramProject(mitPrograms->first, sDestinationFile, sDestinationFilterFile);
-
             //Add the program to the solution
             sProjectAdd += sProject;
             sProjectAdd += sSolutionKey;
@@ -425,18 +454,18 @@ bool ProjectGenerator::outputSolution()
 
             //Add the dependencies
             sProjectAdd += sDepend;
-            StaticList::iterator vitLibs = m_mProjectLibs[mitPrograms->first].begin();
-            while (vitLibs != m_mProjectLibs[mitPrograms->first].end()) {
-                //Add all project libraries as dependencies (except avresample with ffmpeg)
-                if (!m_ConfigHelper.m_bLibav && vitLibs->compare("libavresample") != 0) {
+            StaticList::iterator mitLibs = m_mProjectLibs[mitPrograms->first].begin();
+            while (mitLibs != m_mProjectLibs[mitPrograms->first].end()) {
+                //Add all project libraries as dependencies
+                if (!m_ConfigHelper.m_bLibav) {
                     sProjectAdd += sSubDepend;
-                    sProjectAdd += mKeys[*vitLibs];
+                    sProjectAdd += mKeys[*mitLibs];
                     sProjectAdd += sSubDepend2;
-                    sProjectAdd += mKeys[*vitLibs];
+                    sProjectAdd += mKeys[*mitLibs];
                     sProjectAdd += sSubDependEnd;
                 }
                 //next
-                ++vitLibs;
+                ++mitLibs;
             }
             sProjectAdd += sDependClose;
             sProjectAdd += sProjectClose;
