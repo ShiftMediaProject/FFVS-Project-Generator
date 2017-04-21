@@ -501,4 +501,13 @@ bool findEnvironmentVariable(const string & sEnvVar)
     return false;
 #endif
 }
+
+void pressKeyToContinue()
+{
+#if _WIN32
+    system("pause");
+#else
+    system("read -rsn 1 -p \"Press any key to continue...\"");
+#endif
+}
 };

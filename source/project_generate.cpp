@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     //Pass the input configuration
     ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
-        system("pause");
+        pressKeyToContinue();
         exit(1);
     }
 
@@ -39,17 +39,18 @@ int main(int argc, char** argv)
 
     //Output config.h and avutil.h
     if (!ProjectHelper.m_ConfigHelper.outputConfig()) {
-        system("pause");
+        pressKeyToContinue();
         exit(1);
     }
 
     //Generate desired configuration files
     if (!ProjectHelper.passAllMake()) {
-        system("pause");
+        pressKeyToContinue();
         exit(1);
     }
     cout << "Completed Successfully" << endl;
 #if _DEBUG
-    system("pause");
+    pressKeyToContinue();
 #endif
+    exit(0);
 }

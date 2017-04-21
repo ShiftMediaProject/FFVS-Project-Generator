@@ -46,7 +46,7 @@ bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary = fa
 /**
  * Loads from an internal embedded resource.
  * @param       iResourceID Identifier for the resource.
- * @param [out] sRetString  The returned string containg the loaded resource.
+ * @param [out] sRetString  The returned string containing the loaded resource.
  * @return True if it succeeds, false if it fails.
  */
 bool loadFromResourceFile(int iResourceID, string& sRetString);
@@ -91,7 +91,7 @@ bool copyFile(const string & sSourceFolder, const string & sDestinationFolder);
 
 /**
  * Gets default copywrite header.
- * @param sDecription The decription of the current file to add to the header.
+ * @param sDecription The description of the current file to add to the header.
  * @return The copywrite header.
  */
 string getCopywriteHeader(const string& sDecription);
@@ -144,7 +144,7 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
 void removeWhiteSpace(string & sString);
 
 /**
- * Searches through a string and replaces all occurances of the search tag in place.
+ * Searches through a string and replaces all occurrences of the search tag in place.
  * @param [in,out] sString  The string to perform find and replace operation on.
  * @param          sSearch  The search string.
  * @param          sReplace The string used for replacement.
@@ -157,6 +157,9 @@ void findAndReplace(string & sString, const string & sSearch, const string & sRe
  * @return True if it succeeds, false if it fails.
  */
 bool findEnvironmentVariable(const string & sEnvVar);
+
+/** Press key to continue terminal prompt. */
+void pressKeyToContinue();
 
 const string sEndLine = "\n\r\f\v";
 const string sWhiteSpace = " \t" + sEndLine;
