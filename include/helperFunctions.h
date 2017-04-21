@@ -151,6 +151,13 @@ void removeWhiteSpace(string & sString);
  */
 void findAndReplace(string & sString, const string & sSearch, const string & sReplace);
 
+/**
+ * Searches for the existence of an environment variable.
+ * @param sEnvVar The environment variable.
+ * @return True if it succeeds, false if it fails.
+ */
+bool findEnvironmentVariable(const string & sEnvVar);
+
 const string sEndLine = "\n\r\f\v";
 const string sWhiteSpace = " \t" + sEndLine;
 const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
