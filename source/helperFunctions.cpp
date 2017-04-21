@@ -92,7 +92,9 @@ bool loadFromResourceFile(int iResourceID, string& sRetString)
     char* resText = (char*)LockResource(hMem);
 
     //Copy across the file
-    sRetString = resText;
+    sRetString.reserve(size);
+    sRetString.resize(size);
+    memcpy(const_cast<char*>(sRetString.data()), resText, size);
 
     //Close Resource
     FreeResource(hMem);
@@ -144,12 +146,17 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile)
     char* resText = (char*)LockResource(hMem);
 
     //Copy across the file
-    ofstream ifDest(sDestinationFile, ios::binary);
-    if (!ifDest.is_open()) {
+    ofstream ofDest(sDestinationFile, ios::binary);
+    if (!ofDest.is_open()) {
+        FreeResource(hMem);
         return false;
     }
-    ifDest << resText;
-    ifDest.close();
+    if (!ofDest.write(resText, size)) {
+        ofDest.close();
+        FreeResource(hMem);
+        return false;
+    }
+    ofDest.close();
 
     //Close Resource
     FreeResource(hMem);
