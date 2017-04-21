@@ -122,10 +122,23 @@ void ProjectGenerator::deleteCreatedFiles()
     for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
         deleteFile(*itIt);
     }
+    //Check that the project directory is not the same as the root directory
+    bool IsRoot = (m_ConfigHelper.m_sProjectDirectory.compare(m_ConfigHelper.m_sRootDirectory) == 0);
     vector<string> vExistingFolders;
     findFolders(m_ConfigHelper.m_sProjectDirectory + "lib*", vExistingFolders);
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
-        deleteFolder(*itIt);
+        if (!IsRoot) {
+            deleteFolder(*itIt);
+        } else {
+            //If the project directory is the same as root then only delete generated files
+            vExistingFiles.resize(0);
+            findFiles(*itIt + "/*_defs.c", vExistingFiles, false);
+            findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
+            findFiles(*itIt + "/*_list.c", vExistingFiles, false);
+            for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
+                deleteFile(*itIt2);
+            }
+        }
     }
 }
 

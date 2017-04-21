@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2014 Matthew Oliver
+ * copyright (c) 2017 Matthew Oliver
  *
  * This file is part of ShiftMediaProject.
  *
@@ -835,13 +835,10 @@ void ConfigGenerator::deleteCreatedFiles()
     vector<string> vExistingFiles;
     findFiles(m_sProjectDirectory + "config.h", vExistingFiles, false);
     findFiles(m_sProjectDirectory + "config.asm", vExistingFiles, false);
+    findFiles(m_sProjectDirectory + "libavutil/avconfig.h", vExistingFiles, false);
+    findFiles(m_sProjectDirectory + "libavutil/ffversion.h", vExistingFiles, false);
     for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
         deleteFile(*itIt);
-    }
-    vector<string> vExistingFolders;
-    findFolders(m_sProjectDirectory + "libavutil", vExistingFolders, false);
-    for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
-        deleteFolder(*itIt);
     }
 }
 
