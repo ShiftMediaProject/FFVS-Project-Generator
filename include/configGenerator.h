@@ -63,19 +63,46 @@ private:
     string m_sProjectDirectory;
     string m_sOutDirectory;
     bool m_bDCEOnly;
+    bool m_bUsingExistingConfig;
 
 public:
     ConfigGenerator();
 
+    /**
+     * Pass configuration options based on input values.
+     * @param      argc The number of input options.
+     * @param [in] argv If non-null, the the list of input options.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passConfig(int argc, char** argv);
 
+    /**
+     * Outputs a new configurations files based on current internal settings.
+     * @return True if it succeeds, false if it fails.
+     */
     bool outputConfig();
 
+    /** Deletes any files that may have been previously created by outputConfig. */
     void deleteCreatedFiles();
 
 private:
+    /**
+     * Passes the configure file and loads all available options.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passConfigureFile();
 
+    /**
+     * Passes an existing config.h file.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passExistingConfig();
+
+    /**
+     * Change configuration options.
+     * @param stOption The option to change.
+     * @return True if it succeeds, false if it fails.
+     */
     bool changeConfig(const string & stOption);
 
     void buildFixedValues(DefaultValuesList & mFixedValues);
@@ -119,12 +146,34 @@ private:
 
     bool buildDefaultValues();
 
+    /**
+     * Update configuration option without performing any dependency option checks.
+     * @param sOption The option to update.
+     * @param bEnable True to enable, false to disable.
+     * @return True if it succeeds, false if it fails.
+     */
     bool fastToggleConfigValue(const string & sOption, bool bEnable);
-
+    
+    /**
+     * Update configuration option and perform any dependency option updates as well.
+     * @param sOption The option to update.
+     * @param bEnable True to enable, false to disable.
+     * @return True if it succeeds, false if it fails.
+     */
     bool toggleConfigValue(const string & sOption, bool bEnable, bool bRecursive = false);
 
+    /**
+     * Gets configuration option.
+     * @param sOption The options name.
+     * @return The configuration option, m_vConfigValues.end() if option not found.
+     */
     ValuesList::iterator getConfigOption(const string & sOption);
 
+    /**
+     * Gets configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) included.
+     * @param sOption The options name.
+     * @return The configuration option, m_vConfigValues.end() if option not found.
+     */
     ValuesList::iterator getConfigOptionPrefixed(const string & sOption);
 
     bool isConfigOptionEnabled(const string & sOption);

@@ -35,7 +35,8 @@ ConfigGenerator::ConfigGenerator() :
 #endif
     m_bLibav(false),
     m_sProjectName("FFMPEG"),
-    m_bDCEOnly(false)
+    m_bDCEOnly(false),
+    m_bUsingExistingConfig(false)
 {
 }
 
@@ -91,12 +92,6 @@ bool ConfigGenerator::passConfigureFile()
             cout << "  Error: failed to find a 'configure' file in specified root directory" << endl;
             return false;
         }
-    }
-    if (m_sProjectDirectory.length() == 0) {
-        m_sProjectDirectory = m_sRootDirectory + "SMP/";
-    }
-    if (m_sOutDirectory.length() == 0) {
-        m_sOutDirectory = "../../../msvc/";
     }
 
     //Search for start of config.h file parameters
@@ -231,6 +226,73 @@ bool ConfigGenerator::passConfigureFile()
     return buildDefaultValues();
 }
 
+bool ConfigGenerator::passExistingConfig()
+{
+    cout << "  Passing in existing config.h file..." << endl;
+    //load in config.h from root dir
+    string sConfigH;
+    string sConfigFile = m_sRootDirectory + "config.h";
+    if (!loadFromFile(sConfigFile, sConfigH, false, false)) {
+        cout << "  Error: Failed opening existing config.h file." << endl;
+        cout << "  Ensure the requested config.h file is found in the source codes root directory." << endl;
+        cout << "  Or omit the --use-existing-config option." << sConfigFile << endl;
+        return false;
+    }
+
+    //Find the first valid configuration option
+    uint uiPos = -1;
+    const string asConfigTags[] = {"ARCH_", "HAVE_", "CONFIG_"};
+    for (unsigned uiTag = 0; uiTag < sizeof(asConfigTags) / sizeof(string); uiTag++) {
+        string sSearch = "#define " + asConfigTags[uiTag];
+        uint uiPos2 = sConfigH.find(sSearch);
+        uiPos = (uiPos2 < uiPos) ? uiPos2 : uiPos;
+    }
+
+    //Loop through each #define tag val and set internal option to val
+    while (uiPos != string::npos) {
+        uiPos = sConfigH.find_first_not_of(sWhiteSpace, uiPos + 7);
+        //Get the tag
+        uint uiPos2 = sConfigH.find_first_of(sWhiteSpace, uiPos + 1);
+        string sOption = sConfigH.substr(uiPos, uiPos2 - uiPos);
+
+        //Check if the options is valid
+        if (getConfigOptionPrefixed(sOption) == m_vConfigValues.end()) {
+            //Check if it is a fixed value and skip
+            bool bFound = false;
+            for (ValuesList::iterator vitOption = m_vFixedConfigValues.begin(); vitOption < m_vFixedConfigValues.end(); vitOption++) {
+                if (vitOption->m_sOption.compare(sOption) == 0) {
+                    bFound = true;
+                    break;
+                }
+            }
+            if (bFound) {
+                //Get next
+                uiPos = sConfigH.find("#define ", uiPos2 + 1);
+                continue;
+            }
+            cout << "  Warning: Unknown config option (" + sOption + ") found in config.h file." << endl;
+            return false;
+        }
+
+        //Get the value
+        uiPos = sConfigH.find_first_not_of(sWhiteSpace, uiPos2 + 1);
+        uiPos2 = sConfigH.find_first_of(sWhiteSpace, uiPos + 1);
+        string sValue = sConfigH.substr(uiPos, uiPos2 - uiPos);
+        bool bEnable = (sValue.compare("1") == 0);
+        if (!bEnable && (sValue.compare("0") != 0)) {
+            cout << "  Error: Invalid config value (" + sValue + ") for option (" + sOption + ") found in config.h file." << endl;
+            return false;
+        }
+
+        //Update intern value
+        fastToggleConfigValue(sOption, bEnable);
+
+        //Get next
+        uiPos = sConfigH.find("#define ", uiPos2 + 1);
+    }
+    return true;
+}
+
 bool ConfigGenerator::changeConfig(const string & stOption)
 {
     if (stOption.compare("--help") == 0) {
@@ -266,6 +328,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         //cout << "  --incdir=DIR             install includes in DIR [PREFIX/include]" << endl;
         cout << "  --rootdir=DIR            location of source configure file [auto]" << endl;
         cout << "  --projdir=DIR            location of output project files [ROOT/SMP]" << endl;
+        cout << "  --use-existing-config    use an existing config.h file found in rootdir, ignoring any other passed parameters affecting config" << endl;
         // Add in custom toolchain string
         cout << endl << "Toolchain options:" << endl;
         cout << "  --toolchain=NAME         set tool defaults according to NAME" << endl;
@@ -329,9 +392,6 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         if ((m_sRootDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
             m_sRootDirectory += '/';
         }
-        if (m_sProjectDirectory.length() == 0) {
-            m_sProjectDirectory = m_sRootDirectory + "SMP/";
-        }
         //rootdir is passed before all other options are set up so must skip any other remaining steps
         return true;
     } else if (stOption.find("--projdir") == 0) {
@@ -348,6 +408,9 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     } else if (stOption.compare("--dce-only") == 0) {
         //This has no parameters and just sets internal value
         m_bDCEOnly = true;
+    } else if (stOption.find("--use-existing-config") == 0) {
+        //A input config file has been specified
+        m_bUsingExistingConfig = true;
     } else if (stOption.find("--list-") == 0) {
         string sOption = stOption.substr(7);
         string sOptionList = sOption;
@@ -495,7 +558,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                 if (vitComponent != vList.end()) {
                     //This is a component
                     string sOption2 = sOption.substr(0, sOption.length() - 1); //Need to remove the s from end
-                                                                               //Get the specific list
+                    //Get the specific list
                     vList.resize(0);
                     transform(sOption2.begin(), sOption2.end(), sOption2.begin(), ::toupper);
                     getConfigList(sOption2 + "_LIST", vList);
@@ -533,6 +596,17 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             }
         }
     }
+    //Set any unset values
+    if (m_sProjectDirectory.length() == 0) {
+        if (!m_bDCEOnly) {
+            m_sProjectDirectory = m_sRootDirectory + "SMP/";
+        } else {
+            m_sProjectDirectory = m_sRootDirectory;
+        }
+    }
+    if (m_sOutDirectory.length() == 0) {
+        m_sOutDirectory = "../../../msvc/";
+    }
     //Add to the internal configuration variable
     ValuesList::iterator vitOption = m_vFixedConfigValues.begin();
     for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
@@ -550,6 +624,11 @@ bool ConfigGenerator::changeConfig(const string & stOption)
 
 bool ConfigGenerator::outputConfig()
 {
+    if (m_bUsingExistingConfig) {
+        //Don't output a new config as just use the original
+        return passExistingConfig();
+    }
+
     cout << "  Outputting config.h..." << endl;
     //Correct license variables
     if (getConfigOption("version3")->m_sValue.compare("1") == 0) {
@@ -604,7 +683,7 @@ bool ConfigGenerator::outputConfig()
     //Check the current options are valid for selected license
     if (getConfigOption("nonfree")->m_sValue.compare("1") != 0) {
         vector<string> vLicenseList;
-        //Check for existance of specific license lists
+        //Check for existence of specific license lists
         if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", vLicenseList, false)) {
             for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
                 if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
@@ -857,14 +936,16 @@ bool ConfigGenerator::outputConfig()
 
 void ConfigGenerator::deleteCreatedFiles()
 {
-    //Delete any previously generated files
-    vector<string> vExistingFiles;
-    findFiles(m_sProjectDirectory + "config.h", vExistingFiles, false);
-    findFiles(m_sProjectDirectory + "config.asm", vExistingFiles, false);
-    findFiles(m_sProjectDirectory + "libavutil/avconfig.h", vExistingFiles, false);
-    findFiles(m_sProjectDirectory + "libavutil/ffversion.h", vExistingFiles, false);
-    for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
-        deleteFile(*itIt);
+    if (!m_bUsingExistingConfig) {
+        //Delete any previously generated files
+        vector<string> vExistingFiles;
+        findFiles(m_sProjectDirectory + "config.h", vExistingFiles, false);
+        findFiles(m_sProjectDirectory + "config.asm", vExistingFiles, false);
+        findFiles(m_sProjectDirectory + "libavutil/avconfig.h", vExistingFiles, false);
+        findFiles(m_sProjectDirectory + "libavutil/ffversion.h", vExistingFiles, false);
+        for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
+            deleteFile(*itIt);
+        }
     }
 }
 

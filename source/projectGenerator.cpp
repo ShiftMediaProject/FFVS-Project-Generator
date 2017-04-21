@@ -140,7 +140,9 @@ void ProjectGenerator::deleteCreatedFiles()
             vExistingFiles.resize(0);
             findFiles(*itIt + "/*_defs.c", vExistingFiles, false);
             findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
-            findFiles(*itIt + "/*_list.c", vExistingFiles, false);
+            if (!m_ConfigHelper.m_bUsingExistingConfig) {
+                findFiles(*itIt + "/*_list.c", vExistingFiles, false);
+            }
             for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
                 deleteFile(*itIt2);
             }
