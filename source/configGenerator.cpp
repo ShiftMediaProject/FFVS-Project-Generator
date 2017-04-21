@@ -63,7 +63,7 @@ bool ConfigGenerator::passConfigureFile()
     //Setup initial directories
     if (m_sRootDirectory.length() == 0) {
         //Search paths starting in current directory then checking parents
-        string sPathList[] = {"./", "../", "./ffmpeg/", "../ffmpeg/", "../../ffmpeg/", "../../libav/", "../../../", "../../"};
+        string sPathList[] = {"./", "../", "./ffmpeg/", "../ffmpeg/", "../../ffmpeg/", "../../../", "../../", "./libav/", "../libav/", "../../libav/"};
         uint uiPathCount = 0;
         uint uiNumPaths = sizeof(sPathList) / sizeof(string);
         for (uiPathCount; uiPathCount < uiNumPaths; uiPathCount++) {
