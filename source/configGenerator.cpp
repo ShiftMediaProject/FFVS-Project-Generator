@@ -26,7 +26,6 @@
 #include <regex>
 
 ConfigGenerator::ConfigGenerator() :
-    m_sWhiteSpace(" \t\n\0"),
     m_sToolchain("msvc"),
     m_bLibav(false),
     m_sProjectName("FFMPEG")
@@ -122,13 +121,13 @@ bool ConfigGenerator::passConfigureFile()
     uint uiEndPos = uiConfigEnd;
     while ((uiStartPos != string::npos) && (uiStartPos < uiConfigEnd)) {
         //Skip white space
-        uiStartPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiStartPos + 7);
+        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStartPos + 7);
         //Get first string
-        uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
         string sConfigName = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
         //Get second string
-        uiStartPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
+        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
         string sConfigValue = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
         //Check if the value is a variable
         uint uiStartPos2 = sConfigValue.find('$');
@@ -175,16 +174,16 @@ bool ConfigGenerator::passConfigureFile()
     while ((uiStartPos != string::npos) && (uiStartPos < uiConfigEnd)) {
         //Add these to the config list
         //Find prefix
-        uiStartPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiStartPos + 12);
-        uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStartPos + 12);
+        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
         string sPrefix = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
         //Skip unneeded var
-        uiStartPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
+        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
 
         //Find option list
-        uiStartPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
+        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
         string sList = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
         //Strip the variable prefix from start
         sList.erase(0, 1);
@@ -195,7 +194,7 @@ bool ConfigGenerator::passConfigureFile()
         }
 
         //Check if multiple lines
-        uiEndPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEndPos + 1);
+        uiEndPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
         while (m_sConfigureFile.at(uiEndPos) == '\\') {
             //Skip newline
             ++uiEndPos;
@@ -204,7 +203,7 @@ bool ConfigGenerator::passConfigureFile()
             if (m_sConfigureFile.at(uiStartPos) == '\n') {
                 break;
             }
-            uiEndPos = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStartPos + 1);
+            uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
             string sList = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
             //Strip the variable prefix from start
             sList.erase(0, 1);
@@ -213,7 +212,7 @@ bool ConfigGenerator::passConfigureFile()
             if (!passConfigList(sPrefix, "", sList)) {
                 return false;
             }
-            uiEndPos = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEndPos + 1);
+            uiEndPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
         }
 
         //Get next
@@ -275,7 +274,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         //A tool chain has been specified
         string sToolChain = stOption.substr(12);
         if (sToolChain.compare("msvc") == 0) {
-            //Don’t disable inline as the configure header will auto header guard it out anyway. This allows for changing on the fly afterwards
+            //Don't disable inline as the configure header will auto header guard it out anyway. This allows for changing on the fly afterwards
         } else if (sToolChain.compare("icl") == 0) {
             //Inline asm by default is turned on if icl is detected
         } else {
@@ -805,20 +804,20 @@ bool ConfigGenerator::outputConfig()
     uint uiStart = m_sConfigureFile.find("print_enabled_components ");
     while (uiStart != string::npos) {
         //Get file name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiStart + 24);
-        uint uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStart + 24);
+        uint uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
         string sFile = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         //Get struct name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
         string sStruct = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         //Get list name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
         string sName = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         //Get config list input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, ++uiStart); //skip preceding '$'
+        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, ++uiStart); //skip preceding '$'
         string sList = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
         if (!passEnabledComponents(sFile, sStruct, sName, sList)) {
             return false;
@@ -868,7 +867,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
         ++uiStart;
     }
     //Get start of tag
-    uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiStart);
+    uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStart);
     while (m_sConfigureFile.at(uiStart) != cEndList) {
         //Check if this is a function
         uint uiEnd;
@@ -876,21 +875,21 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
             //Skip $(
             uiStart += 2;
             //Get function name
-            uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+            uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
             string sFunction = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
             //Check if this is a known function
             if (sFunction.compare("find_things") == 0) {
                 //Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get file name
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + ")", uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
                 string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Call function find_things
                 if (!passFindThings(sParam1, sParam2, sParam3, vReturn)) {
@@ -900,16 +899,16 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
             } else if (sFunction.compare("find_things_extern") == 0) {
                 //Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get file name
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + ")", uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
                 string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Call function find_things
                 if (!passFindThingsExtern(sParam1, sParam2, sParam3, vReturn)) {
@@ -919,12 +918,12 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
             } else if (sFunction.compare("add_suffix") == 0) {
                 //Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + ")", uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
                 string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Call function add_suffix
                 if (!passAddSuffix(sParam1, sParam2, vReturn)) {
@@ -936,12 +935,12 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 //This should filter out occurrance of first parameter from the list passed in the second
                 uint uiStartSearch = uiStart - sList.length() - 5; //ensure search is before current instance of list
                 //Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace, uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
                 string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + ")", uiStart + 1);
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
                 string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Call function add_suffix
                 if (!passFilterOut(sParam1, sParam2, vReturn, uiStartSearch)) {
@@ -954,7 +953,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 return false;
             }
         } else {
-            uiEnd = m_sConfigureFile.find_first_of(m_sWhiteSpace + cEndList, uiStart + 1);
+            uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + cEndList, uiStart + 1);
             //Get the tag
             string sTag = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
             //Check the type of tag
@@ -970,7 +969,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 vReturn.push_back(sTag);
             }
         }
-        uiStart = m_sConfigureFile.find_first_not_of(m_sWhiteSpace, uiEnd);
+        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd);
         //If this is not specified as a list then only a '\' will allow for more than 1 line
         if ((cEndList == '\n') && (m_sConfigureFile.at(uiStart) != '\\')) {
             break;
@@ -993,7 +992,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
     uint uiStart = sFindFile.find(sParam2);
     while (uiStart != string::npos) {
         //Find the start of the tag (also as ENCDEC should be treated as both DEC+ENC we skip that as well)
-        uiStart = sFindFile.find_first_of(m_sWhiteSpace + "(", uiStart + 1);
+        uiStart = sFindFile.find_first_of(sWhiteSpace + "(", uiStart + 1);
         //Skip any filling white space
         uiStart = sFindFile.find_first_not_of(" \t", uiStart);
         //Check if valid
@@ -1004,7 +1003,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
         }
         ++uiStart;
         //Find end of tag
-        uint uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",);", uiStart);
+        uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
         if (sFindFile.at(uiEnd) != ',') {
             //Get next
             uiStart = sFindFile.find(sParam2, uiEnd + 1);
@@ -1036,7 +1035,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
         }
         //Get second tag
         uiStart = sFindFile.find_first_not_of(" \t", uiEnd + 1);
-        uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",);", uiStart);
+        uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
         if ((sFindFile.at(uiEnd) != ')') && (sFindFile.at(uiEnd) != ',')) {
             //Get next
             uiStart = sFindFile.find(sParam2, uiEnd + 1);
@@ -1069,7 +1068,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             if (sDecTag.find('$') != string::npos) {
                 //Get third tag
                 uiStart = sFindFile.find_first_not_of(" \t", uiEnd + 1);
-                uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",);", uiStart);
+                uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
                 if ((sFindFile.at(uiEnd) != ')') && (sFindFile.at(uiEnd) != ',')) {
                     //Get next
                     uiStart = sFindFile.find(sParam2, uiEnd + 1);
@@ -1129,7 +1128,7 @@ bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string 
         }
         uiStart += 3;
         //Find end of tag
-        uint uiEnd = sFindFile.find_first_of(m_sWhiteSpace + ",();[]", uiStart);
+        uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();[]", uiStart);
         uint uiEnd2 = sFindFile.find("_" + sParam1, uiStart);
         uiEnd = (uiEnd2 < uiEnd) ? uiEnd2 : uiEnd;
         if ((sFindFile.at(uiEnd) != '_') || (uiEnd2 != uiEnd)) {

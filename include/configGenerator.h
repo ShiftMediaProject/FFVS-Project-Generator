@@ -63,8 +63,6 @@ private:
     string m_sProjectDirectory;
     string m_sOutDirectory;
 
-    const string m_sWhiteSpace;
-
 public:
     ConfigGenerator();
 
