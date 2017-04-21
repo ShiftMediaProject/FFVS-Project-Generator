@@ -24,6 +24,17 @@
 #include <algorithm>
 #include <utility>
 
+bool ProjectGenerator::runCompiler(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+{
+#ifdef _MSC_VER
+    //If compiled by msvc then only msvc builds are supported
+    return runMSVC(vIncludeDirs, sProjectName, mDirectoryObjects, iRunType);
+#else
+    //Otherwise only gcc and mingw are supported
+    return runGCC(vIncludeDirs, sProjectName, mDirectoryObjects, iRunType);
+#endif
+}
+
 bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
 {
     //Create a test file to read in definitions
@@ -48,7 +59,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string
     }
 
     //Use Microsoft compiler to pass the test file and retrieve declarations
-    string sCLLaunchBat = "@echo off \n";
+    string sCLLaunchBat = "@echo off\n";
     sCLLaunchBat += "if exist \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" ( \n\
 call \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" >NUL 2>NUL \n\
 goto MSVCVarsDone \n\
@@ -71,12 +82,13 @@ exit /b 1 \n\
         const uint uiRowSize = 32;
         uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
         uint uiTotalPos = 0;
-
-        //Check type of msvc call
         string sDirName = sProjectName + "/" + itI->first;
-        //Need to make output directory so cl doesn't fail outputting objs
-        sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
+        if (itI->first.length() > 0) {
+            //Need to make output directory so compile doesn't fail outputting
+            sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
+        }
         string sRuntype;
+        //Check type of compiler call
         if (iRunType == 0) {
             sRuntype = "/FR\"" + sDirName + "/\"" + " /Fo\"" + sDirName + "/\"";
         } else if (iRunType == 1) {
@@ -168,5 +180,93 @@ exit /b 1 \n\
 
     //Remove the compilation objects
     deleteFile("test.bat");
+    return true;
+}
+
+bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+{
+    //Create a test file to read in definitions
+    string sOutDir = m_ConfigHelper.m_sOutDirectory;
+    makeFileGeneratorRelative(sOutDir, sOutDir);
+    string sCLExtra = "-I\"" + sOutDir + "include/\"";
+    for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
+        string sIncludeDir = *vitIt;
+        uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.replace(uiFindPos2, 9, sOutDir);
+        }
+        uiFindPos2 = sIncludeDir.find("$(");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.replace(uiFindPos2, 2, "$");
+        }
+        uiFindPos2 = sIncludeDir.find(")");
+        if (uiFindPos2 != string::npos) {
+            sIncludeDir.erase(uiFindPos2, 1);
+        }
+        sCLExtra += " -I\"" + sIncludeDir + '\"';
+    }
+
+    //Use GNU compiler to pass the test file and retrieve declarations
+    string sCLLaunchBat = "#!/bin/bash\n";
+    sCLLaunchBat += "exitFail() {\n";
+    if (iRunType == 1) {
+        sCLLaunchBat += "rm -rf *.i > /dev/null 2>&1\n";
+    }
+    sCLLaunchBat += "rm -rf " + sProjectName + " > /dev/null 2>&1\nexit 1\n}\n";
+    sCLLaunchBat += "mkdir \"" + sProjectName + "\" > /dev/null 2>&1\n";
+    for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
+        string sDirName = sProjectName + "/" + itI->first;
+        if (itI->first.length() > 0) {
+            //Need to make output directory so compile doesn't fail outputting
+            sCLLaunchBat += "mkdir \"" + sDirName + "\" > /dev/null 2>&1\n";
+        }
+        string sRuntype;
+        //Check type of compiler call
+        if (iRunType == 0) {
+            cout << "  Error: Generation of definitions is not supported using gcc." << endl;
+            return false;
+        } else if (iRunType == 1) {
+            sRuntype = "-E -P";
+        }
+        //Check if gcc or mingw
+        if (m_ConfigHelper.m_sToolchain.find("mingw") != string::npos) {
+            sCLExtra += "-D\"WIN32\" -D\"_WINDOWS\"";
+        }
+
+        //Split calls as gcc outputs a single file at a time
+        for (StaticList::iterator vitJ = itI->second.begin(); vitJ < itI->second.end(); vitJ++) {
+            sCLLaunchBat += "gcc";
+            sCLLaunchBat += " -I\"" + m_ConfigHelper.m_sRootDirectory + "\" -I\"" + m_ConfigHelper.m_sProjectDirectory + "\" " + sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
+            if (iRunType == 0) {
+                makeFileGeneratorRelative(*vitJ, *vitJ);
+            }
+            sCLLaunchBat += " \"" + *vitJ + "\"";
+            if (iRunType == 0) {
+                sCLLaunchBat += " -o " + *vitJ + ".o";
+            } else if (iRunType == 1) {
+                sCLLaunchBat += " -o " + *vitJ + ".i";
+            }
+            sCLLaunchBat += " > log.txt 2>&1\nif (( $? )); then\nexitFail\nfi\n";
+        }
+    }
+    if (iRunType == 0) {
+        sCLLaunchBat += "rm -rf *.o > /dev/null 2>&1\n";
+    }
+    sCLLaunchBat += "rm log.txt > /dev/null 2>&1\n";
+    sCLLaunchBat += "exit 0\n";
+    if (!writeToFile("test.sh", sCLLaunchBat)) {
+        return false;
+    }
+    if (0 != system("test.sh")) {
+        cout << "  Error: Errors detected during test compilation :-" << endl;
+        cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
+        //Remove the test header files
+        deleteFile("test.sh");
+        deleteFolder(sProjectName);
+        return false;
+    }
+
+    //Remove the compilation objects
+    deleteFile("test.sh");
     return true;
 }

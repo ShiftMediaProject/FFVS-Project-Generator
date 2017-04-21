@@ -315,19 +315,25 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #else\n\
 #   define HAVE_STRUCT_POLLFD 0\n\
 #endif";
-    mReplaceValues["CONFIG_D3D11VA"] = "#include <sdkddkver.h>\n\
+    mReplaceValues["CONFIG_D3D11VA"] = "#ifdef _WIN32\n\
+#include <sdkddkver.h>\n\
+#endif\n\
 #if defined(NTDDI_WIN8)\n\
 #   define CONFIG_D3D11VA 1\n\
 #else\n\
 #   define CONFIG_D3D11VA 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#include <sdkddkver.h>\n\
+    mReplaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#ifdef _WIN32\n\
+#include <sdkddkver.h>\n\
+#endif\n\
 #if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#include <sdkddkver.h>\n\
+    mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#ifdef _WIN32\n\
+#include <sdkddkver.h>\n\
+#endif\n\
 #if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 1\n\
 #else\n\

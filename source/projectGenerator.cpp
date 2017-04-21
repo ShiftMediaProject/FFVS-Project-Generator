@@ -40,18 +40,19 @@
 
 bool ProjectGenerator::passAllMake()
 {
-    //Copy the required header files to output directory
-    m_sTemplateDirectory = "./templates/";
-    bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h");
-    if (!bCopy) {
-        cout << "Error: Failed writing to output location. Make sure you have the appropriate user permissions." << endl;
-        return false;
-    }
-    copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
-    copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h");
-    string sFileName;
-    if (findFile(m_ConfigHelper.m_sRootDirectory + "compat/atomics/win32/stdatomic.h", sFileName)) {
-        copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h");
+    if ((m_ConfigHelper.m_sToolchain.compare("msvc") == 0) || (m_ConfigHelper.m_sToolchain.compare("icl") == 0)) {
+        //Copy the required header files to output directory
+        bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h");
+        if (!bCopy) {
+            cout << "Error: Failed writing to output location. Make sure you have the appropriate user permissions." << endl;
+            return false;
+        }
+        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
+        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h");
+        string sFileName;
+        if (findFile(m_ConfigHelper.m_sRootDirectory + "compat/atomics/win32/stdatomic.h", sFileName)) {
+            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h");
+        }
     }
 
     //Initialise internal values
@@ -105,6 +106,11 @@ bool ProjectGenerator::passAllMake()
 
     //Output the solution file
     return outputSolution();
+
+    if (m_ConfigHelper.m_bDCEOnly) {
+        //Delete no longer needed compilation files
+        deleteCreatedFiles();
+    }
 }
 
 void ProjectGenerator::deleteCreatedFiles()
@@ -951,7 +957,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         mDirectoryObjects[sFolderName].push_back(*itI);
     }
 
-    if (!runMSVC(vIncludeDirs, sProjectName, mDirectoryObjects, 0))
+    if (!runCompiler(vIncludeDirs, sProjectName, mDirectoryObjects, 0))
         return false;
 
     //Loaded in the compiler passed files

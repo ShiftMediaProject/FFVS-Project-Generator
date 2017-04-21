@@ -26,7 +26,13 @@
 #include <regex>
 
 ConfigGenerator::ConfigGenerator() :
+#ifdef _MSC_VER
     m_sToolchain("msvc"),
+#elif defined(_WIN32)
+    m_sToolchain("mingw"),
+#else
+    m_sToolchain("gcc"),
+#endif
     m_bLibav(false),
     m_sProjectName("FFMPEG"),
     m_bDCEOnly(false)
@@ -280,9 +286,25 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         } else if (sToolChain.compare("icl") == 0) {
             //Inline asm by default is turned on if icl is detected
         } else {
+#ifdef _MSC_VER
+            //Only support msvc when built with msvc
             cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
             cout << "  Excepted toolchains (msvc, icl)" << endl;
             return false;
+#else
+            //Only support other toolchains if DCE only
+            if (!m_bDCEOnly) {
+                cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
+                cout << "  Other toolchains are only supported if --dce-only has already been specified.";
+                return false;
+            } else {
+                if ((sToolChain.find("mingw") == string::npos) && (sToolChain.find("gcc") == string::npos)) {
+                    cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
+                    cout << "  Excepted toolchains (mingw*, gcc*)" << endl;
+                    return false;
+                }
+            }
+#endif
         }
         m_sToolchain = sToolChain;
     } else if (stOption.find("--prefix") == 0) {

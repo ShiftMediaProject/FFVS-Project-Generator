@@ -234,7 +234,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         //Add current directory to include list (must be done last to ensure correct include order)
         vIncludeDirs2.push_back(m_sProjectDir);
 
-        if (!runMSVC(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
+        if (!runCompiler(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
             return false;
         }
         //Check the file that the function usage was found in to see if it was declared using macro expansion

@@ -168,14 +168,39 @@ private:
     bool outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs);
 
     /**
-     * Executes a batch script to perform operations using the msvc compiler.
-     * @param vIncludeDirs The list of current directories to look for included files.
+     * Executes a batch script to perform operations using a compiler based on current configuration.
+     * @param          vIncludeDirs      The list of current directories to look for included files.
      * @param          sProjectName      Name of the current project.
-     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained within it.
-     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=preprocess to.i file).
+     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
+     *                                   within it.
+     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
+     *                                   to .i file).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool runCompiler(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+
+    /**
+     * Executes a batch script to perform operations using the msvc compiler.
+     * @param          vIncludeDirs      The list of current directories to look for included files.
+     * @param          sProjectName      Name of the current project.
+     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
+     *                                   within it.
+     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
+     *                                   to .i file).
      * @return True if it succeeds, false if it fails.
      */
     bool runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+
+    /**
+     * Executes a bash script to perform operations using the gcc compiler.
+     * @param          vIncludeDirs      The list of current directories to look for included files.
+     * @param          sProjectName      Name of the current project.
+     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
+     *                                   within it.
+     * @param          iRunType          The type of operation to run on input files (1=pre-process to .i file).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool runGCC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
     void outputBuildEvents(const string& sProjectName, string & sProjectTemplate);
 
