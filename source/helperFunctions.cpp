@@ -146,7 +146,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile)
     char* resText = (char*)LockResource(hMem);
 
     //Copy across the file
-    ofstream ofDest(sDestinationFile, ios::binary);
+    ofstream ofDest(sDestinationFile);
     if (!ofDest.is_open()) {
         FreeResource(hMem);
         return false;
@@ -164,7 +164,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile)
 #else
     uint iSize = (uint)(&pp_cEndArray[iResourceID - 100] - &pp_cStartArray[iResourceID - 100]);
     //Copy across the file
-    ofstream ofDest(sDestinationFile, ios::binary);
+    ofstream ofDest(sDestinationFile);
     if (!ofDest.is_open()) {
         return false;
     }
