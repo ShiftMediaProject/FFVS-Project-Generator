@@ -1059,12 +1059,12 @@ void ProjectGenerator::outputProgramDCEsCombineDefine(const string & sDefine, co
         } else {
             //Add the additional define
             string sRet = "||";
-            if (sDefine.find_first_of("&|") != string::npos) {
+            if (sDefine.find('&') != string::npos) {
                 sRet = '(' + sDefine + ')' + sRet;
             } else {
                 sRet = sDefine + sRet;
             }
-            if (sDefine2.find_first_of("&|") != string::npos) {
+            if (sDefine2.find('&') != string::npos) {
                 sRet += '(' + sDefine2 + ')';
             } else {
                 sRet += sDefine2;
