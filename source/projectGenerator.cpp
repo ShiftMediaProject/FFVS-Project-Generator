@@ -150,6 +150,16 @@ void ProjectGenerator::deleteCreatedFiles()
     }
 }
 
+void ProjectGenerator::errorFunc()
+{
+    //Cleanup any partially created files
+    m_ConfigHelper.deleteCreatedFiles();
+    deleteCreatedFiles();
+
+    pressKeyToContinue();
+    exit(1);
+}
+
 bool ProjectGenerator::outputProject()
 {
     //Output the generated files

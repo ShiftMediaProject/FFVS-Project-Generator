@@ -47,8 +47,6 @@ private:
 
     ConfigGenerator::DefaultValuesList m_ReplaceValues;
 
-    string m_sTemplateDirectory;
-
 public:
 
     ConfigGenerator m_ConfigHelper;
@@ -62,6 +60,9 @@ public:
 
     /** Deletes any files that may have been created by previous runs. */
     void deleteCreatedFiles();
+
+    /** Error function to cleanly exit. */
+    void errorFunc();
 
 private:
     /**

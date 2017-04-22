@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2014 Matthew Oliver
+ * copyright (c) 2017 Matthew Oliver
  *
  * This file is part of ShiftMediaProject.
  *
@@ -29,8 +29,7 @@ int main(int argc, char** argv)
     //Pass the input configuration
     ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
-        pressKeyToContinue();
-        exit(1);
+        ProjectHelper.errorFunc();
     }
 
     //Delete any previously generated files
@@ -39,14 +38,12 @@ int main(int argc, char** argv)
 
     //Output config.h and avutil.h
     if (!ProjectHelper.m_ConfigHelper.outputConfig()) {
-        pressKeyToContinue();
-        exit(1);
+        ProjectHelper.errorFunc();
     }
 
     //Generate desired configuration files
     if (!ProjectHelper.passAllMake()) {
-        pressKeyToContinue();
-        exit(1);
+        ProjectHelper.errorFunc();
     }
     cout << "Completed Successfully" << endl;
 #if _DEBUG
