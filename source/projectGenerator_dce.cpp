@@ -206,7 +206,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             if (itDCE->first.find('/', sProjectName.length() + 1) != string::npos) {
                 sSubFolder = m_sProjectDir + itDCE->first.substr(sProjectName.length() + 1, itDCE->first.rfind('/') - sProjectName.length() - 1);
                 if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), sSubFolder) == vIncludeDirs2.end()) {
-                    //Need to add subdirectory to inlude list
+                    //Need to add subdirectory to include list
                     vIncludeDirs2.push_back(sSubFolder);
                 }
                 sSubFolder = sSubFolder.substr(m_sProjectDir.length());
@@ -334,7 +334,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
     //Add definition to new file
     if ((mFoundDCEDefinitions.size() > 0) || (mFoundDCEVariables.size() > 0)) {
-        StaticList vIncludedHeaders;
+        vector<DCEParams> vIncludedHeaders;
         string sDCEOutFile;
         //Loop through all functions
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEDefinitions.begin(); itDCE != mFoundDCEDefinitions.end(); itDCE++) {
@@ -345,8 +345,14 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             }
             if (itDCE->second.sFile.find(".h") != string::npos) {
                 //Include header files only once
-                if (find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile) == vIncludedHeaders.end()) {
-                    vIncludedHeaders.push_back(itDCE->second.sFile);
+                if (!bUsePreProc) {
+                    itDCE->second.sDefine = "";
+                }
+                vector<DCEParams>::iterator vitH = find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile);
+                if (vitH == vIncludedHeaders.end()) {
+                    vIncludedHeaders.push_back({itDCE->second.sDefine, itDCE->second.sFile});
+                } else {
+                    outputProgramDCEsCombineDefine(vitH->sDefine, itDCE->second.sDefine, vitH->sDefine);
                 }
             }
             sDCEOutFile += itDCE->first + " {";
@@ -396,10 +402,15 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 //Only include preprocessor guards if its a reserved option
                 if (bReserved) {
                     sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
+                } else {
+                    itDCE->second.sDefine = "";
                 }
                 //Include header files only once
-                if (find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile) == vIncludedHeaders.end()) {
-                    vIncludedHeaders.push_back(itDCE->second.sFile);
+                vector<DCEParams>::iterator vitH = find(vIncludedHeaders.begin(), vIncludedHeaders.end(), itDCE->second.sFile);
+                if (vitH == vIncludedHeaders.end()) {
+                    vIncludedHeaders.push_back({itDCE->second.sDefine, itDCE->second.sFile});
+                } else {
+                    outputProgramDCEsCombineDefine(vitH->sDefine, itDCE->second.sDefine, vitH->sDefine);
                 }
                 sDCEOutFile += itDCE->first + " = {0};\n";
                 if (bReserved) {
@@ -411,9 +422,15 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         string sFinalDCEOutFile = getCopywriteHeader(sProjectName + " DCE definitions") + '\n';
         sFinalDCEOutFile += "\n#include \"config.h\"\n\n";
         //Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and h264pred.h)
-        for (StaticList::iterator itHeaders = vIncludedHeaders.end(); itHeaders > vIncludedHeaders.begin(); ) {
-            --itHeaders;
-            sFinalDCEOutFile += "#include \"" + *itHeaders + "\"\n";
+        for (vector<DCEParams>::iterator vitHeaders = vIncludedHeaders.end(); vitHeaders > vIncludedHeaders.begin(); ) {
+            --vitHeaders;
+            if (vitHeaders->sDefine.length() > 0) {
+                sFinalDCEOutFile += "#if !(" + vitHeaders->sDefine + ")\n";
+            }
+            sFinalDCEOutFile += "#include \"" + vitHeaders->sFile + "\"\n";
+            if (vitHeaders->sDefine.length() > 0) {
+                sFinalDCEOutFile += "#endif\n";
+            }
         }
         sFinalDCEOutFile += '\n' + sDCEOutFile;
 
@@ -615,28 +632,10 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                             map<string, DCEParams>::iterator itFind = mFoundDCEFunctions.find(sAdd);
                             if (itFind == mFoundDCEFunctions.end()) {
                                 mFoundDCEFunctions[sAdd] = {sFuncDefine, sFileName};
-                            } else if (itFind->second.sDefine.compare(sFuncDefine) != 0) {
-                                //Check if either string contains the other
-                                if (itFind->second.sDefine.find(sFuncDefine) != string::npos) {
-                                    //keep the existing one
-                                } else if (sFuncDefine.find(itFind->second.sDefine) != string::npos) {
-                                    //use the new one in place of the original
-                                    mFoundDCEFunctions[sAdd] = {sFuncDefine, sFileName};
-                                } else {
-                                    //Add the additional define
-                                    string sCond = "||";
-                                    if (itFind->second.sDefine.find_first_of("&|") != string::npos) {
-                                        sCond = '(' + itFind->second.sDefine + ')' + sCond;
-                                    } else {
-                                        sCond = itFind->second.sDefine + sCond;
-                                    }
-                                    if (sFuncDefine.find_first_of("&|") != string::npos) {
-                                        sCond += '(' + sFuncDefine + ')';
-                                    } else {
-                                        sCond += sFuncDefine;
-                                    }
-                                    mFoundDCEFunctions[sAdd] = {sCond, sFileName};
-                                }
+                            } else {
+                                string sRetDefine;
+                                outputProgramDCEsCombineDefine(itFind->second.sDefine, sFuncDefine, sRetDefine);
+                                mFoundDCEFunctions[sAdd] = {sRetDefine, sFileName};
                             }
                         }
                         //Search for next occurrence
@@ -1044,5 +1043,35 @@ void ProjectGenerator::outputProjectDCECleanDefine(string & sDefine)
             uiStartTag = sDefine.find_first_of(sPreProcessor, uiStartTag + 1);
             uiStartTag = (uiStartTag != string::npos) ? sDefine.find_first_not_of(sPreProcessor, uiStartTag + 1) : uiStartTag;
         }
+    }
+}
+
+void ProjectGenerator::outputProgramDCEsCombineDefine(const string & sDefine, const string & sDefine2, string & sRetDefine)
+{
+    if (sDefine.compare(sDefine2) != 0) {
+        //Check if either string contains the other
+        if ((sDefine.find(sDefine2) != string::npos) || (sDefine2.length() == 0)) {
+            //Keep the existing one
+            sRetDefine = sDefine;
+        } else if ((sDefine2.find(sDefine) != string::npos) || (sDefine.length() == 0)) {
+            //Use the new one in place of the original
+            sRetDefine = sDefine2;
+        } else {
+            //Add the additional define
+            string sRet = "||";
+            if (sDefine.find_first_of("&|") != string::npos) {
+                sRet = '(' + sDefine + ')' + sRet;
+            } else {
+                sRet = sDefine + sRet;
+            }
+            if (sDefine2.find_first_of("&|") != string::npos) {
+                sRet += '(' + sDefine2 + ')';
+            } else {
+                sRet += sDefine2;
+            }
+            sRetDefine = sRet;
+        }
+    } else {
+        sRetDefine = sDefine;
     }
 }

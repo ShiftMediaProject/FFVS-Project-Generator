@@ -317,6 +317,14 @@ private:
      * @param [in,out] sDefine The pre-processor define string to clean.
      */
     void outputProjectDCECleanDefine(string & sDefine);
+
+    /**
+     * Combines 2 pre-processor define conditional strings.
+     * @param       sDefine    The first define.
+     * @param       sDefine2   The second define.
+     * @param [out] sRetDefine The returned combined define.
+     */
+    void outputProgramDCEsCombineDefine(const string & sDefine, const string & sDefine2, string & sRetDefine);
 };
 
 #endif
