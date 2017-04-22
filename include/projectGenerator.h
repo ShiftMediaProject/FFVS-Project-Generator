@@ -316,8 +316,6 @@ private:
      * @param [in,out] sDefine The pre-processor define string to clean.
      */
     void outputProjectDCECleanDefine(string & sDefine);
-
-    const string asDCETags[6] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_", "INLINE_"};
 };
 
 #endif

@@ -28,6 +28,8 @@
 // whether they are enabled in current configuration or not
 #define FORCEALLDCE 0
 
+const string asDCETags[] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_", "INLINE_"};
+
 bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs)
 {
     cout << "  Generating missing DCE symbols (" << sProjectName << ")..." << endl;
