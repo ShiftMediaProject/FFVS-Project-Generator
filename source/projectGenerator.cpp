@@ -232,13 +232,13 @@ bool ProjectGenerator::outputProject()
 
     //Write output project
     string sOutProjectFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".vcxproj";
-    if (!writeToFile(sOutProjectFile, sProjectFile)) {
+    if (!writeToFile(sOutProjectFile, sProjectFile, true)) {
         return false;
     }
 
     //Write output filters
     string sOutFiltersFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".vcxproj.filters";
-    if (!writeToFile(sOutFiltersFile, sFiltersFile)) {
+    if (!writeToFile(sOutFiltersFile, sFiltersFile, true)) {
         return false;
     }
 
@@ -312,12 +312,12 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     outputTemplateTags(sProjectName, sProgramFile, sProgramFiltersFile);
 
     //Write program file
-    if (!writeToFile(sDestinationFile, sProgramFile)) {
+    if (!writeToFile(sDestinationFile, sProgramFile, true)) {
         return false;
     }
 
     //Write output filters
-    if (!writeToFile(sDestinationFilterFile, sProgramFiltersFile)) {
+    if (!writeToFile(sDestinationFilterFile, sProgramFiltersFile, true)) {
         return false;
     }
 
@@ -381,22 +381,22 @@ bool ProjectGenerator::outputSolution()
 
     vector<string> vAddedKeys;
 
-    const string sProject = "\nProject(\"{";
+    const string sProject = "\r\nProject(\"{";
     const string sProject2 = "}\") = \"";
     const string sProject3 = "\", \"";
     const string sProject4 = ".vcxproj\", \"{";
     const string sProjectEnd = "}\"";
-    const string sProjectClose = "\nEndProject";
+    const string sProjectClose = "\r\nEndProject";
 
-    const string sDepend = "\n	ProjectSection(ProjectDependencies) = postProject";
-    const string sDependClose = "\n	EndProjectSection";
-    const string sSubDepend = "\n		{";
+    const string sDepend = "\r\n	ProjectSection(ProjectDependencies) = postProject";
+    const string sDependClose = "\r\n	EndProjectSection";
+    const string sSubDepend = "\r\n		{";
     const string sSubDepend2 = "} = {";
     const string sSubDependEnd = "}";
 
     //Find the start of the file
     const string sFileStart = "Project";
-    uint uiPos = sSolutionFile.find(sFileStart) - 1;
+    uint uiPos = sSolutionFile.find(sFileStart) - 2;
 
     map<string, StaticList>::iterator mitLibraries = m_mProjectLibs.begin();
     while (mitLibraries != m_mProjectLibs.end()) {
@@ -496,10 +496,10 @@ bool ProjectGenerator::outputSolution()
     string sProgramKey = "8A736DDA-6840-4E65-9DA4-BF65A2A70428";
     if (sProjectAdd.length() > 0) {
         //Add program key
-        sProjectAdd += "\nProject(\"{2150E333-8FDC-42A3-9474-1A3956D46DE8}\") = \"Programs\", \"Programs\", \"{";
+        sProjectAdd += "\r\nProject(\"{2150E333-8FDC-42A3-9474-1A3956D46DE8}\") = \"Programs\", \"Programs\", \"{";
         sProjectAdd += sProgramKey;
         sProjectAdd += "}\"";
-        sProjectAdd += "\nEndProject";
+        sProjectAdd += "\r\nEndProject";
 
         //Insert into solution string
         sSolutionFile.insert(uiPos, sProjectAdd);
@@ -509,7 +509,7 @@ bool ProjectGenerator::outputSolution()
     //Next Add the solution configurations
     string sConfigStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
     uiPos = sSolutionFile.find(sConfigStart) + sConfigStart.length();
-    string sConfigPlatform = "\n		{";
+    string sConfigPlatform = "\r\n		{";
     string sConfigPlatform2 = "}.";
     string sConfigPlatform3 = "|";
     string aBuildConfigs[7] = {"Debug", "DebugDLL", "DebugDLLStaticDeps", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps", "ReleaseLTO"};
@@ -582,7 +582,7 @@ bool ProjectGenerator::outputSolution()
     if (vAddedPrograms.size() > 0) {
         string sNestedStart = "GlobalSection(NestedProjects) = preSolution";
         uint uiPos = sSolutionFile.find(sNestedStart) + sNestedStart.length();
-        string sNest = "\n		{";
+        string sNest = "\r\n		{";
         string sNest2 = "} = {";
         string sNestEnd = "}";
         string sNestProg;
@@ -602,7 +602,7 @@ bool ProjectGenerator::outputSolution()
     string sProjectName = m_ConfigHelper.m_sProjectName;
     transform(sProjectName.begin(), sProjectName.end(), sProjectName.begin(), ::tolower);
     const string sOutSolutionFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".sln";
-    if (!writeToFile(sOutSolutionFile, sSolutionFile)) {
+    if (!writeToFile(sOutSolutionFile, sSolutionFile, true)) {
         return false;
     }
 
@@ -647,15 +647,15 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
     }
 
     //Change all occurrences of template_platform with specified project toolchain
-    string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\n\
+    string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>";
     if (m_ConfigHelper.m_sToolchain.compare("msvc") != 0) {
-        sToolchain += "\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER14)'!=''\">Intel C++ Compiler XE 14.0</PlatformToolset>\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER15)'!=''\">Intel C++ Compiler XE 15.0</PlatformToolset>\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER16)'!=''\">Intel C++ Compiler 16.0</PlatformToolset>\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER17)'!=''\">Intel C++ Compiler 17.0</PlatformToolset>\n\
+        sToolchain += "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER14)'!=''\">Intel C++ Compiler XE 14.0</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER15)'!=''\">Intel C++ Compiler XE 15.0</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER16)'!=''\">Intel C++ Compiler 16.0</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER17)'!=''\">Intel C++ Compiler 17.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER18)'!=''\">Intel C++ Compiler 18.0</PlatformToolset>";
     }
 
@@ -710,18 +710,18 @@ void ProjectGenerator::outputTemplateTags(const string& sProjectName, string & s
 void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)
 {
     //Declare constant strings used in output files
-    const string sItemGroup = "\n  <ItemGroup>";
-    const string sItemGroupEnd = "\n  </ItemGroup>";
+    const string sItemGroup = "\r\n  <ItemGroup>";
+    const string sItemGroupEnd = "\r\n  </ItemGroup>";
     const string sIncludeClose = "\">";
     const string sIncludeEnd = "\" />";
-    const string sTypeInclude = "\n    <" + sType + " Include=\"";
-    const string sTypeIncludeEnd = "\n    </" + sType + ">";
-    const string sIncludeObject = "\n      <ObjectFileName>$(IntDir)\\";
+    const string sTypeInclude = "\r\n    <" + sType + " Include=\"";
+    const string sTypeIncludeEnd = "\r\n    </" + sType + ">";
+    const string sIncludeObject = "\r\n      <ObjectFileName>$(IntDir)\\";
     const string sIncludeObjectClose = ".obj</ObjectFileName>";
-    const string sFilterSource = "\n      <Filter>" + sFilterType + " Files";
+    const string sFilterSource = "\r\n      <Filter>" + sFilterType + " Files";
     const string sSource = sFilterType + " Files";
     const string sFilterEnd = "</Filter>";
-    const string sExcludeConfig = "\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string sExcludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
     const string aBuildConfigsStatic[3] = {"Release", "ReleaseLTO", "Debug"};
     const string aBuildConfigsShared[4] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "DebugDLLStaticDeps"};
     const string sExcludeConfigEnd = "'\">true</ExcludedFromBuild>";
@@ -870,11 +870,11 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
     outputSourceFileType(m_vHIncludes, "ClInclude", "Header", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
 
     //Add any additional Filters to filters file
-    const string sItemGroupEnd = "\n  </ItemGroup>";
-    const string sFilterAdd = "\n    <Filter Include=\"";
-    const string sFilterAdd2 = "\">\n\
+    const string sItemGroupEnd = "\r\n  </ItemGroup>";
+    const string sFilterAdd = "\r\n    <Filter Include=\"";
+    const string sFilterAdd2 = "\">\r\n\
       <UniqueIdentifier>{";
-    const string sFilterAddClose = "}</UniqueIdentifier>\n\
+    const string sFilterAddClose = "}</UniqueIdentifier>\r\n\
     </Filter>";
     const string asFilterKeys[] = {"cac6df1e-4a60-495c-8daa-5707dc1216ff", "9fee14b2-1b77-463a-bd6b-60efdcf8850f",
         "bf017c32-250d-47da-b7e6-d5a5091cb1e6", "fd9e10e9-18f6-437d-b5d7-17290540c8b8", "f026e68e-ff14-4bf4-8758-6384ac7bcfaf",
@@ -1095,7 +1095,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         for (StaticList::iterator itI = vExportStrings.begin(); itI < vExportStrings.end(); itI++) {
             //Check if it is a wild card search
             uiFindPos = itI->find('*');
-            const string sInvalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \n\t\0";
+            const string sInvalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \r\n\t\0";
             if (uiFindPos != string::npos) {
                 //Strip the wild card (Note: assumes wild card is at the end!)
                 string sSearch = ' ' + itI->substr(0, uiFindPos);
@@ -1134,16 +1134,16 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
     sort(vModuleDataExports.begin(), vModuleDataExports.end());
 
     //Create the export module string
-    string sModuleFile = "EXPORTS\n";
+    string sModuleFile = "EXPORTS\r\n";
     for (StaticList::iterator itI = vModuleExports.begin(); itI < vModuleExports.end(); itI++) {
-        sModuleFile += "    " + *itI + '\n';
+        sModuleFile += "    " + *itI + "\r\n";
     }
     for (StaticList::iterator itI = vModuleDataExports.begin(); itI < vModuleDataExports.end(); itI++) {
-        sModuleFile += "    " + *itI + " DATA\n";
+        sModuleFile += "    " + *itI + " DATA\r\n";
     }
 
     string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".def";
-    if (!writeToFile(sDestinationFile, sModuleFile)) {
+    if (!writeToFile(sDestinationFile, sModuleFile, true)) {
         return false;
     }
     return true;
@@ -1153,40 +1153,40 @@ void ProjectGenerator::outputBuildEvents(const string& sProjectName, string & sP
 {
     //After </Lib> and </Link> and the post and then pre build events
     const string asLibLink[2] = {"</Lib>", "</Link>"};
-    const string sPostbuild = "\n    <PostBuildEvent>\n\
+    const string sPostbuild = "\r\n    <PostBuildEvent>\r\n\
       <Command>";
-    const string sPostbuildClose = "</Command>\n\
+    const string sPostbuildClose = "</Command>\r\n\
     </PostBuildEvent>";
-    const string sInclude = "mkdir $(OutDir)\\include\n\
+    const string sInclude = "mkdir $(OutDir)\\include\r\n\
 mkdir $(OutDir)\\include\\";
-    const string sCopy = "\ncopy ";
+    const string sCopy = "\r\ncopy ";
     const string sCopyEnd = " $(OutDir)\\include\\";
-    const string sLicense = "\nmkdir $(OutDir)\\licenses";
+    const string sLicense = "\r\nmkdir $(OutDir)\\licenses";
     string sLicenseName = m_ConfigHelper.m_sProjectName;
     transform(sLicenseName.begin(), sLicenseName.end(), sLicenseName.begin(), ::tolower);
     const string sLicenseEnd = " $(OutDir)\\licenses\\" + sLicenseName + ".txt";
-    const string sPrebuild = "\n    <PreBuildEvent>\n\
-      <Command>if exist template_rootdirconfig.h (\n\
-del template_rootdirconfig.h\n\
-)\n\
-if exist template_rootdirversion.h (\n\
-del template_rootdirversion.h\n\
-)\n\
-if exist template_rootdirconfig.asm (\n\
-del template_rootdirconfig.asm\n\
-)\n\
-if exist template_rootdirlibavutil\\avconfig.h (\n\
-del template_rootdirlibavutil\\avconfig.h\n\
-)\n\
-if exist template_rootdirlibavutil\\ffversion.h (\n\
-del template_rootdirlibavutil\\ffversion.h\n\
+    const string sPrebuild = "\r\n    <PreBuildEvent>\r\n\
+      <Command>if exist template_rootdirconfig.h (\r\n\
+del template_rootdirconfig.h\r\n\
+)\r\n\
+if exist template_rootdirversion.h (\r\n\
+del template_rootdirversion.h\r\n\
+)\r\n\
+if exist template_rootdirconfig.asm (\r\n\
+del template_rootdirconfig.asm\r\n\
+)\r\n\
+if exist template_rootdirlibavutil\\avconfig.h (\r\n\
+del template_rootdirlibavutil\\avconfig.h\r\n\
+)\r\n\
+if exist template_rootdirlibavutil\\ffversion.h (\r\n\
+del template_rootdirlibavutil\\ffversion.h\r\n\
 )";
-    const string sPrebuildDir = "\nif exist $(OutDir)\\include\\" + sProjectName + " (\n\
-rd /s /q $(OutDir)\\include\\" + sProjectName + "\n\
-cd ../\n\
-cd $(ProjectDir)\n\
+    const string sPrebuildDir = "\r\nif exist $(OutDir)\\include\\" + sProjectName + " (\r\n\
+rd /s /q $(OutDir)\\include\\" + sProjectName + "\r\n\
+cd ../\r\n\
+cd $(ProjectDir)\r\n\
 )";
-    const string sPrebuildClose = "</Command>\n    </PreBuildEvent>";
+    const string sPrebuildClose = "</Command>\r\n    </PreBuildEvent>";
     //Get the correct license file
     string sLicenseFile;
     if (m_ConfigHelper.getConfigOption("nonfree")->m_sValue.compare("1") == 0) {
@@ -1293,19 +1293,19 @@ void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const Static
 
 void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
 {
-    const string sYASMDefines = "\n\
-    <YASM>\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;%(IncludePaths)</IncludePaths>\n\
-      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\n\
-      <GenerateDebugInformation>true</GenerateDebugInformation>\n\
+    const string sYASMDefines = "\r\n\
+    <YASM>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;%(IncludePaths)</IncludePaths>\r\n\
+      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
+      <GenerateDebugInformation>true</GenerateDebugInformation>\r\n\
     </YASM>";
-    const string sYASMProps = "\n\
-  <ImportGroup Label=\"ExtensionSettings\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.props\" />\n\
+    const string sYASMProps = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.props\" />\r\n\
   </ImportGroup>";
-    const string sYASMTargets = "\n\
-  <ImportGroup Label=\"ExtensionTargets\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.targets\" />\n\
+    const string sYASMTargets = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.targets\" />\r\n\
   </ImportGroup>";
     const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
     const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
@@ -1337,19 +1337,19 @@ void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
 
 void ProjectGenerator::outputNASMTools(string & sProjectTemplate)
 {
-    const string sNASMDefines = "\n\
-    <NASM>\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\libavutil\\x86;%(IncludePaths)</IncludePaths>\n\
-      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\n\
-      <GenerateDebugInformation>true</GenerateDebugInformation>\n\
+    const string sNASMDefines = "\r\n\
+    <NASM>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\libavutil\\x86;%(IncludePaths)</IncludePaths>\r\n\
+      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
+      <GenerateDebugInformation>true</GenerateDebugInformation>\r\n\
     </NASM>";
-    const string sNASMProps = "\n\
-  <ImportGroup Label=\"ExtensionSettings\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.props\" />\n\
+    const string sNASMProps = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\r\nasm.props\" />\r\n\
   </ImportGroup>";
-    const string sNASMTargets = "\n\
-  <ImportGroup Label=\"ExtensionTargets\">\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.targets\" />\n\
+    const string sNASMTargets = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\r\nasm.targets\" />\r\n\
   </ImportGroup>";
     const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
     const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
