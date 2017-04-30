@@ -432,6 +432,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["va_va_h"] = false;
     mAdditionalDependencies["vdpau_vdpau_h"] = false;
     mAdditionalDependencies["vdpau_vdpau_x11_h"] = false;
+    mAdditionalDependencies["vfw32"] = true;
     mAdditionalDependencies["vfwcap_defines"] = true;
     mAdditionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
     mAdditionalDependencies["X11_extensions_Xvlib_h"] = false;
