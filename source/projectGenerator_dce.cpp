@@ -525,7 +525,42 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                 } else {
                     //This is a single line of code
                     uiFindPos2 = sFile.find_first_of(sEndLine + ';', uiFindPos + 1);
-                    uiFindPos2 = (sFile.at(uiFindPos2) == ';') ? uiFindPos2 + 1 : uiFindPos2; //must include the ;
+                    if (sFile.at(uiFindPos2) == ';') {
+                        ++uiFindPos2;  //must include the ;
+                    } else {
+                        //Must check if next line was also an if
+                        uint uiFindPos5 = uiFindPos;
+                        while ((sFile.at(uiFindPos5) == 'i') && (sFile.at(uiFindPos5 + 1) == 'f')) {
+                            //Get the define tag
+                            uiFindPos5 = sFile.find('(', uiFindPos5 + 2);
+                            uiFindPos2 = sFile.find(')', uiFindPos5 + 1);
+                            //Skip any '(' found within the parameters itself
+                            uiFindPos3 = sFile.find('(', uiFindPos5 + 1);
+                            while ((uiFindPos3 != string::npos) && (uiFindPos3 < uiFindPos2)) {
+                                uiFindPos3 = sFile.find('(', uiFindPos3 + 1);
+                                uiFindPos2 = sFile.find(')', uiFindPos2 + 1);
+                            }
+                            uiFindPos5 = sFile.find_first_not_of(sWhiteSpace, uiFindPos2 + 1);
+                            if (sFile.at(uiFindPos5) == '{') {
+                                //Need to get the entire block of code being wrapped
+                                uiFindPos2 = sFile.find('}', uiFindPos5 + 1);
+                                //Skip any '{' found within the parameters itself
+                                uint uiFindPos6 = sFile.find('{', uiFindPos5 + 1);
+                                while ((uiFindPos6 != string::npos) && (uiFindPos6 < uiFindPos2)) {
+                                    uiFindPos6 = sFile.find('{', uiFindPos6 + 1);
+                                    uiFindPos2 = sFile.find('}', uiFindPos2 + 1);
+                                }
+                                break;
+                            } else {
+                                //This is a single line of code
+                                uiFindPos2 = sFile.find_first_of(sEndLine + ';', uiFindPos5 + 1);
+                                if (sFile.at(uiFindPos2) == ';') {
+                                    ++uiFindPos2;  //must include the ;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
                 sCode = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
 
