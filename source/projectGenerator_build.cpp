@@ -64,9 +64,12 @@ void ProjectGenerator::buildInterDependencies(const string & sProjectName, Stati
         buildInterDependenciesHelper({"aresample_filter"}, {"swresample"}, vLibs);
         buildInterDependenciesHelper({"asyncts_filter"}, {"avresample"}, vLibs);
         buildInterDependenciesHelper({"atempo_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"cover_rect_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"ebur128_filter", "swresample"}, {"swresample"}, vLibs);
         buildInterDependenciesHelper({"elbg_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"fftfilt_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"find_rect_filter"}, {"avformat", "avcodec"}, vLibs);
+        buildInterDependenciesHelper({"firequalizer_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"mcdeint_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"movie_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"pan_filter"}, {"swresample"}, vLibs);
@@ -75,13 +78,18 @@ void ProjectGenerator::buildInterDependencies(const string & sProjectName, Stati
         buildInterDependenciesHelper({"resample_filter"}, {"avresample"}, vLibs);
         buildInterDependenciesHelper({"sab_filter"}, {"swscale"}, vLibs);
         buildInterDependenciesHelper({"scale_filter"}, {"swscale"}, vLibs);
-        buildInterDependenciesHelper({"showspectrum_filter"}, {"avcodec"}, vLibs);
-        buildInterDependenciesHelper({"smartblur_filter"}, {"swscale"}, vLibs);
-        buildInterDependenciesHelper({"subtitles_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"scale2ref_filter"}, {"swscale"}, vLibs);
         buildInterDependenciesHelper({"sofalizer_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"showcqt_filter"}, {"avformat", "avcodec", "swscale"}, vLibs);
         buildInterDependenciesHelper({"showfreqs_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"showspectrum_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"signature_filter"}, {"avformat", "avcodec"}, vLibs);
+        buildInterDependenciesHelper({"smartblur_filter"}, {"swscale"}, vLibs);
+        buildInterDependenciesHelper({"spectrumsynth_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"spp_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"subtitles_filter"}, {"avformat", "avcodec"}, vLibs);
+        buildInterDependenciesHelper({"uspp_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"zoompan_filter"}, {"swscale"}, vLibs);
     } else if (sProjectName.compare("libavdevice") == 0) {
         buildInterDependenciesHelper({"lavfi_indev"}, {"avfilter"}, vLibs);
     } else if (sProjectName.compare("libavcodec") == 0) {
