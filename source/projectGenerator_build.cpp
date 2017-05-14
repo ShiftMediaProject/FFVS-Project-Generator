@@ -60,6 +60,7 @@ void ProjectGenerator::buildInterDependencies(const string & sProjectName, Stati
     //Hard coded configuration checks for inter dependencies between different source libs.
     if (sProjectName.compare("libavfilter") == 0) {
         buildInterDependenciesHelper({"afftfilt_filter"}, {"avcodec"}, vLibs);
+        buildInterDependenciesHelper({"afir_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"amovie_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"aresample_filter"}, {"swresample"}, vLibs);
         buildInterDependenciesHelper({"asyncts_filter"}, {"avresample"}, vLibs);
