@@ -338,7 +338,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         string sDCEOutFile;
         //Loop through all functions
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEDefinitions.begin(); itDCE != mFoundDCEDefinitions.end(); itDCE++) {
-            bool bUsePreProc = (itDCE->second.sDefine.length() > 1);
+            bool bUsePreProc = (itDCE->second.sDefine.length() > 1) && (itDCE->second.sDefine.compare("0") != 0);
             //Only include preprocessor guards if its a reserved option
             if (bUsePreProc) {
                 sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
@@ -385,22 +385,24 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
         //Loop through all variables
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEVariables.begin(); itDCE != mFoundDCEVariables.end(); itDCE++) {
-            bool bReserved = true; bool bEnabled = false;
+            bool bUsePreProc = true; bool bEnabled = false;
 #if !FORCEALLDCE
+            bUsePreProc = (itDCE->second.sDefine.length() > 1) && (itDCE->second.sDefine.compare("0") != 0);
             ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(itDCE->second.sDefine);
             if (ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) {
                 //This config option doesn't exist so it potentially requires the header file to be included first
             } else {
-                bReserved = (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end());
+                bool bReserved = (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end());
                 if (!bReserved) {
                     bEnabled = (ConfigOpt->m_sValue.compare("1") == 0);
                 }
+                bUsePreProc = bUsePreProc || bReserved;
             }
 #endif
             //Include only those options that are currently disabled
             if (!bEnabled) {
                 //Only include preprocessor guards if its a reserved option
-                if (bReserved) {
+                if (bUsePreProc) {
                     sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
                 } else {
                     itDCE->second.sDefine = "";
@@ -413,7 +415,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                     outputProgramDCEsCombineDefine(vitH->sDefine, itDCE->second.sDefine, vitH->sDefine);
                 }
                 sDCEOutFile += itDCE->first + " = {0};\n";
-                if (bReserved) {
+                if (bUsePreProc) {
                     sDCEOutFile += "#endif\n";
                 }
             }
