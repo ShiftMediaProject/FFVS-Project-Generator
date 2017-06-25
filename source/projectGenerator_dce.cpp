@@ -52,6 +52,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
     //Check for DCE constructs
     map<string, DCEParams> mFoundDCEUsage;
+    set<string> vNonDCEUsage;
     StaticList vPreProcFiles;
     //Search through each included file
     for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
@@ -62,7 +63,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             return false;
         }
         bool bRequiresPreProcess = false;
-        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEUsage, bRequiresPreProcess);
+        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEUsage, bRequiresPreProcess, vNonDCEUsage);
         if (bRequiresPreProcess) {
             vPreProcFiles.push_back(*itFile);
         }
@@ -128,6 +129,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); ) {
         outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
         if (itDCE->second.sDefine.compare("1") == 0) {
+            vNonDCEUsage.insert(itDCE->first);
             //remove from the list
             mFoundDCEUsage.erase(itDCE++);
         } else {
@@ -247,6 +249,10 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 return false;
             }
 
+            if (itDCE->first.find("colorspacedsp_init") != string::npos) {
+                cout << "Ill find you" << endl;
+            }
+
             //Restore the initial macro names
             for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
                 for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
@@ -264,11 +270,12 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             //Check for any un-found function usage
             map<string, DCEParams> mNewDCEUsage;
             bool bCanIgnore = false;
-            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEUsage, bCanIgnore);
+            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEUsage, bCanIgnore, vNonDCEUsage);
 #if !FORCEALLDCE
             for (map<string, DCEParams>::iterator itDCE = mNewDCEUsage.begin(); itDCE != mNewDCEUsage.end(); ) {
                 outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
                 if (itDCE->second.sDefine.compare("1") == 0) {
+                    vNonDCEUsage.insert(itDCE->first);
                     //remove from the list
                     mNewDCEUsage.erase(itDCE++);
                 } else {
@@ -330,6 +337,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 #if !FORCEALLDCE
             outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
             if (itI->second.sDefine.compare("1") == 0) {
+                vNonDCEUsage.insert(itI->first);
             } else {
                 mFoundDCEFunctions[itI->first] = itI->second;
             }
@@ -348,6 +356,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 #if !FORCEALLDCE
             outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
             if (itI->second.sDefine.compare("1") == 0) {
+                vNonDCEUsage.insert(itI->first);
             } else {
                 mFoundDCEVariables[itI->first] = itI->second;
             }
@@ -484,7 +493,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     return true;
 }
 
-void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess)
+void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage)
 {
     const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
     StaticList vFuncIdents = {"ff_"};
@@ -522,6 +531,12 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
     } else if (sProjectName.compare("libswscale") == 0) {
         vFuncIdents.push_back("swscale_");
     }
+    struct InternalDCEParams
+    {
+        DCEParams params;
+        vector<uint> vLocations;
+    };
+    map<string, InternalDCEParams> mInternalList;
     for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
         for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
             const string sSearch = asDCETags2[uiTag2] + asDCETags[uiTag];
@@ -603,6 +618,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                     }
                 }
                 sCode = sFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
+                uint uiFindBack = uiFindPos;
 
                 //Get name of any functions
                 for (StaticList::iterator itIdent = vFuncIdents.begin(); itIdent < vFuncIdents.end(); itIdent++) {
@@ -610,25 +626,22 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                     while (uiFindPos != string::npos) {
                         bool bValid = false;
                         //Check if this is a valid function call
-                        uint uiFindPos3 = sCode.find_first_of("(;", uiFindPos + 1);
+                        uint uiFindPos3 = sCode.find_first_of(sNonName, uiFindPos + 1);
                         if ((uiFindPos3 != 0) && (uiFindPos3 != string::npos)) {
                             uint uiFindPos4 = sCode.find_last_of(sNonName, uiFindPos3 - 1);
                             uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
                             //Check if valid function
                             if (uiFindPos4 == uiFindPos) {
-                                if (sCode.at(uiFindPos3) == '(') {
+                                uiFindPos4 = sCode.find_first_not_of(sWhiteSpace, uiFindPos3);
+                                if (sCode.at(uiFindPos4) == '(') {
                                     bValid = true;
-                                } else {
-                                    uiFindPos4 = sCode.find_last_not_of(sWhiteSpace, uiFindPos4 - 1);
+                                } else if (sCode.at(uiFindPos4) == ';') {
+                                    uiFindPos4 = sCode.find_last_not_of(sWhiteSpace, uiFindPos - 1);
                                     if (sCode.at(uiFindPos4) == '=') {
                                         bValid = true;
                                     }
-                                }
-                            } else {
-                                //Check if this is a macro expansion
-                                uiFindPos4 = sCode.find('#', uiFindPos + 1);
-                                if (uiFindPos4 < uiFindPos3) {
-                                    //We need to add this to the list of files that require preprocessing
+                                } else if (sCode.at(uiFindPos4) == '#') {
+                                    //Check if this is a macro expansion
                                     bRequiresPreProcess = true;
                                     return;
                                 }
@@ -704,13 +717,18 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                             }
 
                             //Check if not already added
-                            map<string, DCEParams>::iterator itFind = mFoundDCEFunctions.find(sAdd);
-                            if (itFind == mFoundDCEFunctions.end()) {
-                                mFoundDCEFunctions[sAdd] = {sFuncDefine, sFileName};
+                            map<string, InternalDCEParams>::iterator itFind = mInternalList.find(sAdd);
+                            uint uiValuePosition = uiFindBack + uiFindPos;
+                            if (itFind == mInternalList.end()) {
+                                //Check that another non DCE instance hasn't been found
+                                if (vNonDCEUsage.find(sAdd) == vNonDCEUsage.end()) {
+                                    mInternalList[sAdd] = {{sFuncDefine, sFileName}, {uiValuePosition}};
+                                }
                             } else {
                                 string sRetDefine;
-                                outputProgramDCEsCombineDefine(itFind->second.sDefine, sFuncDefine, sRetDefine);
-                                mFoundDCEFunctions[sAdd] = {sRetDefine, sFileName};
+                                outputProgramDCEsCombineDefine(itFind->second.params.sDefine, sFuncDefine, sRetDefine);
+                                mInternalList[sAdd].params.sDefine = sRetDefine;
+                                mInternalList[sAdd].vLocations.push_back(uiValuePosition);
                             }
                         }
                         //Search for next occurrence
@@ -721,6 +739,84 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                 //Search for next occurrence
                 uiFindPos = sFile.find(sSearch, uiFindPos2 + 1);
             }
+        }
+    }
+
+    //Search for usage that is not effected by DCE
+    for (StaticList::iterator itIdent = vFuncIdents.begin(); itIdent < vFuncIdents.end(); itIdent++) {
+        uint uiFindPos = sFile.find(*itIdent);
+        while (uiFindPos != string::npos) {
+            bool bValid = false;
+            //Check if this is a valid value
+            uint uiFindPos3 = sFile.find_first_of(sNonName, uiFindPos + 1);
+            if (uiFindPos3 != string::npos) {
+                uint uiFindPos4 = sFile.find_last_of(sNonName, uiFindPos3 - 1);
+                uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
+                if (uiFindPos4 == uiFindPos) {
+                    string sBS = sFile.substr(uiFindPos, uiFindPos3 - uiFindPos);
+                    uiFindPos4 = sFile.find_first_not_of(sWhiteSpace, uiFindPos3);
+                    //Check if valid function
+                    if (sFile.at(uiFindPos4) == '(') {
+                        //Check if function call or declaration (a function call must be inside a function {})
+                        uint uiCheck1 = sFile.find_last_of('{', uiFindPos);
+                        if (uiCheck1 != string::npos) {
+                            uint uiCheck2 = sFile.find_last_of('}', uiFindPos);
+                            if ((uiCheck2 == string::npos) || (uiCheck1 > uiCheck2)) {
+                                bValid = true;
+                            }
+                        }
+                    } else if (sFile.at(uiFindPos4) == ';') {
+                        uiFindPos4 = sFile.find_last_not_of(sWhiteSpace, uiFindPos4 - 1);
+                        if (sFile.at(uiFindPos4) == '=') {
+                            bValid = true;
+                        }
+                    }
+                }
+            }
+            if (bValid) {
+                string sAdd = sFile.substr(uiFindPos, uiFindPos3 - uiFindPos);
+                //Check if already added
+                map<string, InternalDCEParams>::iterator itFind = mInternalList.find(sAdd);
+                if (itFind == mInternalList.end()) {
+                    vNonDCEUsage.insert(sAdd);
+                    //Remove from external list as well
+                    //WARNING: Assumes that there is not 2 values with the same name but local visibility in 2 different files
+                    if (mFoundDCEUsage.find(sAdd) != mFoundDCEUsage.end()) {
+                        mFoundDCEUsage.erase(sAdd);
+                    }
+                } else {
+                    //Check if this location was found in a DCE
+                    bool bFound = false;
+                    for (vector<uint>::iterator itI = mInternalList[sAdd].vLocations.begin(); itI < mInternalList[sAdd].vLocations.end(); itI++) {
+                        if (*itI == uiFindPos) {
+                            bFound = true;
+                        }
+                    }
+                    if (!bFound) {
+                        vNonDCEUsage.insert(sAdd);
+                        //Remove from external list as well
+                        if (mFoundDCEUsage.find(sAdd) != mFoundDCEUsage.end()) {
+                            mFoundDCEUsage.erase(sAdd);
+                        }
+                        //Needs to remove it from internal list as it is also found in non-DCE section
+                        mInternalList.erase(itFind);
+                    }
+                }
+            }
+            //Search for next occurrence
+            uiFindPos = sFile.find(*itIdent, uiFindPos + 1);
+        }
+    }
+
+    //Add all the found internal DCE values to the return list
+    for (map<string, InternalDCEParams>::iterator itI = mInternalList.begin(); itI != mInternalList.end(); itI++) {
+        map<string, DCEParams>::iterator itFind = mFoundDCEUsage.find(itI->first);
+        if (itFind == mFoundDCEUsage.end()) {
+            mFoundDCEUsage[itI->first] = itI->second.params;
+        } else {
+            string sRetDefine;
+            outputProgramDCEsCombineDefine(itFind->second.sDefine, itI->second.params.sDefine, sRetDefine);
+            mFoundDCEUsage[itI->first] = {sRetDefine, itFind->second.sFile};
         }
     }
 }

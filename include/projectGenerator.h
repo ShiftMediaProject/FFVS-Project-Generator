@@ -284,13 +284,14 @@ private:
 
     /**
      * Passes an input file and looks for any function usage within a block of code eliminated by DCE.
-     * @param       sFile               The loaded file to search for DCE usage in.
-     * @param       sProjectName        Name of the current project.
-     * @param       sFileName           Filename of the file currently being searched.
-     * @param [out] mFoundDCEFunctions  The return list of found DCE functions.
-     * @param [out] bRequiresPreProcess The requires pre process.
+     * @param          sFile               The loaded file to search for DCE usage in.
+     * @param          sProjectName        Name of the current project.
+     * @param          sFileName           Filename of the file currently being searched.
+     * @param [in,out] mFoundDCEUsage      The return list of found DCE functions.
+     * @param [out]    bRequiresPreProcess The file requires pre processing.
+     * @param [in,out] vUsedFunctions      The return list of found functions not in DCE.
      */
-    void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEFunctions, bool & bRequiresPreProcess);
+    void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage);
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.
