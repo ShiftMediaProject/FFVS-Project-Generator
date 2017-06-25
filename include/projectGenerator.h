@@ -98,28 +98,78 @@ private:
 
     bool passDynamicInclude(uint uiILength, StaticList & vIncludes);
 
+    /**
+     * Pass a static source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passCInclude();
 
+    /**
+     * Pass a dynamic source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDCInclude();
 
-    bool passYASMInclude();
+    /**
+     * Pass a static asm include line from current makefile.
+     * @param uiOffset The offset to start passing (used to separate old yasm and x86asm).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passASMInclude(uint uiOffset);
 
-    bool passDYASMInclude();
+    /**
+     * Pass a dynamic asm include line from current makefile.
+     * @param uiOffset The offset to start passing (used to separate old yasm and x86asm).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passDASMInclude(uint uiOffset);
 
+    /**
+     * Pass a static mmx include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passMMXInclude();
 
+    /**
+     * Pass a dynamic mmx include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDMMXInclude();
 
+    /**
+     * Pass a static header include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passHInclude(uint uiCutPos = 7);
 
+    /**
+     * Pass a dynamic header include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDHInclude();
 
+    /**
+     * Pass a static lib include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passLibInclude();
 
+    /**
+     * Pass a dynamic lib include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDLibInclude();
 
+    /**
+     * Pass a static unknown type include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDUnknown();
 
+    /**
+     * Pass a dynamic unknown type include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passDLibUnknown();
 
     /**

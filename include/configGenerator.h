@@ -184,6 +184,12 @@ private:
      */
     bool isConfigOptionEnabled(const string & sOption);
 
+    /**
+     * Queries if assembly is enabled.
+     * @return True if asm is enabled, false if not.
+     */
+    bool isASMEnabled();
+
     bool passDependencyCheck(const ValuesList::iterator vitOption);
 };
 

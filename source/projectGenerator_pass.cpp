@@ -236,20 +236,20 @@ bool ProjectGenerator::passDCInclude()
     return passDynamicInclude(5, m_vIncludes);
 }
 
-bool ProjectGenerator::passYASMInclude()
+bool ProjectGenerator::passASMInclude(uint uiOffset)
 {
     //Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
-        return passStaticInclude(9, m_vIncludes);
+    if (m_ConfigHelper.isASMEnabled()) {
+        return passStaticInclude(9 + uiOffset, m_vIncludes);
     }
     return true;
 }
 
-bool ProjectGenerator::passDYASMInclude()
+bool ProjectGenerator::passDASMInclude(uint uiOffset)
 {
     //Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0) {
-        return passDynamicInclude(10, m_vIncludes);
+    if (m_ConfigHelper.isASMEnabled()) {
+        return passDynamicInclude(10 + uiOffset, m_vIncludes);
     }
     return true;
 }
@@ -375,31 +375,32 @@ bool ProjectGenerator::passMake()
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 9).compare("YASM-OBJS") == 0) {
+            } else if ((m_sInLine.substr(0, 11).compare("X86ASM-OBJS") == 0) || (m_sInLine.substr(0, 9).compare("YASM-OBJS") == 0)) {
                 //Found some YASM includes
-                if (m_sInLine.at(9) == '-') {
-                    //Found some dynamic YASM includes
-                    if (!passDYASMInclude()) {
+                uint uiOffset = (m_sInLine.at(0) == 'X') ? 2 : 0;
+                if (m_sInLine.at(9 + uiOffset) == '-') {
+                    //Found some dynamic ASM includes
+                    if (!passDASMInclude(uiOffset)) {
                         m_ifInputFile.close();
                         return false;
                     }
                 } else {
-                    //Found some static YASM includes
-                    if (!passYASMInclude()) {
+                    //Found some static ASM includes
+                    if (!passASMInclude(uiOffset)) {
                         m_ifInputFile.close();
                         return false;
                     }
                 }
             } else if (m_sInLine.substr(0, 8).compare("MMX-OBJS") == 0) {
-                //Found some YASM includes
+                //Found some ASM includes
                 if (m_sInLine.at(8) == '-') {
-                    //Found some dynamic YASM includes
+                    //Found some dynamic MMX includes
                     if (!passDMMXInclude()) {
                         m_ifInputFile.close();
                         return false;
                     }
                 } else {
-                    //Found some static YASM includes
+                    //Found some static MMX includes
                     if (!passMMXInclude()) {
                         m_ifInputFile.close();
                         return false;

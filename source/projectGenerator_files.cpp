@@ -140,11 +140,11 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     }
 
     //Check all source files associated with replaced config values
-    StaticList vReplaceIncludes, vReplaceCPPIncludes, vReplaceCIncludes, vReplaceYASMIncludes;
+    StaticList vReplaceIncludes, vReplaceCPPIncludes, vReplaceCIncludes, vReplaceASMIncludes;
     for (UnknownList::iterator itIt = m_mReplaceIncludes.begin(); itIt != m_mReplaceIncludes.end(); itIt++) {
         vReplaceIncludes.push_back(itIt->first);
     }
-    if (!findProjectFiles(vReplaceIncludes, vReplaceCIncludes, vReplaceCPPIncludes, vReplaceYASMIncludes, m_vHIncludes)) {
+    if (!findProjectFiles(vReplaceIncludes, vReplaceCIncludes, vReplaceCPPIncludes, vReplaceASMIncludes, m_vHIncludes)) {
         return false;
     } else {
         //Need to create local files for any replace objects
@@ -154,7 +154,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
         if (!createReplaceFiles(vReplaceCPPIncludes, m_vCPPIncludes, sProjectName)) {
             return false;
         }
-        if (!createReplaceFiles(vReplaceYASMIncludes, m_vASMIncludes, sProjectName)) {
+        if (!createReplaceFiles(vReplaceASMIncludes, m_vASMIncludes, sProjectName)) {
             return false;
         }
     }

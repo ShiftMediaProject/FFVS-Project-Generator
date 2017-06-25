@@ -94,8 +94,9 @@ bool ConfigGenerator::buildDefaultValues()
         fastToggleConfigValue(*vitValues + "_INLINE", true);
     }
 
-    //Default we enable yasm
+    //Default we enable asm
     fastToggleConfigValue("yasm", true);
+    fastToggleConfigValue("x86asm", true);
 
     //msvc specific options
     fastToggleConfigValue("w32threads", true);
@@ -340,13 +341,13 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #   define CONFIG_VP9_DXVA2_HWACCEL 0\n\
 #endif";
 
-    //Build replace values for all inline asm
+    //Build replace values for all x86 inline asm
     vector<string> vInlineList;
-    getConfigList("ARCH_EXT_LIST", vInlineList);
+    getConfigList("ARCH_EXT_LIST_X86", vInlineList);
     for (vector<string>::iterator vitIt = vInlineList.begin(); vitIt < vInlineList.end(); vitIt++) {
         transform(vitIt->begin(), vitIt->end(), vitIt->begin(), ::toupper);
         string sName = "HAVE_" + *vitIt + "_INLINE";
-        mReplaceValues[sName] = "#define " + sName + " HAVE_INLINE_ASM";
+        mReplaceValues[sName] = "#define " + sName + " ARCH_X86 && HAVE_INLINE_ASM";
     }
 
     //Sanity checks for inline asm (Needed as some code only checks availability and not inline_asm)
@@ -544,7 +545,7 @@ void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObject
         vObjects.push_back("getopt");
     } else if (sTag.compare("EMMS_OBJS__yes_") == 0) {
         if (this->getConfigOption("MMX_EXTERNAL")->m_sValue.compare("1") == 0) {
-            vObjects.push_back("x86/emms"); //yasm emms is not required in 32b but is for 64bit unless with icl
+            vObjects.push_back("x86/emms"); //asm emms is not required in 32b but is for 64bit unless with icl
         }
     }
 }

@@ -1487,6 +1487,15 @@ bool ConfigGenerator::isConfigOptionEnabled(const string & sOption)
     return (vitOpt != m_vConfigValues.end()) && (vitOpt->m_sValue.compare("1") == 0);
 }
 
+bool ConfigGenerator::isASMEnabled()
+{
+    if (((getConfigOptionPrefixed("HAVE_X86ASM") != m_vConfigValues.end()) && (getConfigOptionPrefixed("HAVE_X86ASM")->m_sValue.compare("1") == 0)) ||
+        (getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0)) {
+        return true;
+    }
+    return false;
+}
+
 bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
 {
     //Need to convert the name to lower case
