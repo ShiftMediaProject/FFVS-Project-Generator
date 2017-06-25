@@ -51,7 +51,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     }
 
     //Check for DCE constructs
-    map<string, DCEParams> mFoundDCEFunctions;
+    map<string, DCEParams> mFoundDCEUsage;
     StaticList vPreProcFiles;
     //Search through each included file
     for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
@@ -62,7 +62,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             return false;
         }
         bool bRequiresPreProcess = false;
-        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEFunctions, bRequiresPreProcess);
+        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEUsage, bRequiresPreProcess);
         if (bRequiresPreProcess) {
             vPreProcFiles.push_back(*itFile);
         }
@@ -125,11 +125,11 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     ConfigGenerator::DefaultValuesList mReserved;
     ConfigGenerator::DefaultValuesList mIgnored;
     m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
-    for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
+    for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); ) {
         outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
         if (itDCE->second.sDefine.compare("1") == 0) {
             //remove from the list
-            mFoundDCEFunctions.erase(itDCE++);
+            mFoundDCEUsage.erase(itDCE++);
         } else {
             ++itDCE;
         }
@@ -137,16 +137,16 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 #endif
 
     //Now we need to find the declaration of each function
-    map<string, DCEParams> mFoundDCEDefinitions;
+    map<string, DCEParams> mFoundDCEFunctions;
     map<string, DCEParams> mFoundDCEVariables;
-    if (mFoundDCEFunctions.size() > 0) {
+    if (mFoundDCEUsage.size() > 0) {
         //Search through each included file
         for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
             string sFile;
             if (!loadFromFile(*itFile, sFile)) {
                 return false;
             }
-            for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); ) {
+            for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); ) {
                 string sReturn;
                 bool bIsFunc;
                 if (outputProjectDCEsFindDeclarations(sFile, itDCE->first, *itFile, sReturn, bIsFunc)) {
@@ -157,13 +157,13 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                         sFileName = sFileName.substr(2);
                     }
                     if (bIsFunc) {
-                        mFoundDCEDefinitions[sReturn] = {itDCE->second.sDefine, sFileName};
+                        mFoundDCEFunctions[sReturn] = {itDCE->second.sDefine, sFileName};
                     } else {
                         mFoundDCEVariables[sReturn] = {itDCE->second.sDefine, sFileName};
                     }
 
                     //Remove it from the list
-                    mFoundDCEFunctions.erase(itDCE++);
+                    mFoundDCEUsage.erase(itDCE++);
                 } else {
                     //Only increment the iterator when nothing has been found
                     // when we did find something we erased a value from the list so the iterator is still valid
@@ -175,16 +175,16 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 
     //Add any files requiring pre-processing to unfound list
     for (StaticList::iterator itPP = vPreProcFiles.begin(); itPP < vPreProcFiles.end(); itPP++) {
-        mFoundDCEFunctions[*itPP] = {"#", *itPP};
+        mFoundDCEUsage[*itPP] = {"#", *itPP};
     }
 
     //Check if we failed to find any functions
-    if (mFoundDCEFunctions.size() > 0) {
+    if (mFoundDCEUsage.size() > 0) {
         vector<string> vIncludeDirs2 = vIncludeDirs;
         makeDirectory(sProjectName);
         //Get all the files that include functions
         map<string, vector<DCEParams>> mFunctionFiles;
-        for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
             //Remove project dir from start of file
             uint uiPos = itDCE->second.sFile.find(m_sProjectDir);
             uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
@@ -262,25 +262,25 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             }
 
             //Check for any un-found function usage
-            map<string, DCEParams> mNewDCEFunctions;
+            map<string, DCEParams> mNewDCEUsage;
             bool bCanIgnore = false;
-            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEFunctions, bCanIgnore);
+            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEUsage, bCanIgnore);
 #if !FORCEALLDCE
-            for (map<string, DCEParams>::iterator itDCE = mNewDCEFunctions.begin(); itDCE != mNewDCEFunctions.end(); ) {
+            for (map<string, DCEParams>::iterator itDCE = mNewDCEUsage.begin(); itDCE != mNewDCEUsage.end(); ) {
                 outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
                 if (itDCE->second.sDefine.compare("1") == 0) {
                     //remove from the list
-                    mNewDCEFunctions.erase(itDCE++);
+                    mNewDCEUsage.erase(itDCE++);
                 } else {
                     ++itDCE;
                 }
             }
 #endif
-            for (map<string, DCEParams>::iterator itDCE2 = mNewDCEFunctions.begin(); itDCE2 != mNewDCEFunctions.end(); itDCE2++) {
+            for (map<string, DCEParams>::iterator itDCE2 = mNewDCEUsage.begin(); itDCE2 != mNewDCEUsage.end(); itDCE2++) {
                 //Add the file to the list
                 if (find(itDCE->second.begin(), itDCE->second.end(), itDCE2->first) == itDCE->second.end()) {
                     itDCE->second.push_back({itDCE2->second.sDefine, itDCE2->first});
-                    mFoundDCEFunctions[itDCE2->first] = itDCE2->second;
+                    mFoundDCEUsage[itDCE2->first] = itDCE2->second;
                 }
             }
 
@@ -298,8 +298,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                         }
                         //Add the declaration (ensure not to stomp a function found before needing pre-processing)
                         if (bIsFunc) {
-                            if (mFoundDCEDefinitions.find(sReturn) == mFoundDCEDefinitions.end()) {
-                                mFoundDCEDefinitions[sReturn] = {itDCE2->sDefine, sFileName};
+                            if (mFoundDCEFunctions.find(sReturn) == mFoundDCEFunctions.end()) {
+                                mFoundDCEFunctions[sReturn] = {itDCE2->sDefine, sFileName};
                             }
                         } else {
                             if (mFoundDCEVariables.find(sReturn) == mFoundDCEVariables.end()) {
@@ -307,11 +307,11 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                             }
                         }
                         //Remove the function from list
-                        mFoundDCEFunctions.erase(itDCE2->sFile);
+                        mFoundDCEUsage.erase(itDCE2->sFile);
                     }
                 } else {
                     //Remove the function from list as it was just a preproc file
-                    mFoundDCEFunctions.erase(itDCE2->sFile);
+                    mFoundDCEUsage.erase(itDCE2->sFile);
                 }
             }
         }
@@ -321,23 +321,61 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     }
 
     //Get any required hard coded values
-    buildProjectDCEs(sProjectName, mFoundDCEDefinitions, mFoundDCEVariables);
+    map<string, DCEParams> mBuiltDCEFunctions;
+    map<string, DCEParams> mBuiltDCEVariables;
+    buildProjectDCEs(sProjectName, mBuiltDCEFunctions, mBuiltDCEVariables);
+    for (map<string, DCEParams>::iterator itI = mBuiltDCEFunctions.begin(); itI != mBuiltDCEFunctions.end(); itI++) {
+        //Add to found list if not already found
+        if (mFoundDCEFunctions.find(itI->first) == mFoundDCEFunctions.end()) {
+#if !FORCEALLDCE
+            outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
+            if (itI->second.sDefine.compare("1") == 0) {
+            } else {
+                mFoundDCEFunctions[itI->first] = itI->second;
+            }
+#else
+            mFoundDCEFunctions[itI->first] = itI->second;
+#endif
+        }
+        //Remove from unfound list
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
+            mFoundDCEUsage.erase(itI->first);
+        }
+    }
+    for (map<string, DCEParams>::iterator itI = mBuiltDCEVariables.begin(); itI != mBuiltDCEVariables.end(); itI++) {
+        //Add to found list if not already found
+        if (mFoundDCEVariables.find(itI->first) == mFoundDCEVariables.end()) {
+#if !FORCEALLDCE
+            outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
+            if (itI->second.sDefine.compare("1") == 0) {
+            } else {
+                mFoundDCEVariables[itI->first] = itI->second;
+            }
+#else
+            mFoundDCEVariables[itI->first] = itI->second;
+#endif
+        }
+        //Remove from unfound list
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
+            mFoundDCEUsage.erase(itI->first);
+        }
+    }
 
     //Check if we failed to find anything (even after using buildDCEs)
-    if (mFoundDCEFunctions.size() > 0) {
-        for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
+    if (mFoundDCEUsage.size() > 0) {
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
             cout << "  Warning: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sFile << endl;
             //Just output a blank definition and hope it works
-            mFoundDCEDefinitions["void " + itDCE->first + "()"] = {itDCE->second.sDefine, itDCE->second.sFile};
+            mFoundDCEFunctions["void " + itDCE->first + "()"] = {itDCE->second.sDefine, itDCE->second.sFile};
         }
     }
 
     //Add definition to new file
-    if ((mFoundDCEDefinitions.size() > 0) || (mFoundDCEVariables.size() > 0)) {
+    if ((mFoundDCEFunctions.size() > 0) || (mFoundDCEVariables.size() > 0)) {
         vector<DCEParams> vIncludedHeaders;
         string sDCEOutFile;
         //Loop through all functions
-        for (map<string, DCEParams>::iterator itDCE = mFoundDCEDefinitions.begin(); itDCE != mFoundDCEDefinitions.end(); itDCE++) {
+        for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
             bool bUsePreProc = (itDCE->second.sDefine.length() > 1) && (itDCE->second.sDefine.compare("0") != 0);
             //Only include preprocessor guards if its a reserved option
             if (bUsePreProc) {
