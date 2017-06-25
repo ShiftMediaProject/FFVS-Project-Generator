@@ -132,6 +132,8 @@ void ProjectGenerator::deleteCreatedFiles()
     bool IsRoot = (m_ConfigHelper.m_sProjectDirectory.compare(m_ConfigHelper.m_sRootDirectory) == 0);
     vector<string> vExistingFolders;
     findFolders(m_ConfigHelper.m_sProjectDirectory + "lib*", vExistingFolders);
+    findFolders(m_ConfigHelper.m_sProjectDirectory + "ff*", vExistingFolders);
+    findFolders(m_ConfigHelper.m_sProjectDirectory + "av*", vExistingFolders);
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
         if (!IsRoot) {
             deleteFolder(*itIt);
