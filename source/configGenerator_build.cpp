@@ -450,6 +450,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferVP8"] = false;
+    mAdditionalDependencies["VAEncPictureParameterBufferVP9"] = false;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
