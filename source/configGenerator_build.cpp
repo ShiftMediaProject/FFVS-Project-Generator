@@ -122,6 +122,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("CryptGenRandom", true);
     fastToggleConfigValue("direct_h", true);
     fastToggleConfigValue("d3d11_h", true);
+    fastToggleConfigValue("dxgidebug_h", true);
     fastToggleConfigValue("dxva_h", true);
     fastToggleConfigValue("ebp_available", true);
     fastToggleConfigValue("ebx_available", true);
@@ -451,6 +452,10 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferVP8"] = false;
     mAdditionalDependencies["VAEncPictureParameterBufferVP9"] = false;
+    mAdditionalDependencies["ole32"] = true;
+    mAdditionalDependencies["shell32"] = true;
+    mAdditionalDependencies["wincrypt"] = true;
+    mAdditionalDependencies["psapi"] = true;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
