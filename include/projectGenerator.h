@@ -45,8 +45,6 @@ private:
 
     map<string, StaticList> m_mProjectLibs;
 
-    ConfigGenerator::DefaultValuesList m_ReplaceValues;
-
 public:
 
     ConfigGenerator m_ConfigHelper;
@@ -348,7 +346,7 @@ private:
      * @param [in,out] sDefine   The pre-processor define string.
      * @param          mReserved Pre-generated list of reserved configure values.
      */
-    void outputProgramDCEsResolveDefine(string & sDefine, ConfigGenerator::DefaultValuesList mReserved);
+    void outputProgramDCEsResolveDefine(string & sDefine);
 
     /**
      * Find any declaration of a specified function. Can also find a definition of the function if no declaration as

@@ -64,6 +64,8 @@ private:
     string m_sOutDirectory;
     bool m_bDCEOnly;
     bool m_bUsingExistingConfig;
+    DefaultValuesList m_mReplaceList;
+    DefaultValuesList m_mASMReplaceList;
 
 public:
     /** Default constructor. */

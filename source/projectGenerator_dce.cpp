@@ -123,11 +123,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     }
 
     //Check all configurations are enabled early to avoid later lookups of unused functions
-    ConfigGenerator::DefaultValuesList mReserved;
-    ConfigGenerator::DefaultValuesList mIgnored;
-    m_ConfigHelper.buildReplaceValues(mReserved, mIgnored);
     for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); ) {
-        outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
+        outputProgramDCEsResolveDefine(itDCE->second.sDefine);
         if (itDCE->second.sDefine.compare("1") == 0) {
             vNonDCEUsage.insert(itDCE->first);
             //remove from the list
@@ -269,7 +266,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEUsage, bCanIgnore, vNonDCEUsage);
 #if !FORCEALLDCE
             for (map<string, DCEParams>::iterator itDCE = mNewDCEUsage.begin(); itDCE != mNewDCEUsage.end(); ) {
-                outputProgramDCEsResolveDefine(itDCE->second.sDefine, mReserved);
+                outputProgramDCEsResolveDefine(itDCE->second.sDefine);
                 if (itDCE->second.sDefine.compare("1") == 0) {
                     vNonDCEUsage.insert(itDCE->first);
                     //remove from the list
@@ -331,7 +328,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         //Add to found list if not already found
         if (mFoundDCEFunctions.find(itI->first) == mFoundDCEFunctions.end()) {
 #if !FORCEALLDCE
-            outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
+            outputProgramDCEsResolveDefine(itI->second.sDefine);
             if (itI->second.sDefine.compare("1") == 0) {
                 vNonDCEUsage.insert(itI->first);
             } else {
@@ -349,7 +346,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         //Add to found list if not already found
         if (mFoundDCEVariables.find(itI->first) == mFoundDCEVariables.end()) {
 #if !FORCEALLDCE
-            outputProgramDCEsResolveDefine(itI->second.sDefine, mReserved);
+            outputProgramDCEsResolveDefine(itI->second.sDefine);
             if (itI->second.sDefine.compare("1") == 0) {
                 vNonDCEUsage.insert(itI->first);
             } else {
@@ -433,7 +430,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             if (ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) {
                 //This config option doesn't exist so it potentially requires the header file to be included first
             } else {
-                bool bReserved = (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end());
+                bool bReserved = (m_ConfigHelper.m_mReplaceList.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != m_ConfigHelper.m_mReplaceList.end());
                 if (!bReserved) {
                     bEnabled = (ConfigOpt->m_sValue.compare("1") == 0);
                 }
@@ -815,7 +812,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
     }
 }
 
-void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGenerator::DefaultValuesList mReserved)
+void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine)
 {
     //Complex combinations of config options require determining exact values
     uint uiStartTag = sDefine.find_first_not_of(sPreProcessor);
@@ -826,7 +823,7 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string & sDefine, ConfigGe
         //Check if tag is enabled
         ConfigGenerator::ValuesList::iterator ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(sTag);
         if ((ConfigOpt == m_ConfigHelper.m_vConfigValues.end()) ||
-            (mReserved.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != mReserved.end())) {
+            (m_ConfigHelper.m_mReplaceList.find(ConfigOpt->m_sPrefix + ConfigOpt->m_sOption) != m_ConfigHelper.m_mReplaceList.end())) {
             //This config option doesn't exist but it is potentially included in its corresponding header file
             // Or this is a reserved value
         } else {

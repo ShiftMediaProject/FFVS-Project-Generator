@@ -55,10 +55,6 @@ bool ProjectGenerator::passAllMake()
         }
     }
 
-    //Initialise internal values
-    ConfigGenerator::DefaultValuesList Unneeded;
-    m_ConfigHelper.buildReplaceValues(m_ReplaceValues, Unneeded);
-
     //Loop through each library make file
     vector<string> vLibraries;
     m_ConfigHelper.getConfigList("LIBRARY_LIST", vLibraries);

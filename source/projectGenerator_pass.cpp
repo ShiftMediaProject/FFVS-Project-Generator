@@ -166,7 +166,7 @@ bool ProjectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
             }
             if (vitOption->m_sValue.compare(sCompare) == 0) {
                 //Check if the config option is for a reserved type
-                if (m_ReplaceValues.find(sIdent) != m_ReplaceValues.end()) {
+                if (m_ConfigHelper.m_mReplaceList.find(sIdent) != m_ConfigHelper.m_mReplaceList.end()) {
                     m_mReplaceIncludes[sTag].push_back(sIdent);
                     //cout << "  Found Dynamic Replace: '" << sTag << "', '" << sIdent << "'" << endl;
                 } else {

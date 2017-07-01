@@ -363,6 +363,93 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #   define HAVE_EBX_AVAILABLE 0\n\
 #endif";
 
+    //Add any values that may depend on a replace value from above^
+    DefaultValuesList mNewReplaceValues;
+    ValuesList::iterator vitOption = m_vConfigValues.begin();
+    string sSearchSuffix[] = {"_deps", "_select"};
+    for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
+        string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
+        //Check for forced replacement (only if attribute is not disabled)
+        if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceValues.find(sTagName) != mReplaceValues.end())) {
+            //Already exists in list so can skip
+            continue;
+        } else {
+            if (vitOption->m_sValue.compare("1") == 0) {
+                //Check if it depends on a replace value
+                string sOptionLower = vitOption->m_sOption;
+                transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+                for (int iSuff = 0; iSuff < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff++) {
+                    string sCheckFunc = sOptionLower + sSearchSuffix[iSuff];
+                    vector<string> vCheckList;
+                    if (getConfigList(sCheckFunc, vCheckList, false)) {
+                        string sAddConfig;
+                        bool bReservedDeps = false;
+                        vector<string>::iterator vitCheckItem = vCheckList.begin();
+                        for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+                            //Check if this is a not !
+                            bool bToggle = false;
+                            if (vitCheckItem->at(0) == '!') {
+                                vitCheckItem->erase(0, 1);
+                                bToggle = true;
+                            }
+                            ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
+                            if (vitTemp != m_vConfigValues.end()) {
+                                string sReplaceCheck = vitTemp->m_sPrefix + vitTemp->m_sOption;
+                                transform(sReplaceCheck.begin(), sReplaceCheck.end(), sReplaceCheck.begin(), ::toupper);
+                                DefaultValuesList::iterator mitDep = mReplaceValues.find(sReplaceCheck);
+                                if (mitDep != mReplaceValues.end()) {
+                                    sAddConfig += " " + sReplaceCheck;
+                                    if (bToggle)
+                                        sAddConfig = '!' + sAddConfig;
+                                    bReservedDeps = true;
+                                }
+                                if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
+                                    //Check recursively if dep has any deps that are reserved types
+                                    sOptionLower = vitTemp->m_sOption;
+                                    transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+                                    for (int iSuff2 = 0; iSuff2 < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff2++) {
+                                        sCheckFunc = sOptionLower + sSearchSuffix[iSuff2];
+                                        vector<string> vCheckList2;
+                                        if (getConfigList(sCheckFunc, vCheckList2, false)) {
+                                            uint uiCPos = vitCheckItem - vCheckList.begin();
+                                            //Check if not already in list
+                                            vector<string>::iterator vitCheckItem2 = vCheckList2.begin();
+                                            for (vitCheckItem2; vitCheckItem2 < vCheckList2.end(); vitCheckItem2++) {
+                                                //Check if this is a not !
+                                                bool bToggle2 = bToggle;
+                                                if (vitCheckItem2->at(0) == '!') {
+                                                    vitCheckItem2->erase(0, 1);
+                                                    bToggle2 = !bToggle2;
+                                                }
+                                                string sCheckVal = *vitCheckItem2;
+                                                if (bToggle2)
+                                                    sCheckVal = '!' + sCheckVal;
+                                                if (find(vCheckList.begin(), vCheckList.end(), sCheckVal) == vCheckList.end()) {
+                                                    vCheckList.push_back(sCheckVal);
+                                                }
+                                            }
+                                            //update iterator position
+                                            vitCheckItem = vCheckList.begin() + uiCPos;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (bReservedDeps) {
+                            //Add to list
+                            mNewReplaceValues[sTagName] = "#define " + sTagName + sAddConfig;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (DefaultValuesList::iterator mitI = mNewReplaceValues.begin(); mitI != mNewReplaceValues.end(); mitI++) {
+        //Add them to the returned list (done here so that any checks above that test if it is reserved only operate on the unmodified original list)
+        mReplaceValues[mitI->first] = mitI->second;
+    }
+
     //Add to config.asm only list
     mASMReplaceValues["ARCH_X86_32"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define ARCH_X86_32 0\n\
