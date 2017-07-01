@@ -1154,12 +1154,10 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
             //Check that both tags match
             transform(sTag2.begin(), sTag2.end(), sTag2.begin(), ::toupper);
             if (sTag2.compare(sTag) != 0) {
-                //Get next
-                uiStart = sFindFile.find(sParam2, uiEnd + 1);
-                continue;
                 //This is somewhat incorrect as the official configuration will always take the second tag
                 //  and create a config option out of it. This is actually incorrect as the source code itself
                 //  only uses the first parameter as the config option.
+                swap(sTag, sTag2);
             }
         }
         transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
