@@ -249,10 +249,6 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 return false;
             }
 
-            if (itDCE->first.find("colorspacedsp_init") != string::npos) {
-                cout << "Ill find you" << endl;
-            }
-
             //Restore the initial macro names
             for (unsigned uiTag = 0; uiTag < sizeof(asDCETags) / sizeof(string); uiTag++) {
                 for (unsigned uiTag2 = 0; uiTag2 < sizeof(asDCETags2) / sizeof(string); uiTag2++) {
@@ -346,9 +342,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 #endif
         }
         //Remove from unfound list
-        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end())
             mFoundDCEUsage.erase(itI->first);
-        }
     }
     for (map<string, DCEParams>::iterator itI = mBuiltDCEVariables.begin(); itI != mBuiltDCEVariables.end(); itI++) {
         //Add to found list if not already found
@@ -365,9 +360,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
 #endif
         }
         //Remove from unfound list
-        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end())
             mFoundDCEUsage.erase(itI->first);
-        }
     }
 
     //Check if we failed to find anything (even after using buildDCEs)
