@@ -333,6 +333,14 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #else\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 0\n\
 #endif";
+    mReplaceValues["CONFIG_VP9_D3D11VA2_HWACCEL"] = "#ifdef _WIN32\n\
+#include <sdkddkver.h>\n\
+#endif\n\
+#if defined(NTDDI_WIN10_TH2)\n\
+#   define CONFIG_VP9_D3D11VA2_HWACCEL 1\n\
+#else\n\
+#   define CONFIG_VP9_D3D11VA2_HWACCEL 0\n\
+#endif";
     mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#ifdef _WIN32\n\
 #include <sdkddkver.h>\n\
 #endif\n\
