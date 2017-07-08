@@ -511,6 +511,8 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("ebp_available");
     vReservedItems.push_back("ebx_available");
     vReservedItems.push_back("debug");
+    vReservedItems.push_back("hardcoded_tables"); //Not supported
+    vReservedItems.push_back("small");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
