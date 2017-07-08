@@ -108,6 +108,12 @@ private:
      */
     bool changeConfig(const string & stOption);
 
+    /**
+     * Checks current config values and performs validation of requirements.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passCurrentValues();
+
     void buildFixedValues(DefaultValuesList & mFixedValues);
 
     void buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues);
@@ -147,7 +153,17 @@ private:
 
     bool passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList);
 
+    /**
+     * Setups all default starting config values.
+     * @return True if it succeeds, false if it fails.
+     */
     bool buildDefaultValues();
+
+    /**
+     * Setsup all config values that have a forced value.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool buildForcedValues();
 
     /**
      * Update configuration option without performing any dependency option checks.

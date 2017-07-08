@@ -54,11 +54,23 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
     if (!passConfigureFile()) {
         return false;
     }
+    //Load with default values
+    if (!buildDefaultValues()) {
+        return false;
+    }
     //Pass input arguments
     for (int i = 1; i < argc; i++) {
         if (!changeConfig(argv[i])) {
             return false;
         }
+    }
+    //Ensure forced values
+    if (!buildForcedValues()) {
+        return false;
+    }
+    //Perform validation of values
+    if (!passCurrentValues()) {
+        return false;
     }
     return true;
 }
@@ -222,8 +234,7 @@ bool ConfigGenerator::passConfigureFile()
     }
     //Mark the end of the config list. Any elements added after this are considered temporary and should not be exported
     m_uiConfigValuesEnd = m_vConfigValues.size(); //must be uint in case of realloc
-    //Load with default values
-    return buildDefaultValues();
+    return true;
 }
 
 bool ConfigGenerator::passExistingConfig()
@@ -622,14 +633,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     return true;
 }
 
-bool ConfigGenerator::outputConfig()
+bool ConfigGenerator::passCurrentValues()
 {
     if (m_bUsingExistingConfig) {
         //Don't output a new config as just use the original
         return passExistingConfig();
     }
 
-    cout << "  Outputting config.h..." << endl;
     //Correct license variables
     if (getConfigOption("version3")->m_sValue.compare("1") == 0) {
         if (getConfigOption("gpl")->m_sValue.compare("1") == 0) {
@@ -648,7 +658,6 @@ bool ConfigGenerator::outputConfig()
     }
 
     //Optimise the config values. Based on user input different encoders/decoder can be disabled as there are now better inbuilt alternatives
-    //  Must occur after above dependency check so that optimised defaults are not incorrectly turned off based on an input that would otherwise be disabled
     OptimisedConfigList mOptimisedDisables;
     buildOptimisedDisables(mOptimisedDisables);
     //Check everything that is disabled based on current configuration
@@ -668,7 +677,6 @@ bool ConfigGenerator::outputConfig()
             }
         }
     }
-
     //It may be possible that the above optimisation pass disables some dependencies of other options.
     // If this happens then a full recheck is performed
     if (bDisabledOpt) {
@@ -729,6 +737,12 @@ bool ConfigGenerator::outputConfig()
             }
         }
     }
+    return true;
+}
+
+bool ConfigGenerator::outputConfig()
+{
+    cout << "  Outputting config.h..." << endl;
 
     //Create header output
     string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
@@ -737,7 +751,7 @@ bool ConfigGenerator::outputConfig()
     sConfigureFile += "#define SMP_CONFIG_H\n";
 
     //Update the license configuration
-    vitOption = m_vFixedConfigValues.begin();
+    ValuesList::iterator vitOption = m_vFixedConfigValues.begin();
     for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
         if (vitOption->m_sOption.compare(m_sProjectName + "_LICENSE") == 0) {
             break;
@@ -1397,14 +1411,20 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
     }
     if (!bRet) {
         if (bRecursive) {
-            //Some options are passed in recursively that do not exist in internal list
-            // However there dependencies should still be processed
-            string sOptionUpper = sOption;
-            transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
-            m_vConfigValues.push_back(ConfigPair(sOptionUpper, "", ""));
-            cout << "  Warning: Unlisted config dependency found (" << sOption << ")" << endl;
-            //Fix iterator in case of realloc
-            vitOption = m_vConfigValues.end() - 1;
+            //Ensure this is not already set
+            DependencyList mAdditionalDependencies;
+            buildAdditionalDependencies(mAdditionalDependencies);
+            DependencyList::iterator mitDep = mAdditionalDependencies.find(sOption);
+            if (mitDep == mAdditionalDependencies.end()) {
+                //Some options are passed in recursively that do not exist in internal list
+                // However there dependencies should still be processed
+                string sOptionUpper = sOption;
+                transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
+                m_vConfigValues.push_back(ConfigPair(sOptionUpper, "", ""));
+                cout << "  Warning: Unlisted config dependency found (" << sOption << ")" << endl;
+                //Fix iterator in case of realloc
+                vitOption = m_vConfigValues.end() - 1;
+            }
         } else {
             cout << "  Error: Unknown config option (" << sOption << ")" << endl;
             return false;
@@ -1642,7 +1662,13 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
             for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
                 ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
                 if (vitTemp == m_vConfigValues.end()) {
-                    cout << "  Warning: Unknown option in select dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
+                    if (mitDep == mAdditionalDependencies.end()) {
+                        cout << "  Warning: Unknown option in select dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                    } if (!mitDep->second) {
+                        //If any deps are disabled then disable
+                        toggleConfigValue(sOptionLower, false);
+                    }
                     continue;
                 }
                 //Check if this variable has been initialized already

@@ -136,10 +136,6 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("GetSystemTimeAsFileTime", true);
     fastToggleConfigValue("io_h", true);
     fastToggleConfigValue("inline_asm_labels", true);
-    //Additional options set for Intel compiler specific inline asm
-    fastToggleConfigValue("inline_asm_nonlocal_labels", false);
-    fastToggleConfigValue("inline_asm_direct_symbol_refs", false);
-    fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
     fastToggleConfigValue("isatty", true);
     fastToggleConfigValue("kbhit", true);
     fastToggleConfigValue("LoadLibrary", true);
@@ -184,15 +180,6 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("frame_thread_encoder", true);
     fastToggleConfigValue("xmm_clobbers", true);
 
-    fastToggleConfigValue("xlib", false); //enabled by default but is linux only so we force disable
-    fastToggleConfigValue("qtkit", false);
-    fastToggleConfigValue("avfoundation", false);
-    fastToggleConfigValue("mmal", false);
-
-    //values that are not correctly handled by configure
-    fastToggleConfigValue("coreimage_filter", false);
-    fastToggleConfigValue("coreimagesrc_filter", false);
-
     //Additional (must be explicitly disabled)
     fastToggleConfigValue("dct", true);
     fastToggleConfigValue("dwt", true);
@@ -228,6 +215,25 @@ bool ConfigGenerator::buildDefaultValues()
     if (findFile(m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
         fastToggleConfigValue("opencl", true);
     }
+
+    return buildForcedValues();
+}
+
+bool ConfigGenerator::buildForcedValues()
+{
+    //Additional options set for Intel compiler specific inline asm
+    fastToggleConfigValue("inline_asm_nonlocal_labels", false);
+    fastToggleConfigValue("inline_asm_direct_symbol_refs", false);
+    fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
+
+    fastToggleConfigValue("xlib", false); //enabled by default but is linux only so we force disable
+    fastToggleConfigValue("qtkit", false);
+    fastToggleConfigValue("avfoundation", false);
+    fastToggleConfigValue("mmal", false);
+
+    //values that are not correctly handled by configure
+    fastToggleConfigValue("coreimage_filter", false);
+    fastToggleConfigValue("coreimagesrc_filter", false);
 
     return true;
 }
@@ -551,6 +557,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["shell32"] = true;
     mAdditionalDependencies["wincrypt"] = true;
     mAdditionalDependencies["psapi"] = true;
+    mAdditionalDependencies["qtkit"] = false;
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
