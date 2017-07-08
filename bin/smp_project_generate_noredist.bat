@@ -105,7 +105,7 @@ MKDIR %FFMPEGPATH%/SMP >NUL 2>&1
         )
     )
     type smp_project_get_dependencies
-) > "%FFMPEGPATH%SMP/project_get_dependencies.bat"
+) > "%FFMPEGPATH%/SMP/project_get_dependencies.bat"
 ECHO.
 EXIT /B %ERRORLEVEL%
 
