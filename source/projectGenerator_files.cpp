@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 #include <utility>
 
@@ -89,7 +88,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     for (StaticList::iterator itIt = m_vHIncludes.begin(); itIt != m_vHIncludes.end(); itIt++) {
         string sRetFileName;
         if (!findSourceFile(*itIt, ".h", sRetFileName)) {
-            cout << "  Error: could not find input header file for object (" << *itIt << ")" << endl;
+            outputError("Could not find input header file for object (" + *itIt + ")");
             return false;
         }
         //Update the entry with the found file with complete path
@@ -100,7 +99,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     for (StaticList::iterator itIt = m_vCIncludes.begin(); itIt != m_vCIncludes.end(); itIt++) {
         string sRetFileName;
         if (!findSourceFile(*itIt, ".c", sRetFileName)) {
-            cout << "  Error: could not find input C source file for object (" << *itIt << ")" << endl;
+            outputError("Could not find input C source file for object (" + *itIt + ")");
             return false;
         }
         //Update the entry with the found file with complete path
@@ -111,7 +110,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     for (StaticList::iterator itIt = m_vCPPIncludes.begin(); itIt != m_vCPPIncludes.end(); itIt++) {
         string sRetFileName;
         if (!findSourceFile(*itIt, ".cpp", sRetFileName)) {
-            cout << "  Error: could not find input C++ source file for object (" << *itIt << ")" << endl;
+            outputError("Could not find input C++ source file for object (" + *itIt + ")");
             return false;
         }
         //Update the entry with the found file with complete path
@@ -122,7 +121,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     for (StaticList::iterator itIt = m_vASMIncludes.begin(); itIt != m_vASMIncludes.end(); itIt++) {
         string sRetFileName;
         if (!findSourceFile(*itIt, ".asm", sRetFileName)) {
-            cout << "  Error: could not find input ASM source file for object (" << *itIt << ")" << endl;
+            outputError("Could not find input ASM source file for object (" + *itIt + ")");
             return false;
         }
         //Update the entry with the found file with complete path
@@ -194,7 +193,7 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
 #endif";
         //Write output project
         if (!makeDirectory(m_ConfigHelper.m_sProjectDirectory + sProjectName)) {
-            cout << "  Error: Failed creating local " + sProjectName + " directory" << endl;
+            outputError("Failed creating local " + sProjectName + " directory");
             return false;
         }
         string sOutFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + "/" + sFilename + "_wrap" + sExtension;
@@ -245,7 +244,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
             makeFileProjectRelative(sRetFileName, sRetFileName);
             vHIncludes.push_back(sRetFileName);
         } else {
-            cout << "  Error: Could not find valid source file for object (" << *itIt << ")" << endl;
+            outputError("Could not find valid source file for object (" + *itIt + ")");
             return false;
         }
     }

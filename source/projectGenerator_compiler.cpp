@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 #include <utility>
 
@@ -126,7 +125,7 @@ exit /b 1 \n\
     }
 
     if (0 != system("test.bat")) {
-        cout << "  Error: Errors detected during test compilation :-" << endl;
+        outputError("Errors detected during test compilation :-");
         string sTestOutput;
         if (loadFromFile("log.txt", sTestOutput)) {
             //Output errors from log.txt
@@ -138,7 +137,7 @@ exit /b 1 \n\
                 //find end of line
                 uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
                 string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
-                cout << "    " << sTemp << endl;
+                outputError(sTemp, false);
                 uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
                 //Check what type of error was found
                 if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
@@ -154,22 +153,22 @@ exit /b 1 \n\
                 uint uiFindPos2 = sTestOutput.find('\n', uiFindPos + 1);
                 uiFindPos = sTestOutput.rfind('\n', uiFindPos);
                 uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos;
-                cout << "    " << sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos) << endl;
+                outputError(sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos), false);
                 bMissingVS = true;
             }
             if (bMissingVS) {
-                cout << endl << "    Based on the above error(s) Visual Studio is not installed correctly on the host system." << endl;
-                cout << "    Install a compatible version of Visual Studio before trying again." << endl;
+                outputError("Based on the above error(s) Visual Studio is not installed correctly on the host system.", false);
+                outputError("Install a compatible version of Visual Studio before trying again.", false);
                 deleteFile("log.txt");
             } else if (bMissingDeps) {
-                cout << endl << "    Based on the above error(s) there are files required for dependency libraries that are not available" << endl;
-                cout << "    Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again." << endl;
-                cout << "    Consult the supplied readme for instructions for installing varying dependencies." << endl;
-                cout << "    If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again." << endl;
-                cout << "    Removing the offending configuration option can also be used to remove the error." << endl;
+                outputError("Based on the above error(s) there are files required for dependency libraries that are not available", false);
+                outputError("Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again.", false);
+                outputError("Consult the supplied readme for instructions for installing varying dependencies.", false);
+                outputError("If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again.", false);
+                outputError("  Removing the offending configuration option can also be used to remove the error.", false);
                 deleteFile("log.txt");
             } else if (bError) {
-                cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
+                outputError("Unknown error detected. See log.txt for further details.", false);
             }
         }
         //Remove the test header files
@@ -223,7 +222,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
         string sRuntype;
         //Check type of compiler call
         if (iRunType == 0) {
-            cout << "  Error: Generation of definitions is not supported using gcc." << endl;
+            outputError("Generation of definitions is not supported using gcc.");
             return false;
         } else if (iRunType == 1) {
             sRuntype = "-E -P";
@@ -258,8 +257,8 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
         return false;
     }
     if (0 != system("test.sh")) {
-        cout << "  Error: Errors detected during test compilation :-" << endl;
-        cout << endl << "    Unknown error detected. See log.txt for further details." << endl;
+        outputError("Errors detected during test compilation :-");
+        outputError("Unknown error detected. See log.txt for further details.", false);
         //Remove the test header files
         deleteFile("test.sh");
         deleteFolder(sProjectName);

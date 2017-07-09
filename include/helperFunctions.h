@@ -161,6 +161,49 @@ bool findEnvironmentVariable(const string & sEnvVar);
 /** Press key to continue terminal prompt. */
 void pressKeyToContinue();
 
+/**
+ * Output a single line of text.
+ * @param sMessage The message.
+ */
+void outputLine(const string & sMessage);
+
+/**
+ * Output information message.
+ * @remark Whether this outputs depends on currently set verbosity.
+ * @param sMessage The message.
+ * @param bHeader  (Optional) True to add the info starting header.
+ */
+void outputInfo(const string & sMessage, bool bHeader = true);
+
+/**
+ * Output warning message.
+ * @remark Whether this outputs depends on currently set verbosity.
+ * @param sMessage The message.
+ * @param bHeader  (Optional) True to add the warning starting header.
+ */
+void outputWarning(const string & sMessage, bool bHeader = true);
+
+/**
+ * Output error message.
+ * @remark Whether this outputs depends on currently set verbosity.
+ * @param sMessage The message.
+ * @param bHeader  (Optional) True to add the error starting header.
+ */
+void outputError(const string & sMessage, bool bHeader = true);
+
+enum Verbosity
+{
+    VERBOSITY_INFO,     //Info+Warning+Error
+    VERBOSITY_WARNING,  //Warning+Error
+    VERBOSITY_ERROR,    //Error
+};
+
+/**
+ * Sets output verbosity for output message functions.
+ * @param verbose The verbosity to set.
+ */
+void setOutputVerbosity(Verbosity verbose);
+
 const string sEndLine = "\n\r\f\v";
 const string sWhiteSpace = " \t" + sEndLine;
 const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";

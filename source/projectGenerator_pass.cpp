@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 #include <utility>
 
@@ -56,7 +55,7 @@ bool ProjectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPo
             //Check if object already included in internal list
             if (find(m_vCIncludes.begin(), m_vCIncludes.end(), *vitFile) == m_vCIncludes.end()) {
                 vStaticIncludes.push_back(*vitFile);
-                //cout << "  Found C Static: '" << *vitFile << "'" << endl;
+                //outputInfo("Found C Static: '" + *vitFile + "'");
             }
         }
         return true;
@@ -65,7 +64,7 @@ bool ProjectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPo
     //Check if object already included in internal list
     if (find(vStaticIncludes.begin(), vStaticIncludes.end(), sTag) == vStaticIncludes.end()) {
         vStaticIncludes.push_back(sTag);
-        //cout << "  Found Static: '" << sTag << "'" << endl;
+        //outputInfo("Found Static: '" + sTag + "'");
     }
     return true;
 }
@@ -129,17 +128,17 @@ bool ProjectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
                     //Check if the config option is correct
                     ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
                     if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
-                        cout << "  Warning: Unknown dynamic configuration option (" << sIdent << ") used when passing object (" << *vitObject << ")" << endl;
+                        outputInfo("Unknown dynamic configuration option (" + sIdent + ") used when passing object (" + *vitObject + ")");
                         return true;
                     }
                     if (vitOption->m_sValue.compare("1") == 0) {
                         vIncludes.push_back(*vitObject);
-                        //cout << "  Found Dynamic: '" << *vitObject << "', '" << "( " + sIdent + " && " + sDynInc + " )" << "'" << endl;
+                        //outputInfo("Found Dynamic: '" + *vitObject + "', '" + "( " + sIdent + " && " + sDynInc + " )" + "'");
                     }
                 }
             }
         } else {
-            cout << "  Error: Found unknown token (" << sDynInc << ")" << endl;
+            outputError("Found unknown token (" + sDynInc + ")");
             return false;
         }
     } else if (m_sInLine.at(uiStartPos) == '#') {
@@ -161,17 +160,17 @@ bool ProjectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
             //Check if the config option is correct
             ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
             if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
-                cout << "  Warning: Unknown dynamic configuration option (" << sIdent << ") used when passing object (" << sTag << ")" << endl;
+                outputInfo("Unknown dynamic configuration option (" + sIdent + ") used when passing object (" + sTag + ")");
                 return true;
             }
             if (vitOption->m_sValue.compare(sCompare) == 0) {
                 //Check if the config option is for a reserved type
                 if (m_ConfigHelper.m_mReplaceList.find(sIdent) != m_ConfigHelper.m_mReplaceList.end()) {
                     m_mReplaceIncludes[sTag].push_back(sIdent);
-                    //cout << "  Found Dynamic Replace: '" << sTag << "', '" << sIdent << "'" << endl;
+                    //outputInfo("Found Dynamic Replace: '" + sTag + "', '" + sIdent + "'");
                 } else {
                     vIncludes.push_back(sTag);
-                    //cout << "  Found Dynamic: '" << sTag << "', '" << sIdent << "'" << endl;
+                    //outputInfo("Found Dynamic: '" + sTag + "', '" + sIdent + "'");
                 }
             }
         }
@@ -352,7 +351,7 @@ bool ProjectGenerator::passDLibUnknown()
 
 bool ProjectGenerator::passMake()
 {
-    cout << "  Generating from Makefile (" << m_sProjectDir << ")..." << endl;
+    outputLine("  Generating from Makefile (" + m_sProjectDir + ")...");
     //Open the input Makefile
     string sMakeFile = m_sProjectDir + "/MakeFile";
     m_ifInputFile.open(sMakeFile);
@@ -459,13 +458,13 @@ bool ProjectGenerator::passMake()
         m_ifInputFile.close();
         return true;
     }
-    cout << "  Error: could not open open MakeFile (" << sMakeFile << ")" << endl;
+    outputError("Could not open open MakeFile (" + sMakeFile + ")");
     return false;
 }
 
 bool ProjectGenerator::passProgramMake(const string & sProjectName)
 {
-    cout << "  Generating from Makefile (" << m_sProjectDir << ") for project " << sProjectName << "..." << endl;
+    outputLine("  Generating from Makefile (" + m_sProjectDir + ") for project " + sProjectName + "...");
     //Open the input Makefile
     string sMakeFile = m_sProjectDir + "/MakeFile";
     m_ifInputFile.open(sMakeFile);
@@ -529,6 +528,6 @@ bool ProjectGenerator::passProgramMake(const string & sProjectName)
         m_vIncludes.push_back(sProjectName);
         return true;
     }
-    cout << "  Error: could not open open MakeFile (./MakeFile)" << endl;
+    outputError("Could not open open MakeFile (./MakeFile)");
     return false;
 }

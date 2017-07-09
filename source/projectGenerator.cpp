@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 #include <utility>
 
@@ -44,7 +43,7 @@ bool ProjectGenerator::passAllMake()
         //Copy the required header files to output directory
         bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h");
         if (!bCopy) {
-            cout << "Error: Failed writing to output location. Make sure you have the appropriate user permissions." << endl;
+            outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
             return false;
         }
         copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
@@ -65,7 +64,7 @@ bool ProjectGenerator::passAllMake()
             //Locate the project dir for specified library
             string sRetFileName;
             if (!findFile(m_sProjectDir + "MakeFile", sRetFileName)) {
-                cout << "  Error: Could not locate directory for library (" << *vitLib << ")" << endl;
+                outputError("Could not locate directory for library (" + *vitLib + ")");
                 return false;
             }
             //Run passMake on default Makefile
@@ -191,7 +190,7 @@ bool ProjectGenerator::outputProject()
     }
 
     //We now have complete list of all the files that we need
-    cout << "  Generating project file (" << sProjectName << ")..." << endl;
+    outputLine("  Generating project file (" + sProjectName + ")...");
 
     //Open the input temp project file
     string sProjectFile;
@@ -272,7 +271,7 @@ bool ProjectGenerator::outputProgramProject(const string& sProjectName, const st
     }
 
     //We now have complete list of all the files that we need
-    cout << "  Generating project file (" << sProjectName << ")..." << endl;
+    outputLine("  Generating project file (" + sProjectName + ")...");
 
     //Open the template program
     string sProgramFile;
@@ -366,7 +365,7 @@ bool ProjectGenerator::outputSolution()
         return true;
     }
 
-    cout << "  Generating solution file..." << endl;
+    outputLine("  Generating solution file...");
     //Open the input temp project file
     string sSolutionFile;
     if (!loadFromResourceFile(TEMPLATE_SLN_ID, sSolutionFile)) {
@@ -402,7 +401,7 @@ bool ProjectGenerator::outputSolution()
         if (mProgramList.find(mitLibraries->first) == mProgramList.end()) {
             //Check if this library has a known key (to lazy to auto generate at this time)
             if (mKeys.find(mitLibraries->first) == mKeys.end()) {
-                cout << "  Error: Unknown library. Could not determine solution key (" << mitLibraries->first << ")" << endl;
+                outputError("Unknown library. Could not determine solution key (" + mitLibraries->first + ")");
                 return false;
             }
             //Add the library to the solution
@@ -425,7 +424,7 @@ bool ProjectGenerator::outputSolution()
                 for (StaticList::iterator vitIt = mitLibraries->second.begin(); vitIt < mitLibraries->second.end(); vitIt++) {
                     //Check if this library has a known key
                     if (mKeys.find(*vitIt) == mKeys.end()) {
-                        cout << "  Error: Unknown library dependency. Could not determine solution key (" << *vitIt << ")" << endl;
+                        outputError("Unknown library dependency. Could not determine solution key (" + *vitIt + ")");
                         return false;
                     }
                     sProjectAdd += sSubDepend;
@@ -900,10 +899,10 @@ void ProjectGenerator::outputSourceFiles(const string & sProjectName, string & s
 
 bool ProjectGenerator::outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs)
 {
-    cout << "  Generating project exports file (" << sProjectName << ")..." << endl;
+    outputLine("  Generating project exports file (" + sProjectName + ")...");
     string sExportList;
     if (!findFile(this->m_sProjectDir + "/*.v", sExportList)) {
-        cout << "  Error: Failed finding project exports (" << sProjectName << ")" << endl;
+        outputError("Failed finding project exports (" + sProjectName + ")");
         return false;
     }
 
@@ -942,7 +941,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
             uiFindPos2 = sExportsFile.find(';', uiFindPos);
         }
     } else {
-        cout << "  Error: Failed finding global start in project exports (" << sExportList << ")" << endl;
+        outputError("Failed finding global start in project exports (" + sExportList + ")");
         return false;
     }
 
@@ -1442,7 +1441,7 @@ bool ProjectGenerator::outputDependencyLibs(const string & sProjectName, string 
                 for (uint uiConf = 0; uiConf < uiMax; uiConf++) {
                     uiFindPos = sProjectTemplate.find("%(AdditionalDependencies)", uiFindPos);
                     if (uiFindPos == string::npos) {
-                        cout << "  Error: Failed finding dependencies in template." << endl;
+                        outputError("Failed finding dependencies in template.");
                         return false;
                     }
                     uint uiAddIndex = uiDebugRelease;

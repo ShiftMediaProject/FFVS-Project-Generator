@@ -56,6 +56,12 @@ _binary_template_in_vcxproj_end, _binary_template_in_vcxproj_filters_end, _binar
 _binary_templateprogram_in_vcxproj_filters_end, _binary_stdatomic_h_end};
 #endif
 
+#if _DEBUG
+static Verbosity g_OutputVerbosity = VERBOSITY_INFO;
+#else
+static Verbosity g_OutputVerbosity = VERBOSITY_WARNING;
+#endif
+
 namespace project_generate {
 bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bool bOutError)
 {
@@ -63,7 +69,7 @@ bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bo
     ifstream ifInputFile(sFileName, (bBinary) ? ios_base::in | ios_base::binary : ios_base::in);
     if (!ifInputFile.is_open()) {
         if (bOutError) {
-            cout << "  Error: Failed opening file (" << sFileName << ")" << endl;
+            outputError("Failed opening file (" + sFileName + ")");
         }
         return false;
     }
@@ -118,14 +124,14 @@ bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
     if (uiDirPos != string::npos) {
         string sDir = sFileName.substr(0, uiDirPos);
         if (!makeDirectory(sDir)) {
-            cout << "  Error: Failed creating local " << sDir << " directory" << endl;
+            outputError("Failed creating local " + sDir + " directory");
             return false;
         }
     }
     //Open output file
     ofstream ofOutputFile(sFileName, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofOutputFile.is_open()) {
-        cout << "  Error: failed opening output file (" << sFileName << ")" << endl;
+        outputError("failed opening output file (" + sFileName + ")");
         return false;
     }
 
@@ -509,5 +515,49 @@ void pressKeyToContinue()
 #else
     system("read -rsn 1 -p \"Press any key to continue...\"");
 #endif
+}
+
+void outputLine(const string & sMessage)
+{
+    cout << sMessage << endl;
+}
+
+void outputInfo(const string & sMessage, bool bHeader)
+{
+    if (g_OutputVerbosity <= VERBOSITY_INFO) {
+        if (bHeader) {
+            cout << "  Info: ";
+        } else {
+            cout << "        ";
+        }
+        cout << sMessage << endl;
+    }
+}
+
+void outputWarning(const string & sMessage, bool bHeader)
+{
+    if (g_OutputVerbosity <= VERBOSITY_WARNING) {
+        if (bHeader) {
+            cout << "  Warning: ";
+        } else {
+            cout << "           ";
+        }
+        cout << sMessage << endl;
+    }
+}
+
+void outputError(const string & sMessage, bool bHeader)
+{
+    if (bHeader) {
+        cout << "  Error: ";
+    } else {
+        cout << "         ";
+    }
+    cout << sMessage << endl;
+}
+
+void setOutputVerbosity(Verbosity verbose)
+{
+    g_OutputVerbosity = verbose;
 }
 };

@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 
 void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs)
@@ -119,7 +118,7 @@ void ProjectGenerator::buildDependencies(const string & sProjectName, StaticList
         if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
             //Check if this dependency is valid for this project (if the dependency is not known default to enable)
             if (mProjectDeps.find(*vitLib) == mProjectDeps.end()) {
-                cout << "  Warning: Unknown dependency found (" << *vitLib << ")" << endl;
+                outputInfo("Unknown dependency found (" + *vitLib + ")");
             } else if (!mProjectDeps[*vitLib]) {
                 //This dependency is not valid for this project so skip it
                 continue;
@@ -272,16 +271,16 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                         vLib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
                         vLib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
                     } else {
-                        cout << "  Warning: Could not find an OpenCl SDK environment variable." << endl;
-                        cout << "    Either an OpenCL SDK is not installed or the environment variables are missing." << endl;
-                        cout << "    The location of the OpenCl files will have to be manually specified as otherwise the project will not compile." << endl;
+                        outputWarning("Could not find an OpenCl SDK environment variable.");
+                        outputWarning("Either an OpenCL SDK is not installed or the environment variables are missing.", false);
+                        outputWarning("The location of the OpenCl files will have to be manually specified as otherwise the project will not compile.", false);
                     }
                 }
             } else if (mitLib->first.compare("openal") == 0) {
                 if (!findEnvironmentVariable("OPENAL_SDK")) {
-                    cout << "  Warning: Could not find the OpenAl SDK environment variable." << endl;
-                    cout << "    Either the OpenAL SDK is not installed or the environment variable is missing." << endl;
-                    cout << "    Using the default environment variable of 'OPENAL_SDK'." << endl;
+                    outputWarning("Could not find the OpenAl SDK environment variable.");
+                    outputWarning("Either the OpenAL SDK is not installed or the environment variable is missing.", false);
+                    outputWarning("Using the default environment variable of 'OPENAL_SDK'.", false);
                 }
                 vIncludeDirs.push_back("$(OPENAL_SDK)/include/");
                 vLib32Dirs.push_back("$(OPENAL_SDK)/libs/Win32");
@@ -291,9 +290,9 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                     //Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
-                        cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
-                        cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
-                        cout << "    NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path." << endl;
+                        outputWarning("Could not find the CUDA SDK environment variable.");
+                        outputWarning("Either the CUDA SDK is not installed or the environment variable is missing.", false);
+                        outputWarning("NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path.", false);
                     }
                     //Only add if it hasn’t already been added
                     if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {
@@ -305,8 +304,8 @@ void ProjectGenerator::buildDependencyDirs(const string & sProjectName, StaticLi
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     //Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
-                        cout << "  Warning: Could not find the CUDA SDK environment variable." << endl;
-                        cout << "    Either the CUDA SDK is not installed or the environment variable is missing." << endl;
+                        outputWarning("Could not find the CUDA SDK environment variable.");
+                        outputWarning("Either the CUDA SDK is not installed or the environment variable is missing.", false);
                     }
                     //Only add if it hasn’t already been added
                     if (find(vIncludeDirs.begin(), vIncludeDirs.end(), "$(CUDA_PATH)/include/") == vIncludeDirs.end()) {

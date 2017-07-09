@@ -154,13 +154,13 @@ private:
     bool passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList);
 
     /**
-     * Setups all default starting config values.
+     * Sets up all default starting config values.
      * @return True if it succeeds, false if it fails.
      */
     bool buildDefaultValues();
 
     /**
-     * Setsup all config values that have a forced value.
+     * Sets up all config values that have a forced value.
      * @return True if it succeeds, false if it fails.
      */
     bool buildForcedValues();

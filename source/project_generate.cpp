@@ -21,11 +21,9 @@
 #include "configGenerator.h"
 #include "projectGenerator.h"
 
-#include <iostream>
-
 int main(int argc, char** argv)
 {
-    cout << "Project generator..." << endl;
+    outputLine("Project generator (this may take several minutes, please wait)...");
     //Pass the input configuration
     ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
@@ -45,7 +43,7 @@ int main(int argc, char** argv)
     if (!ProjectHelper.passAllMake()) {
         ProjectHelper.errorFunc();
     }
-    cout << "Completed Successfully" << endl;
+    outputLine("Completed Successfully");
 #if _DEBUG
     pressKeyToContinue();
 #endif

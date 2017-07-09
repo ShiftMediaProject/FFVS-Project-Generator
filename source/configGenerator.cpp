@@ -20,7 +20,6 @@
 
 #include "configGenerator.h"
 
-#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <regex>
@@ -78,7 +77,7 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
 bool ConfigGenerator::passConfigureFile()
 {
     //Generate a new config file by scanning existing build chain files
-    cout << "  Passing configure file..." << endl;
+    outputLine("  Passing configure file...");
 
     //Setup initial directories
     if (m_sRootDirectory.length() == 0) {
@@ -94,14 +93,14 @@ bool ConfigGenerator::passConfigureFile()
             }
         }
         if (uiPathCount == uiNumPaths) {
-            cout << "  Error: failed to find a 'configure' file" << endl;
+            outputError("Failed to find a 'configure' file");
             return false;
         }
     } else {
         //Open configure file
         string sConfigFile = m_sRootDirectory + "configure";
         if (!loadFromFile(sConfigFile, m_sConfigureFile, false, false)) {
-            cout << "  Error: failed to find a 'configure' file in specified root directory" << endl;
+            outputError("Failed to find a 'configure' file in specified root directory");
             return false;
         }
     }
@@ -112,7 +111,7 @@ bool ConfigGenerator::passConfigureFile()
         //Check if this is instead a libav configure
         uiStartPos = m_sConfigureFile.find("#define LIBAV_CONFIG_H");
         if (uiStartPos == string::npos) {
-            cout << "  Error: failed finding config.h start parameters" << endl;
+            outputError("Failed finding config.h start parameters");
             return false;
         }
         m_bLibav = true;
@@ -129,7 +128,7 @@ bool ConfigGenerator::passConfigureFile()
     uiStartPos = m_sConfigureFile.find("#define", uiStartPos);
     uint uiConfigEnd = m_sConfigureFile.find("EOF", uiStartPos);
     if (uiConfigEnd == string::npos) {
-        cout << "  Error: failed finding config.h parameters end" << endl;
+        outputError("Failed finding config.h parameters end");
         return false;
     }
     uint uiEndPos = uiConfigEnd;
@@ -156,7 +155,7 @@ bool ConfigGenerator::passConfigureFile()
             //Find and replace the value
             DefaultValuesList::iterator mitVal = mDefaultValues.find(sConfigValue.substr(uiStartPos2, uiEndPos2 - uiStartPos2));
             if (mitVal == mDefaultValues.end()) {
-                cout << "  Error: Unknown configuration operation found (" << sConfigValue.substr(uiStartPos2, uiEndPos2 - uiStartPos2) << ")" << endl;
+                outputError("Unknown configuration operation found (" + sConfigValue.substr(uiStartPos2, uiEndPos2 - uiStartPos2) + ")");
                 return false;
             }
             //Check if we need to add the quotes back
@@ -179,7 +178,7 @@ bool ConfigGenerator::passConfigureFile()
     //Find the end of this section
     uiConfigEnd = m_sConfigureFile.find("#endif", uiConfigEnd + 1);
     if (uiConfigEnd == string::npos) {
-        cout << "  Error: failed finding config.h header end" << endl;
+        outputError("Failed finding config.h header end");
         return false;
     }
 
@@ -239,14 +238,14 @@ bool ConfigGenerator::passConfigureFile()
 
 bool ConfigGenerator::passExistingConfig()
 {
-    cout << "  Passing in existing config.h file..." << endl;
+    outputLine("  Passing in existing config.h file...");
     //load in config.h from root dir
     string sConfigH;
     string sConfigFile = m_sRootDirectory + "config.h";
     if (!loadFromFile(sConfigFile, sConfigH, false, false)) {
-        cout << "  Error: Failed opening existing config.h file." << endl;
-        cout << "  Ensure the requested config.h file is found in the source codes root directory." << endl;
-        cout << "  Or omit the --use-existing-config option." << sConfigFile << endl;
+        outputError("Failed opening existing config.h file.");
+        outputError("Ensure the requested config.h file is found in the source codes root directory.", false);
+        outputError("Or omit the --use-existing-config option." + sConfigFile, false);
         return false;
     }
 
@@ -281,7 +280,7 @@ bool ConfigGenerator::passExistingConfig()
                 uiPos = sConfigH.find("#define ", uiPos2 + 1);
                 continue;
             }
-            cout << "  Warning: Unknown config option (" + sOption + ") found in config.h file." << endl;
+            outputInfo("Unknown config option (" + sOption + ") found in config.h file.");
             return false;
         }
 
@@ -291,7 +290,7 @@ bool ConfigGenerator::passExistingConfig()
         string sValue = sConfigH.substr(uiPos, uiPos2 - uiPos);
         bool bEnable = (sValue.compare("1") == 0);
         if (!bEnable && (sValue.compare("0") != 0)) {
-            cout << "  Error: Invalid config value (" + sValue + ") for option (" + sOption + ") found in config.h file." << endl;
+            outputError("Invalid config value (" + sValue + ") for option (" + sOption + ") found in config.h file.");
             return false;
         }
 
@@ -309,13 +308,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     if (stOption.compare("--help") == 0) {
         uint uiStart = m_sConfigureFile.find("show_help(){");
         if (uiStart == string::npos) {
-            cout << "  Error: Failed finding help list in config file" << endl;
+            outputError("Failed finding help list in config file");
             return false;
         }
         // Find first 'EOF'
         uiStart = m_sConfigureFile.find("EOF", uiStart) + 2;
         if (uiStart == string::npos) {
-            cout << "  Error: Incompatible help list in config file" << endl;
+            outputError("Incompatible help list in config file");
             return false;
         }
         uint uiEnd = m_sConfigureFile.find("EOF", uiStart);
@@ -330,26 +329,26 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                 sHelpOptions = sHelpOptions.erase(uiStart, uiEnd - uiStart + 2);
             }
         }
-        cout << sHelpOptions << endl;
+        outputLine(sHelpOptions);
         // Add in custom standard string
-        cout << "Standard options:" << endl;
-        cout << "  --prefix=PREFIX          install in PREFIX [../../../msvc/]" << endl;
-        //cout << "  --bindir=DIR             install binaries in DIR [PREFIX/bin]" << endl;
-        //cout << "  --libdir=DIR             install libs in DIR [PREFIX/lib]" << endl;
-        //cout << "  --incdir=DIR             install includes in DIR [PREFIX/include]" << endl;
-        cout << "  --rootdir=DIR            location of source configure file [auto]" << endl;
-        cout << "  --projdir=DIR            location of output project files [ROOT/SMP]" << endl;
-        cout << "  --use-existing-config    use an existing config.h file found in rootdir, ignoring any other passed parameters affecting config" << endl;
+        outputLine("Standard options:");
+        outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
+        //outputLine("  --bindir=DIR             install binaries in DIR [PREFIX/bin]");
+        //outputLine("  --libdir=DIR             install libs in DIR [PREFIX/lib]");
+        //outputLine("  --incdir=DIR             install includes in DIR [PREFIX/include]");
+        outputLine("  --rootdir=DIR            location of source configure file [auto]");
+        outputLine("  --projdir=DIR            location of output project files [ROOT/SMP]");
+        outputLine("  --use-existing-config    use an existing config.h file found in rootdir, ignoring any other passed parameters affecting config");
         // Add in custom toolchain string
-        cout << endl << "Toolchain options:" << endl;
-        cout << "  --toolchain=NAME         set tool defaults according to NAME" << endl;
-        cout << "  --dce-only               do not output a project and only generate missing DCE files" << endl;
+        outputLine("Toolchain options:");
+        outputLine("  --toolchain=NAME         set tool defaults according to NAME");
+        outputLine("  --dce-only               do not output a project and only generate missing DCE files");
         // Add in reserved values
         vector<string> vReservedItems;
         buildReservedValues(vReservedItems);
-        cout << "\nReserved options (auto handled and cannot be set explicitly):" << endl;
+        outputLine("\nReserved options (auto handled and cannot be set explicitly):");
         for (string sResVal : vReservedItems) {
-            cout << "  " << sResVal << endl;
+            outputLine("  " + sResVal);
         }
         return false;
     } else if (stOption.find("--toolchain") == 0) {
@@ -362,19 +361,19 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         } else {
 #ifdef _MSC_VER
             //Only support msvc when built with msvc
-            cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
-            cout << "  Excepted toolchains (msvc, icl)" << endl;
+            outputError("Unknown toolchain option (" + sToolChain + ")");
+            outputError("Excepted toolchains (msvc, icl)", false);
             return false;
 #else
             //Only support other toolchains if DCE only
             if (!m_bDCEOnly) {
-                cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
-                cout << "  Other toolchains are only supported if --dce-only has already been specified.";
+                outputError("Unknown toolchain option (" + sToolChain + ")");
+                outputError("Other toolchains are only supported if --dce-only has already been specified.", false);
                 return false;
             } else {
                 if ((sToolChain.find("mingw") == string::npos) && (sToolChain.find("gcc") == string::npos)) {
-                    cout << "  Error: Unknown toolchain option (" << sToolChain << ")" << endl;
-                    cout << "  Excepted toolchains (mingw*, gcc*)" << endl;
+                    outputError("Unknown toolchain option (" + sToolChain + ")");
+                    outputError("Excepted toolchains (mingw*, gcc*)", false);
                     return false;
                 }
             }
@@ -384,7 +383,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     } else if (stOption.find("--prefix") == 0) {
         //A output dir has been specified
         if (stOption.at(8) != '=') {
-            cout << "  Error: Must specify a prefix value." << endl;
+            outputError("Must specify a prefix value.");
         }
         string sValue = stOption.substr(9);
         m_sOutDirectory = sValue;
@@ -395,7 +394,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     } else if (stOption.find("--rootdir") == 0) {
         //A output dir has been specified
         if (stOption.at(9) != '=') {
-            cout << "  Error: Must specify a rootdir value." << endl;
+            outputError("Must specify a rootdir value.");
         }
         string sValue = stOption.substr(10);
         m_sRootDirectory = sValue;
@@ -408,7 +407,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     } else if (stOption.find("--projdir") == 0) {
         //A output dir has been specified
         if (stOption.at(9) != '=') {
-            cout << "  Error: Must specify a projdir value." << endl;
+            outputError("Must specify a projdir value.");
         }
         string sValue = stOption.substr(10);
         m_sProjectDirectory = sValue;
@@ -432,11 +431,11 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         sOptionList += "_LIST";
         vector<string> vList;
         if (!getConfigList(sOptionList, vList)) {
-            cout << "  Error: Unknown list option (" << sOption << ")" << endl;
-            cout << "  Use --help to get available options" << endl;
+            outputError("Unknown list option (" + sOption + ")");
+            outputError("Use --help to get available options", false);
             return false;
         }
-        cout << sOption << ": " << endl;
+        outputLine(sOption + ": ");
         for (vector<string>::iterator itIt = vList.begin(); itIt < vList.end(); itIt++) {
             //cut off any trailing type
             uint uiPos = itIt->rfind('_');
@@ -444,9 +443,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                 *itIt = itIt->substr(0, uiPos);
             }
             transform(itIt->begin(), itIt->end(), itIt->begin(), ::tolower);
-            cout << "  " << *itIt << endl;
+            outputLine("  " + *itIt);
         }
         return false;
+    } else if (stOption.find("--quiet") == 0) {
+        setOutputVerbosity(VERBOSITY_ERROR);
+    } else if (stOption.find("--loud") == 0) {
+        setOutputVerbosity(VERBOSITY_INFO);
     } else {
         bool bEnable;
         string sOption;
@@ -459,8 +462,8 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             //Find remainder of option
             sOption = stOption.substr(10);
         } else {
-            cout << "  Error: Unknown command line option (" << stOption << ")" << endl;
-            cout << "  Use --help to get available options" << endl;
+            outputError("Unknown command line option (" + stOption + ")");
+            outputError("Use --help to get available options", false);
             return false;
         }
 
@@ -472,8 +475,8 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         vector<string>::iterator vitTemp = vReservedItems.begin();
         for (vitTemp; vitTemp < vReservedItems.end(); vitTemp++) {
             if (vitTemp->compare(sOption) == 0) {
-                cout << "  Warning: Reserved option (" << sOption << ") was passed in command line option (" << stOption << ")" << endl;
-                cout << "         This option is reserved and will be ignored" << endl;
+                outputWarning("Reserved option (" + sOption + ") was passed in command line option (" + stOption + ")");
+                outputWarning("This option is reserved and will be ignored", false);
                 return true;
             }
         }
@@ -487,8 +490,8 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             //Get the config element
             ValuesList::iterator vitOption = getConfigOption(sOption);
             if (vitOption == m_vConfigValues.end()) {
-                cout << "  Error: Unknown option (" << sOption << ") in command line option (" << stOption << ")" << endl;
-                cout << "  Use --help to get available options" << endl;
+                outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
+                outputError("Use --help to get available options", false);
                 return false;
             }
             toggleConfigValue(sOption, bEnable);
@@ -580,8 +583,8 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                     //If not one of above components then check if it exists as standalone option
                     ValuesList::iterator vitOption = getConfigOption(sOption);
                     if (vitOption == m_vConfigValues.end()) {
-                        cout << "  Error: Unknown option (" << sOption << ") in command line option (" << stOption << ")" << endl;
-                        cout << "  Use --help to get available options" << endl;
+                        outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
+                        outputError("Use --help to get available options", false);
                         return false;
                     }
                     //Check if this option has a component list
@@ -695,7 +698,7 @@ bool ConfigGenerator::passCurrentValues()
         if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", vLicenseList, false)) {
             for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
                 if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
-                    cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                    outputError("Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
                     return false;
                 }
             }
@@ -705,7 +708,7 @@ bool ConfigGenerator::passCurrentValues()
                 if (getConfigList("EXTERNAL_LIBRARY_GPLV3_LIST", vLicenseList, false)) {
                     for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
                         if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
-                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            outputError("Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
                             return false;
                         }
                     }
@@ -717,7 +720,7 @@ bool ConfigGenerator::passCurrentValues()
                 if (getConfigList("EXTERNAL_LIBRARY_VERSION3_LIST", vLicenseList, false)) {
                     for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
                         if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
-                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            outputError("Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
                             return false;
                         }
                     }
@@ -729,7 +732,7 @@ bool ConfigGenerator::passCurrentValues()
                 if (getConfigList("EXTERNAL_LIBRARY_GPL_LIST", vLicenseList, false)) {
                     for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
                         if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
-                            cout << "  Error: current license does not allow for option (" << getConfigOption(*itI)->m_sOption << ")" << endl;
+                            outputError("Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
                             return false;
                         }
                     }
@@ -742,7 +745,7 @@ bool ConfigGenerator::passCurrentValues()
 
 bool ConfigGenerator::outputConfig()
 {
-    cout << "  Outputting config.h..." << endl;
+    outputLine("  Outputting config.h...");
 
     //Create header output
     string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
@@ -818,19 +821,19 @@ bool ConfigGenerator::outputConfig()
     //Write output files
     string sConfigFile = m_sProjectDirectory + "config.h";
     if (!writeToFile(sConfigFile, sConfigureFile)) {
-        cout << "  Error: failed opening output configure file (" << sConfigFile << ")" << endl;
+        outputError("Failed opening output configure file (" + sConfigFile + ")");
         return false;
     }
     sConfigFile = m_sProjectDirectory + "config.asm";
     if (!writeToFile(sConfigFile, sASMConfigureFile)) {
-        cout << "  Error: failed opening output asm configure file (" << sConfigFile << ")" << endl;
+        outputError("Failed opening output asm configure file (" + sConfigFile + ")");
         return false;
     }
 
     //Output avconfig.h
-    cout << "  Outputting avconfig.h..." << endl;
+    outputLine("  Outputting avconfig.h...");
     if (!makeDirectory(m_sProjectDirectory + "libavutil")) {
-        cout << "  Error: Failed creating local libavutil directory" << endl;
+        outputError("Failed creating local libavutil directory");
         return false;
     }
 
@@ -842,7 +845,7 @@ bool ConfigGenerator::outputConfig()
     //avconfig.h currently just uses HAVE_LIST_PUB to define its values
     vector<string> vAVConfigList;
     if (!getConfigList("HAVE_LIST_PUB", vAVConfigList)) {
-        cout << "  Error: Failed finding HAVE_LIST_PUB needed for avconfig.h generation" << endl;
+        outputError("Failed finding HAVE_LIST_PUB needed for avconfig.h generation");
         return false;
     }
     for (vector<string>::iterator vitAVC = vAVConfigList.begin(); vitAVC < vAVConfigList.end(); vitAVC++) {
@@ -852,17 +855,17 @@ bool ConfigGenerator::outputConfig()
     sAVConfigFile += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
     sConfigFile = m_sProjectDirectory + "libavutil/avconfig.h";
     if (!writeToFile(sConfigFile, sAVConfigFile)) {
-        cout << "  Error: Failed opening output avconfig file (" << sAVConfigFile << ")" << endl;
+        outputError("Failed opening output avconfig file (" + sAVConfigFile + ")");
         return false;
     }
 
     //Output ffversion.h
-    cout << "  Outputting ffversion.h..." << endl;
+    outputLine("  Outputting ffversion.h...");
     //Open VERSION file and get version string
     string sVersionDefFile = m_sRootDirectory + "RELEASE";
     ifstream ifVersionDefFile(sVersionDefFile);
     if (!ifVersionDefFile.is_open()) {
-        cout << "  Error: Failed opening output version file (" << sVersionDefFile << ")" << endl;
+        outputError("Failed opening output version file (" + sVersionDefFile + ")");
         return false;
     }
     //Load first line into string
@@ -880,7 +883,7 @@ bool ConfigGenerator::outputConfig()
     //Open output file
     sConfigFile = m_sProjectDirectory + "libavutil/ffversion.h";
     if (!writeToFile(sConfigFile, sVersionFile)) {
-        cout << "  Error: Failed opening output version file (" << sVersionFile << ")" << endl;
+        outputError("Failed opening output version file (" + sVersionFile + ")");
         return false;
     }
 
@@ -938,7 +941,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
     }
     if (uiStart == string::npos) {
         if (bForce) {
-            cout << "  Error: Failed finding config list (" << sList << ")" << endl;
+            outputError("Failed finding config list (" + sList + ")");
         }
         return false;
     }
@@ -1035,7 +1038,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 //Make sure the closing ) is not included
                 uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
             } else {
-                cout << "  Error: Unknown list function (" << sFunction << ") found in list (" << sList << ")" << endl;
+                outputError("Unknown list function (" + sFunction + ") found in list (" + sList + ")");
                 return false;
             }
         } else {
@@ -1293,7 +1296,7 @@ bool ConfigGenerator::passConfigList(const string & sPrefix, const string & sSuf
 
 bool ConfigGenerator::passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList)
 {
-    cout << "  Outputting enabled components file " << sFile << "..." << endl;
+    outputLine("  Outputting enabled components file " + sFile + "...");
 
     string sOutput;
     //Add copywrite header
@@ -1421,12 +1424,12 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
                 string sOptionUpper = sOption;
                 transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
                 m_vConfigValues.push_back(ConfigPair(sOptionUpper, "", ""));
-                cout << "  Warning: Unlisted config dependency found (" << sOption << ")" << endl;
+                outputInfo("Unlisted config dependency found (" + sOption + ")");
                 //Fix iterator in case of realloc
                 vitOption = m_vConfigValues.end() - 1;
             }
         } else {
-            cout << "  Error: Unknown config option (" << sOption << ")" << endl;
+            outputError("Unknown config option (" + sOption + ")");
             return false;
         }
     }
@@ -1507,7 +1510,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
                 if (vitTemp == m_vConfigValues.end()) {
                     DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
                     if (mitDep == mAdditionalDependencies.end()) {
-                        cout << "  Warning: Unknown option in ifa dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                        outputInfo("Unknown option in ifa dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
                         bEnabled = false;
                     } else {
                         bEnabled = mitDep->second ^ bToggle;
@@ -1548,7 +1551,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
                 if (vitTemp == m_vConfigValues.end()) {
                     DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
                     if (mitDep == mAdditionalDependencies.end()) {
-                        cout << "  Warning: Unknown option in if dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                        outputInfo("Unknown option in if dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
                         bAllEnabled = false;
                     } else {
                         bAllEnabled = mitDep->second ^ bToggle;
@@ -1589,7 +1592,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
                 if (vitTemp == m_vConfigValues.end()) {
                     DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
                     if (mitDep == mAdditionalDependencies.end()) {
-                        cout << "  Warning: Unknown option in dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                        outputInfo("Unknown option in dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
                         bEnabled = false;
                     } else {
                         bEnabled = mitDep->second ^ bToggle;
@@ -1630,7 +1633,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
                 if (vitTemp == m_vConfigValues.end()) {
                     DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
                     if (mitDep == mAdditionalDependencies.end()) {
-                        cout << "  Warning: Unknown option in any dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                        outputInfo("Unknown option in any dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
                         bAnyEnabled = false;
                     } else {
                         bAnyEnabled = mitDep->second ^ bToggle;
@@ -1664,7 +1667,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
                 if (vitTemp == m_vConfigValues.end()) {
                     DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
                     if (mitDep == mAdditionalDependencies.end()) {
-                        cout << "  Warning: Unknown option in select dependency (" << *vitCheckItem << ") for option (" << sOptionLower << ")" << endl;
+                        outputInfo("Unknown option in select dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
                     } if (!mitDep->second) {
                         //If any deps are disabled then disable
                         toggleConfigValue(sOptionLower, false);

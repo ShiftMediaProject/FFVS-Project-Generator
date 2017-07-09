@@ -20,7 +20,6 @@
 
 #include "projectGenerator.h"
 
-#include <iostream>
 #include <algorithm>
 #include <utility>
 
@@ -32,7 +31,7 @@ const string asDCETags[] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_
 
 bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs)
 {
-    cout << "  Generating missing DCE symbols (" << sProjectName << ")..." << endl;
+    outputLine("  Generating missing DCE symbols (" + sProjectName + ")...");
     //Create list of source files to scan
 #if !FORCEALLDCE
     StaticList vSearchFiles = m_vCIncludes;
@@ -93,7 +92,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                         if (!findFile(sTemplateFile, sFound)) {
                             sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
                             if (!findFile(sTemplateFile, sFound)) {
-                                cout << "  Error: Failed to find included file " << sBack << "  " << endl;
+                                outputError("Failed to find included file " + sBack + "  ");
                                 return false;
                             }
                         }
@@ -364,7 +363,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     //Check if we failed to find anything (even after using buildDCEs)
     if (mFoundDCEUsage.size() > 0) {
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
-            cout << "  Warning: Failed to find function definition for " << itDCE->first << ", " << itDCE->second.sFile << endl;
+            outputInfo("Failed to find function definition for " + itDCE->first + ", " + itDCE->second.sFile);
             //Just output a blank definition and hope it works
             mFoundDCEFunctions["void " + itDCE->first + "()"] = {itDCE->second.sDefine, itDCE->second.sFile};
         }
@@ -1183,7 +1182,7 @@ void ProjectGenerator::outputProjectDCECleanDefine(string & sDefine)
             if (!bValid && isupper(sDefine.at(uiStartTag))) {
                 string sRight(sDefine.substr(uiStartTag, uiRight - uiStartTag));
                 if ((sRight.find("AV_") != 0) && (sRight.find("FF_") != 0)) {
-                    cout << "  Warning: Found unknown macro in DCE condition " << sRight << endl;
+                    outputInfo("Found unknown macro in DCE condition " + sRight);
                 }
             }
 
