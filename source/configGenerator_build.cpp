@@ -513,6 +513,8 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("debug");
     vReservedItems.push_back("hardcoded_tables"); //Not supported
     vReservedItems.push_back("small");
+    vReservedItems.push_back("lto");
+    vReservedItems.push_back("pic");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
