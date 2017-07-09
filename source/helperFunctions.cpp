@@ -502,7 +502,7 @@ void findAndReplace(string & sString, const string & sSearch, const string & sRe
 bool findEnvironmentVariable(const string & sEnvVar)
 {
 #ifdef _WIN32
-    return GetEnvironmentVariable(sEnvVar.c_str(), NULL, 0);
+    return (GetEnvironmentVariable(sEnvVar.c_str(), NULL, 0) > 0);
 #else
     return false;
 #endif
