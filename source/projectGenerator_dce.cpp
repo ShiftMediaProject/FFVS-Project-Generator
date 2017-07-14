@@ -92,7 +92,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                         if (!findFile(sTemplateFile, sFound)) {
                             sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
                             if (!findFile(sTemplateFile, sFound)) {
-                                outputError("Failed to find included file " + sBack + "  ");
+                                outputError("Failed to find included file " + sBack);
                                 return false;
                             }
                         }
@@ -179,19 +179,24 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     //Check if we failed to find any functions
     if (mFoundDCEUsage.size() > 0) {
         vector<string> vIncludeDirs2 = vIncludeDirs;
-        makeDirectory(sProjectName);
+        string sTempFolder = sTempDirectory + sProjectName;
+        if (!makeDirectory(sTempDirectory) || !makeDirectory(sTempFolder)) {
+            outputError("Failed to create temporary working directory (" + sTempFolder + ")");
+            return false;
+        }
         //Get all the files that include functions
         map<string, vector<DCEParams>> mFunctionFiles;
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
             //Remove project dir from start of file
             uint uiPos = itDCE->second.sFile.find(m_sProjectDir);
             uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
-            string sFile = sProjectName + '/' + itDCE->second.sFile.substr(uiPos);
-            if (sFile.find('/', sProjectName.length() + 1) != string::npos) {
+            string sFile = sTempFolder + '/' + itDCE->second.sFile.substr(uiPos);
+            if (sFile.find('/', sTempFolder.length() + 1) != string::npos) {
                 makeDirectory(sFile.substr(0, sFile.rfind('/')));
             }
             //Copy file to local working directory
             if (!copyFile(itDCE->second.sFile, sFile)) {
+                outputError("Failed to copy dce file (" + itDCE->second.sFile + ") to temporary directory (" + sFile + ")");
                 return false;
             }
             mFunctionFiles[sFile].push_back({itDCE->second.sDefine, itDCE->first});
@@ -201,8 +206,8 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         for (map<string, vector<DCEParams>>::iterator itDCE = mFunctionFiles.begin(); itDCE != mFunctionFiles.end(); itDCE++) {
             //Get subdirectory
             string sSubFolder = "";
-            if (itDCE->first.find('/', sProjectName.length() + 1) != string::npos) {
-                sSubFolder = m_sProjectDir + itDCE->first.substr(sProjectName.length() + 1, itDCE->first.rfind('/') - sProjectName.length() - 1);
+            if (itDCE->first.find('/', sTempFolder.length() + 1) != string::npos) {
+                sSubFolder = m_sProjectDir + itDCE->first.substr(sTempFolder.length() + 1, itDCE->first.rfind('/') - sTempFolder.length() - 1);
                 if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), sSubFolder) == vIncludeDirs2.end()) {
                     //Need to add subdirectory to include list
                     vIncludeDirs2.push_back(sSubFolder);
@@ -316,7 +321,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         }
 
         //Delete the created temp files
-        deleteFolder(sProjectName);
+        deleteFolder(sTempDirectory);
     }
 
     //Get any required hard coded values

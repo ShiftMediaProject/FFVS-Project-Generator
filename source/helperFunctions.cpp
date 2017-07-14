@@ -131,7 +131,7 @@ bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
     //Open output file
     ofstream ofOutputFile(sFileName, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofOutputFile.is_open()) {
-        outputError("failed opening output file (" + sFileName + ")");
+        outputError("Failed opening output file (" + sFileName + ")");
         return false;
     }
 

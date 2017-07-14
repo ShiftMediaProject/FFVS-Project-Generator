@@ -56,6 +56,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
+    string sTempFolder = sTempDirectory + sProjectName;
 
     //Use Microsoft compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "@echo off\n";
@@ -76,12 +77,13 @@ echo fatal error : An installed version of Visual Studio could not be detected. 
 exit /b 1 \n\
 ) \n\
 :MSVCVarsDone \n";
-    sCLLaunchBat += "mkdir \"" + sProjectName + "\" > nul 2>&1\n";
+    sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > nul 2>&1\n";
+    sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > nul 2>&1\n";
     for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
         const uint uiRowSize = 32;
         uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
         uint uiTotalPos = 0;
-        string sDirName = sProjectName + "/" + itI->first;
+        string sDirName = sTempFolder + "/" + itI->first;
         if (itI->first.length() > 0) {
             //Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
@@ -119,7 +121,7 @@ exit /b 1 \n\
     if (iRunType == 1) {
         sCLLaunchBat += "del /F /S /Q *.i >nul 2>&1\n";
     }
-    sCLLaunchBat += "rmdir /S /Q " + sProjectName + "\nexit /b 1";
+    sCLLaunchBat += "rmdir /S /Q " + sTempDirectory + "\nexit /b 1";
     if (!writeToFile("test.bat", sCLLaunchBat)) {
         return false;
     }
@@ -173,7 +175,7 @@ exit /b 1 \n\
         }
         //Remove the test header files
         deleteFile("test.bat");
-        deleteFolder(sProjectName);
+        deleteFolder(sTempDirectory);
         return false;
     }
 
@@ -204,6 +206,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
         }
         sCLExtra += " -I\"" + sIncludeDir + '\"';
     }
+    string sTempFolder = sTempDirectory + sProjectName;
 
     //Use GNU compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "#!/bin/bash\n";
@@ -211,10 +214,11 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
     if (iRunType == 1) {
         sCLLaunchBat += "rm -rf *.i > /dev/null 2>&1\n";
     }
-    sCLLaunchBat += "rm -rf " + sProjectName + " > /dev/null 2>&1\nexit 1\n}\n";
-    sCLLaunchBat += "mkdir \"" + sProjectName + "\" > /dev/null 2>&1\n";
+    sCLLaunchBat += "rm -rf " + sTempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
+    sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > /dev/null 2>&1\n";
+    sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > /dev/null 2>&1\n";
     for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
-        string sDirName = sProjectName + "/" + itI->first;
+        string sDirName = sTempFolder + "/" + itI->first;
         if (itI->first.length() > 0) {
             //Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > /dev/null 2>&1\n";
@@ -261,7 +265,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
         outputError("Unknown error detected. See log.txt for further details.", false);
         //Remove the test header files
         deleteFile("test.sh");
-        deleteFolder(sProjectName);
+        deleteFolder(sTempDirectory);
         return false;
     }
 

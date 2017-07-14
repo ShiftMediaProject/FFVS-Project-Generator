@@ -374,6 +374,8 @@ private:
      * @param [out] sRetDefine The returned combined define.
      */
     void outputProgramDCEsCombineDefine(const string & sDefine, const string & sDefine2, string & sRetDefine);
+
+    const string sTempDirectory = "FFVSTemp/";
 };
 
 #endif

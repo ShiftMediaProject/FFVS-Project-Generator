@@ -153,6 +153,9 @@ void ProjectGenerator::errorFunc()
     m_ConfigHelper.deleteCreatedFiles();
     deleteCreatedFiles();
 
+    //Delete any temporary file leftovers
+    deleteFolder(sTempDirectory);
+
     pressKeyToContinue();
     exit(1);
 }
@@ -973,7 +976,8 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
     StaticList vSBRFiles;
     StaticList vModuleExports;
     StaticList vModuleDataExports;
-    findFiles(sProjectName + "/*.sbr", vSBRFiles);
+    string sTempFolder = sTempDirectory + sProjectName;
+    findFiles(sTempFolder + "/*.sbr", vSBRFiles);
     for (StaticList::iterator itSBR = vSBRFiles.begin(); itSBR < vSBRFiles.end(); itSBR++) {
         string sSBRFile;
         loadFromFile(*itSBR, sSBRFile, true);
@@ -1081,7 +1085,7 @@ bool ProjectGenerator::outputProjectExports(const string& sProjectName, const St
         }
     }
     //Remove the test sbr files
-    deleteFolder(sProjectName);
+    deleteFolder(sTempFolder);
 
     //Check for any exported functions in asm files
     for (StaticList::iterator itASM = m_vASMIncludes.begin(); itASM < m_vASMIncludes.end(); itASM++) {
