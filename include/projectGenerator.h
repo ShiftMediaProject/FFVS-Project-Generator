@@ -41,6 +41,7 @@ private:
     UnknownList     m_mReplaceIncludes;
     StaticList      m_vLibs;
     UnknownList     m_mUnknowns;
+    string          m_sProjectName;
     string          m_sProjectDir;
 
     map<string, StaticList> m_mProjectLibs;
@@ -71,12 +72,11 @@ private:
 
     /**
      * Output a project file for a program (ffplay etc.).
-     * @param sProjectName           Name of the project.
      * @param sDestinationFile       Destination project file.
      * @param sDestinationFilterFile Destination project filter file.
      * @return True if it succeeds, false if it fails.
      */
-    bool outputProgramProject(const string& sProjectName, const string& sDestinationFile, const string& sDestinationFilterFile);
+    bool outputProgramProject(const string& sDestinationFile, const string& sDestinationFilterFile);
 
     /**
      * Outputs a solution file (Also calls outputProgramProject for any programs).
@@ -178,10 +178,9 @@ private:
 
     /**
      * Pass the makefile for a specified program.
-     * @param sProjectName Name of the program.
      * @return True if it succeeds, false if it fails.
      */
-    bool passProgramMake(const string& sProjectName);
+    bool passProgramMake();
 
     /**
      * Searches for the first source file.
@@ -219,13 +218,13 @@ private:
 
     void buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs);
 
-    void buildInterDependencies(const string & sProjectName, StaticList & vLibs);
+    void buildInterDependencies(StaticList & vLibs);
 
-    void buildDependencies(const string & sProjectName, StaticList & vLibs, StaticList & vAddLibs);
+    void buildDependencies(StaticList & vLibs, StaticList & vAddLibs);
 
-    void buildDependencyDirs(const string & sProjectName, StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs);
+    void buildDependencyDirs(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs);
 
-    void buildProjectDependencies(const string & sProjectName, map<string, bool> & mProjectDeps);
+    void buildProjectDependencies(map<string, bool> & mProjectDeps);
 
     void buildProjectGUIDs(map<string, string> & mKeys);
 
@@ -239,62 +238,58 @@ private:
 
     /**
      * Builds project specific DCE functions and variables that are not automatically detected.
-     * @param       sProjectName    Name of the project.
      * @param [out] mDCEDefinitions The return list of built DCE functions.
      * @param [out] mDCEVariables   The return list of built DCE variables.
      */
-    void buildProjectDCEs(const string & sProjectName, map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables);
+    void buildProjectDCEs(map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables);
 
-    bool checkProjectFiles(const string& sProjectName);
+    bool checkProjectFiles();
 
-    bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes, const string& sProjectName);
+    bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes);
 
     bool findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes, StaticList& vASMIncludes, StaticList& vHIncludes);
 
-    void outputTemplateTags(const string& sProjectName, string& sProjectTemplate, string& sFilterTemplate);
+    void outputTemplateTags(string& sProjectTemplate, string& sFilterTemplate);
 
     void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false);
 
-    void outputSourceFiles(const string& sProjectName, string& sProjectTemplate, string& sFilterTemplate);
+    void outputSourceFiles(string& sProjectTemplate, string& sFilterTemplate);
 
-    bool outputProjectExports(const string& sProjectName, const StaticList& vIncludeDirs);
+    bool outputProjectExports(const StaticList& vIncludeDirs);
 
     /**
      * Executes a batch script to perform operations using a compiler based on current configuration.
      * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param          sProjectName      Name of the current project.
      * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
      *                                   within it.
      * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
      *                                   to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runCompiler(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runCompiler(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
     /**
      * Executes a batch script to perform operations using the msvc compiler.
      * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param          sProjectName      Name of the current project.
      * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
      *                                   within it.
      * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
      *                                   to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runMSVC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
     /**
      * Executes a bash script to perform operations using the gcc compiler.
      * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param          sProjectName      Name of the current project.
      * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
      *                                   within it.
      * @param          iRunType          The type of operation to run on input files (1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runGCC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runGCC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
-    void outputBuildEvents(const string& sProjectName, string & sProjectTemplate);
+    void outputBuildEvents(string & sProjectTemplate);
 
     void outputIncludeDirs(const StaticList& vIncludeDirs, string & sProjectTemplate);
 
@@ -319,27 +314,25 @@ private:
      */
     void outputASMTools(string & sProjectTemplate);
 
-    bool outputDependencyLibs(const string& sProjectName, string & sProjectTemplate, bool bProgram = false);
+    bool outputDependencyLibs(string & sProjectTemplate, bool bProgram = false);
 
     /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
      * file is then created and added to the project that contains hull definitions for any missing functions.
-     * @param sProjectName Name of the current project.
      * @param vIncludeDirs The list of current directories to look for included files.
      * @return True if it succeeds, false if it fails.
      */
-    bool outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs);
+    bool outputProjectDCE(const StaticList& vIncludeDirs);
 
     /**
      * Passes an input file and looks for any function usage within a block of code eliminated by DCE.
      * @param          sFile               The loaded file to search for DCE usage in.
-     * @param          sProjectName        Name of the current project.
      * @param          sFileName           Filename of the file currently being searched.
      * @param [in,out] mFoundDCEUsage      The return list of found DCE functions.
      * @param [out]    bRequiresPreProcess The file requires pre processing.
      * @param [in,out] vUsedFunctions      The return list of found functions not in DCE.
      */
-    void outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage);
+    void outputProjectDCEFindFunctions(const string & sFile, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage);
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.

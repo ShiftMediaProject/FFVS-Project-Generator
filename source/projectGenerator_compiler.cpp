@@ -23,18 +23,18 @@
 #include <algorithm>
 #include <utility>
 
-bool ProjectGenerator::runCompiler(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runCompiler(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
 {
 #ifdef _MSC_VER
     //If compiled by msvc then only msvc builds are supported
-    return runMSVC(vIncludeDirs, sProjectName, mDirectoryObjects, iRunType);
+    return runMSVC(vIncludeDirs, mDirectoryObjects, iRunType);
 #else
     //Otherwise only gcc and mingw are supported
-    return runGCC(vIncludeDirs, sProjectName, mDirectoryObjects, iRunType);
+    return runGCC(vIncludeDirs, mDirectoryObjects, iRunType);
 #endif
 }
 
-bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
 {
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
@@ -56,7 +56,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, const string
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
-    string sTempFolder = sTempDirectory + sProjectName;
+    string sTempFolder = sTempDirectory + m_sProjectName;
 
     //Use Microsoft compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "@echo off\n";
@@ -184,7 +184,7 @@ exit /b 1 \n\
     return true;
 }
 
-bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string & sProjectName, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
 {
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
@@ -206,7 +206,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, const string 
         }
         sCLExtra += " -I\"" + sIncludeDir + '\"';
     }
-    string sTempFolder = sTempDirectory + sProjectName;
+    string sTempFolder = sTempDirectory + m_sProjectName;
 
     //Use GNU compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "#!/bin/bash\n";

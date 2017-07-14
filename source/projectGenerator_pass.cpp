@@ -462,14 +462,14 @@ bool ProjectGenerator::passMake()
     return false;
 }
 
-bool ProjectGenerator::passProgramMake(const string & sProjectName)
+bool ProjectGenerator::passProgramMake()
 {
-    outputLine("  Generating from Makefile (" + m_sProjectDir + ") for project " + sProjectName + "...");
+    outputLine("  Generating from Makefile (" + m_sProjectDir + ") for project " + m_sProjectName + "...");
     //Open the input Makefile
     string sMakeFile = m_sProjectDir + "/MakeFile";
     m_ifInputFile.open(sMakeFile);
     if (m_ifInputFile.is_open()) {
-        string sObjTag = "OBJS-" + sProjectName;
+        string sObjTag = "OBJS-" + m_sProjectName;
         uint uiFindPos;
         //Read each line in the MakeFile
         while (getline(m_ifInputFile, m_sInLine)) {
@@ -525,7 +525,7 @@ bool ProjectGenerator::passProgramMake(const string & sProjectName)
         m_ifInputFile.close();
 
         //Program always include a file named after themselves
-        m_vIncludes.push_back(sProjectName);
+        m_vIncludes.push_back(m_sProjectName);
         return true;
     }
     outputError("Could not open open MakeFile (./MakeFile)");

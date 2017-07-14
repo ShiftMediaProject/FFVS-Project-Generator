@@ -82,7 +82,7 @@ void ProjectGenerator::makeFileGeneratorRelative(const string & sFileName, strin
     sRetFileName += sFile;
 }
 
-bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
+bool ProjectGenerator::checkProjectFiles()
 {
     //Check that all headers are correct
     for (StaticList::iterator itIt = m_vHIncludes.begin(); itIt != m_vHIncludes.end(); itIt++) {
@@ -147,13 +147,13 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
         return false;
     } else {
         //Need to create local files for any replace objects
-        if (!createReplaceFiles(vReplaceCIncludes, m_vCIncludes, sProjectName)) {
+        if (!createReplaceFiles(vReplaceCIncludes, m_vCIncludes)) {
             return false;
         }
-        if (!createReplaceFiles(vReplaceCPPIncludes, m_vCPPIncludes, sProjectName)) {
+        if (!createReplaceFiles(vReplaceCPPIncludes, m_vCPPIncludes)) {
             return false;
         }
-        if (!createReplaceFiles(vReplaceASMIncludes, m_vASMIncludes, sProjectName)) {
+        if (!createReplaceFiles(vReplaceASMIncludes, m_vASMIncludes)) {
             return false;
         }
     }
@@ -161,7 +161,7 @@ bool ProjectGenerator::checkProjectFiles(const string& sProjectName)
     return true;
 }
 
-bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes, const string& sProjectName)
+bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes)
 {
     for (StaticList::const_iterator itIt = vReplaceIncludes.cbegin(); itIt != vReplaceIncludes.cend(); itIt++) {
         //Check hasnt already been included as a fixed object
@@ -184,7 +184,7 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
         }
         //Create new file to wrap input object
         string sPrettyFile = "../" + *itIt;
-        string sNewFile = getCopywriteHeader(sFilename + sExtension + " file wrapper for " + sProjectName);
+        string sNewFile = getCopywriteHeader(sFilename + sExtension + " file wrapper for " + m_sProjectName);
         sNewFile += "\n\
 \n\
 #include \"config.h\"\n\
@@ -192,11 +192,11 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
 #   include \"" + sPrettyFile + "\"\n\
 #endif";
         //Write output project
-        if (!makeDirectory(m_ConfigHelper.m_sProjectDirectory + sProjectName)) {
-            outputError("Failed creating local " + sProjectName + " directory");
+        if (!makeDirectory(m_ConfigHelper.m_sProjectDirectory + m_sProjectName)) {
+            outputError("Failed creating local " + m_sProjectName + " directory");
             return false;
         }
-        string sOutFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + "/" + sFilename + "_wrap" + sExtension;
+        string sOutFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
         if (!writeToFile(sOutFile, sNewFile)) {
             return false;
         }

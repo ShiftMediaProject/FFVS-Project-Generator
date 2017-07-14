@@ -29,9 +29,9 @@
 
 const string asDCETags[] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_", "INLINE_"};
 
-bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& vIncludeDirs)
+bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
 {
-    outputLine("  Generating missing DCE symbols (" + sProjectName + ")...");
+    outputLine("  Generating missing DCE symbols (" + m_sProjectName + ")...");
     //Create list of source files to scan
 #if !FORCEALLDCE
     StaticList vSearchFiles = m_vCIncludes;
@@ -62,7 +62,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             return false;
         }
         bool bRequiresPreProcess = false;
-        outputProjectDCEFindFunctions(sFile, sProjectName, *itFile, mFoundDCEUsage, bRequiresPreProcess, vNonDCEUsage);
+        outputProjectDCEFindFunctions(sFile, *itFile, mFoundDCEUsage, bRequiresPreProcess, vNonDCEUsage);
         if (bRequiresPreProcess) {
             vPreProcFiles.push_back(*itFile);
         }
@@ -78,9 +78,9 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 uiFindPos += 2;
                 string sTemplateFile = sFile.substr(uiFindPos2, uiFindPos - uiFindPos2);
                 //check if file contains current project
-                uint uiProjName = sTemplateFile.find(sProjectName);
+                uint uiProjName = sTemplateFile.find(m_sProjectName);
                 if (uiProjName != string::npos) {
-                    sTemplateFile = sTemplateFile.substr(uiProjName + sProjectName.length() + 1);
+                    sTemplateFile = sTemplateFile.substr(uiProjName + m_sProjectName.length() + 1);
                 }
                 string sFound;
                 string sBack = sTemplateFile;
@@ -88,7 +88,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
                 if (!findFile(sTemplateFile, sFound)) {
                     sTemplateFile = m_ConfigHelper.m_sRootDirectory + '/' + sBack;
                     if (!findFile(sTemplateFile, sFound)) {
-                        sTemplateFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + '/' + sBack;
+                        sTemplateFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + '/' + sBack;
                         if (!findFile(sTemplateFile, sFound)) {
                             sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
                             if (!findFile(sTemplateFile, sFound)) {
@@ -179,7 +179,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     //Check if we failed to find any functions
     if (mFoundDCEUsage.size() > 0) {
         vector<string> vIncludeDirs2 = vIncludeDirs;
-        string sTempFolder = sTempDirectory + sProjectName;
+        string sTempFolder = sTempDirectory + m_sProjectName;
         if (!makeDirectory(sTempDirectory) || !makeDirectory(sTempFolder)) {
             outputError("Failed to create temporary working directory (" + sTempFolder + ")");
             return false;
@@ -239,7 +239,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         //Add current directory to include list (must be done last to ensure correct include order)
         vIncludeDirs2.push_back(m_sProjectDir);
 
-        if (!runCompiler(vIncludeDirs2, sProjectName, mDirectoryObjects, 1)) {
+        if (!runCompiler(vIncludeDirs2, mDirectoryObjects, 1)) {
             return false;
         }
         //Check the file that the function usage was found in to see if it was declared using macro expansion
@@ -267,7 +267,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             //Check for any un-found function usage
             map<string, DCEParams> mNewDCEUsage;
             bool bCanIgnore = false;
-            outputProjectDCEFindFunctions(sFile, sProjectName, itDCE->first, mNewDCEUsage, bCanIgnore, vNonDCEUsage);
+            outputProjectDCEFindFunctions(sFile, itDCE->first, mNewDCEUsage, bCanIgnore, vNonDCEUsage);
 #if !FORCEALLDCE
             for (map<string, DCEParams>::iterator itDCE = mNewDCEUsage.begin(); itDCE != mNewDCEUsage.end(); ) {
                 outputProgramDCEsResolveDefine(itDCE->second.sDefine);
@@ -327,7 +327,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     //Get any required hard coded values
     map<string, DCEParams> mBuiltDCEFunctions;
     map<string, DCEParams> mBuiltDCEVariables;
-    buildProjectDCEs(sProjectName, mBuiltDCEFunctions, mBuiltDCEVariables);
+    buildProjectDCEs(mBuiltDCEFunctions, mBuiltDCEVariables);
     for (map<string, DCEParams>::iterator itI = mBuiltDCEFunctions.begin(); itI != mBuiltDCEFunctions.end(); itI++) {
         //Add to found list if not already found
         if (mFoundDCEFunctions.find(itI->first) == mFoundDCEFunctions.end()) {
@@ -463,7 +463,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
             }
         }
 
-        string sFinalDCEOutFile = getCopywriteHeader(sProjectName + " DCE definitions") + '\n';
+        string sFinalDCEOutFile = getCopywriteHeader(m_sProjectName + " DCE definitions") + '\n';
         sFinalDCEOutFile += "\n#include \"config.h\"\n\n";
         //Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and h264pred.h)
         for (vector<DCEParams>::iterator vitHeaders = vIncludedHeaders.end(); vitHeaders > vIncludedHeaders.begin(); ) {
@@ -479,7 +479,7 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
         sFinalDCEOutFile += '\n' + sDCEOutFile;
 
         //Output the new file
-        string sOutName = m_ConfigHelper.m_sProjectDirectory + '/' + sProjectName + '/' + "dce_defs.c";
+        string sOutName = m_ConfigHelper.m_sProjectDirectory + '/' + m_sProjectName + '/' + "dce_defs.c";
         writeToFile(sOutName, sFinalDCEOutFile);
         makeFileProjectRelative(sOutName, sOutName);
         m_vCIncludes.push_back(sOutName);
@@ -488,12 +488,12 @@ bool ProjectGenerator::outputProjectDCE(string sProjectName, const StaticList& v
     return true;
 }
 
-void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sProjectName, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage)
+void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage)
 {
     const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
     StaticList vFuncIdents = {"ff_"};
-    if ((sProjectName.compare("ffmpeg") == 0) || (sProjectName.compare("ffplay") == 0) || (sProjectName.compare("ffprobe") == 0) ||
-        (sProjectName.compare("avconv") == 0) || (sProjectName.compare("avplay") == 0) || (sProjectName.compare("avprobe") == 0)) {
+    if ((m_sProjectName.compare("ffmpeg") == 0) || (m_sProjectName.compare("ffplay") == 0) || (m_sProjectName.compare("ffprobe") == 0) ||
+        (m_sProjectName.compare("avconv") == 0) || (m_sProjectName.compare("avplay") == 0) || (m_sProjectName.compare("avprobe") == 0)) {
         vFuncIdents.push_back("avcodec_");
         vFuncIdents.push_back("avdevice_");
         vFuncIdents.push_back("avfilter_");
@@ -505,25 +505,25 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
         vFuncIdents.push_back("swri_");
         vFuncIdents.push_back("swresample_");
         vFuncIdents.push_back("swscale_");
-    } else if (sProjectName.compare("libavcodec") == 0) {
+    } else if (m_sProjectName.compare("libavcodec") == 0) {
         vFuncIdents.push_back("avcodec_");
-    } else if (sProjectName.compare("libavdevice") == 0) {
+    } else if (m_sProjectName.compare("libavdevice") == 0) {
         vFuncIdents.push_back("avdevice_");
-    } else if (sProjectName.compare("libavfilter") == 0) {
+    } else if (m_sProjectName.compare("libavfilter") == 0) {
         vFuncIdents.push_back("avfilter_");
-    } else if (sProjectName.compare("libavformat") == 0) {
+    } else if (m_sProjectName.compare("libavformat") == 0) {
         vFuncIdents.push_back("avformat_");
-    } else if (sProjectName.compare("libavutil") == 0) {
+    } else if (m_sProjectName.compare("libavutil") == 0) {
         vFuncIdents.push_back("avutil_");
         vFuncIdents.push_back("av_");
-    } else if (sProjectName.compare("libavresample") == 0) {
+    } else if (m_sProjectName.compare("libavresample") == 0) {
         vFuncIdents.push_back("avresample_");
-    } else if (sProjectName.compare("libpostproc") == 0) {
+    } else if (m_sProjectName.compare("libpostproc") == 0) {
         vFuncIdents.push_back("postproc_");
-    } else if (sProjectName.compare("libswresample") == 0) {
+    } else if (m_sProjectName.compare("libswresample") == 0) {
         vFuncIdents.push_back("swri_");
         vFuncIdents.push_back("swresample_");
-    } else if (sProjectName.compare("libswscale") == 0) {
+    } else if (m_sProjectName.compare("libswscale") == 0) {
         vFuncIdents.push_back("swscale_");
     }
     struct InternalDCEParams
