@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <utility>
+#include <sstream>
+#include <iterator>
 
 //This can be used to force all detected DCE values to be output to file
 // whether they are enabled in current configuration or not
@@ -381,7 +383,6 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         //Loop through all functions
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEFunctions.begin(); itDCE != mFoundDCEFunctions.end(); itDCE++) {
             bool bUsePreProc = (itDCE->second.sDefine.length() > 1) && (itDCE->second.sDefine.compare("0") != 0);
-            //Only include preprocessor guards if its a reserved option
             if (bUsePreProc) {
                 sDCEOutFile += "#if !(" + itDCE->second.sDefine + ")\n";
             }
@@ -397,9 +398,53 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                     outputProgramDCEsCombineDefine(vitH->sDefine, itDCE->second.sDefine, vitH->sDefine);
                 }
             }
-            sDCEOutFile += itDCE->first + " {";
+            //Check to ensure the function correctly declares parameter names.
+            string sFunction = itDCE->first;
+            uint uiPos = sFunction.find('(');
+            uint uiCount = 0;
+            while (uiPos != string::npos) {
+                uint uiPos2 = sFunction.find(',', uiPos + 1);
+                uint uiPosBack = uiPos2;
+                uiPos2 = (uiPos2 != string::npos) ? uiPos2 : sFunction.rfind(')');
+                uiPos2 = sFunction.find_last_not_of(sWhiteSpace, uiPos2 - 1);
+                //Check the type of the last tag in case it is only a type name
+                bool bNeedsName = false;
+                string sParam = sFunction.substr(uiPos + 1, uiPos2 - uiPos);
+                if (sParam.back() == '*') {
+                    bNeedsName = true;
+                } else {
+                    //Split parameter string up and ensure there are at least a type and a name
+                    istringstream ss(sParam);
+                    vector<string> vTokens{istream_iterator<string>{ss}, istream_iterator<string>{}};
+                    if (vTokens.begin()->compare("const") == 0) {
+                        vTokens.erase(vTokens.begin());
+                    }
+                    if (vTokens.size() >= 2) {
+                        if ((vTokens.at(1).compare("int") == 0) || (vTokens.at(1).compare("long") == 0)) {
+                            vTokens.erase(vTokens.begin());
+                        }
+                    }
+                    if (vTokens.size() < 2) {
+                        bNeedsName = true;
+                    }
+                }
+                if (bNeedsName && (sParam.find("void") != 0)) {
+                    ++uiCount;
+                    stringstream ss;
+                    string sInsert;
+                    ss << uiCount;
+                    ss >> sInsert;
+                    sInsert = " param" + sInsert;
+                    sFunction.insert(uiPos2 + 1, sInsert);
+                    uiPosBack = (uiPosBack != string::npos) ? uiPosBack + sInsert.length() : uiPosBack;
+                }
+                //Get next
+                uiPos = uiPosBack;
+            }
+
+            sDCEOutFile += sFunction + " {";
             //Need to check return type
-            string sReturn = itDCE->first.substr(0, itDCE->first.find_first_of(sWhiteSpace));
+            string sReturn = sFunction.substr(0, sFunction.find_first_of(sWhiteSpace));
             if (sReturn.compare("void") == 0) {
                 sDCEOutFile += "return;";
             } else if (sReturn.compare("int") == 0) {
