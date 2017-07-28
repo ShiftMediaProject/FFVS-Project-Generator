@@ -345,8 +345,9 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
 #endif
         }
         //Remove from unfound list
-        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end())
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
             mFoundDCEUsage.erase(itI->first);
+        }
     }
     for (map<string, DCEParams>::iterator itI = mBuiltDCEVariables.begin(); itI != mBuiltDCEVariables.end(); itI++) {
         //Add to found list if not already found
@@ -363,8 +364,9 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
 #endif
         }
         //Remove from unfound list
-        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end())
+        if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
             mFoundDCEUsage.erase(itI->first);
+        }
     }
 
     //Check if we failed to find anything (even after using buildDCEs)
@@ -807,6 +809,13 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                         }
                     } else if (sFile.at(uiFindPos4) == ';') {
                         uiFindPos4 = sFile.find_last_not_of(sWhiteSpace, uiFindPos4 - 1);
+                        if (sFile.at(uiFindPos4) == '=') {
+                            bValid = true;
+                        }
+                    } else if (sFile.at(uiFindPos4) == '[') {
+                        //Check if function is a table declaration
+                        uiFindPos4 = sFile.find(']', uiFindPos4 + 1);
+                        uiFindPos4 = sFile.find_first_not_of(sWhiteSpace, uiFindPos4 + 1);
                         if (sFile.at(uiFindPos4) == '=') {
                             bValid = true;
                         }
