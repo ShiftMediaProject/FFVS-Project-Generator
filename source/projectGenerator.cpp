@@ -829,16 +829,15 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
         sTypeFilesFilt += sItemGroupEnd;
 
         //After </ItemGroup> add the item groups for each of the include types
-        uint uiFindPos = sProjectTemplate.rfind(sItemGroupEnd);
-        uiFindPos += sItemGroupEnd.length();
-        uint uiFindPosFilt = sFilterTemplate.rfind(sItemGroupEnd);
-        uiFindPosFilt += sItemGroupEnd.length();
+        string sEndTag = "</ItemGroup>"; //Uses independent string to sItemGroupEnd to avoid line ending errors due to \r\n
+        uint uiFindPos = sProjectTemplate.rfind(sEndTag);
+        uiFindPos += sEndTag.length();
+        uint uiFindPosFilt = sFilterTemplate.rfind(sEndTag);
+        uiFindPosFilt += sEndTag.length();
 
         //Insert into output file
         sProjectTemplate.insert(uiFindPos, sTypeFiles);
-        uiFindPos += sTypeFiles.length();
         sFilterTemplate.insert(uiFindPosFilt, sTypeFilesFilt);
-        uiFindPosFilt += sTypeFilesFilt.length();
     }
 }
 
@@ -883,7 +882,8 @@ void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFi
         "57bf1423-fb68-441f-b5c1-f41e6ae5fa9c"};
 
     //get start position in file
-    uint uiFindPosFilt = sFilterTemplate.find(sItemGroupEnd);
+    uint uiFindPosFilt = sFilterTemplate.find("</ItemGroup>");
+    uiFindPosFilt = sFilterTemplate.find_last_not_of(sWhiteSpace, uiFindPosFilt - 1) + 1; //handle potential differences in line endings
     set<string>::iterator sitIt = vFoundFilters.begin();
     uint uiCurrentKey = 0;
     string sAddFilters;
@@ -1385,7 +1385,7 @@ void ProjectGenerator::outputASMTools(string & sProjectTemplate)
 #else
         outputYASMTools(sProjectTemplate);
 #endif
-}
+    }
 }
 
 bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bProgram)
