@@ -503,7 +503,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 } else {
                     outputProgramDCEsCombineDefine(vitH->sDefine, itDCE->second.sDefine, vitH->sDefine);
                 }
-                sDCEOutFile += itDCE->first + " = {0};\n";
+                sDCEOutFile += "const " + itDCE->first + " = {0};\n";
                 if (bUsePreProc) {
                     sDCEOutFile += "#endif\n";
                 }
