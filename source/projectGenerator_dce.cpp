@@ -352,16 +352,19 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
     for (map<string, DCEParams>::iterator itI = mBuiltDCEVariables.begin(); itI != mBuiltDCEVariables.end(); itI++) {
         //Add to found list if not already found
         if (mFoundDCEVariables.find(itI->first) == mFoundDCEVariables.end()) {
+            const string sName = itI->first.substr(itI->first.rfind(' ') + 1);
+            if (vNonDCEUsage.find(sName) == vNonDCEUsage.end()) {
 #if !FORCEALLDCE
-            outputProgramDCEsResolveDefine(itI->second.sDefine);
-            if (itI->second.sDefine.compare("1") == 0) {
-                vNonDCEUsage.insert(itI->first);
-            } else {
-                mFoundDCEVariables[itI->first] = itI->second;
-            }
+                outputProgramDCEsResolveDefine(itI->second.sDefine);
+                if (itI->second.sDefine.compare("1") == 0) {
+                    vNonDCEUsage.insert(itI->first);
+                } else {
+                    mFoundDCEVariables[itI->first] = itI->second;
+                }
 #else
-            mFoundDCEVariables[itI->first] = itI->second;
+                mFoundDCEVariables[itI->first] = itI->second;
 #endif
+            }
         }
         //Remove from unfound list
         if (mFoundDCEUsage.find(itI->first) == mFoundDCEUsage.end()) {
@@ -795,17 +798,28 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                 uint uiFindPos4 = sFile.find_last_of(sNonName, uiFindPos3 - 1);
                 uiFindPos4 = (uiFindPos4 == string::npos) ? 0 : uiFindPos4 + 1;
                 if (uiFindPos4 == uiFindPos) {
-                    string sBS = sFile.substr(uiFindPos, uiFindPos3 - uiFindPos);
                     uiFindPos4 = sFile.find_first_not_of(sWhiteSpace, uiFindPos3);
                     //Check if valid function
                     if (sFile.at(uiFindPos4) == '(') {
                         //Check if function call or declaration (a function call must be inside a function {})
-                        uint uiCheck1 = sFile.find_last_of('{', uiFindPos);
+                        uint uiCheck1 = sFile.rfind('{', uiFindPos);
                         if (uiCheck1 != string::npos) {
-                            uint uiCheck2 = sFile.find_last_of('}', uiFindPos);
+                            uint uiCheck2 = sFile.rfind('}', uiFindPos);
                             if ((uiCheck2 == string::npos) || (uiCheck1 > uiCheck2)) {
                                 bValid = true;
                             }
+                        }
+                        //Check if function definition
+                        uiCheck1 = sFile.find(')', uiFindPos4 + 1);
+                        //Skip any '(' found within the function parameters itself
+                        uint uiCheck2 = sFile.find('(', uiFindPos4 + 1);
+                        while ((uiCheck2 != string::npos) && (uiCheck2 < uiCheck1)) {
+                            uiCheck2 = sFile.find('(', uiCheck2 + 1);
+                            uiCheck1 = sFile.find(')', uiCheck1 + 1) + 1;
+                        }
+                        uiCheck2 = sFile.find_first_not_of(sWhiteSpace, uiCheck1 + 1);
+                        if (sFile.at(uiCheck2) == '{') {
+                            bValid = true;
                         }
                     } else if (sFile.at(uiFindPos4) == ';') {
                         uiFindPos4 = sFile.find_last_not_of(sWhiteSpace, uiFindPos4 - 1);
@@ -819,6 +833,8 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string & sFile, const
                         if (sFile.at(uiFindPos4) == '=') {
                             bValid = true;
                         }
+                    } else if (sFile.at(uiFindPos4) == '=') {
+                        bValid = true;
                     }
                 }
             }
