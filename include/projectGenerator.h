@@ -60,8 +60,11 @@ public:
     /** Deletes any files that may have been created by previous runs. */
     void deleteCreatedFiles();
 
-    /** Error function to cleanly exit. */
-    void errorFunc();
+    /**
+     * Error function to cleanly exit.
+     * @param bCleanupFiles (Optional) True to delete created files.
+     */
+    void errorFunc(bool bCleanupFiles = true);
 
 private:
     /**

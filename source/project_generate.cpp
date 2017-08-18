@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     //Pass the input configuration
     ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
-        ProjectHelper.errorFunc();
+        ProjectHelper.errorFunc(false);
     }
 
     //Delete any previously generated files

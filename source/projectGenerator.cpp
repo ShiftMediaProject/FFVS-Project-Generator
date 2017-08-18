@@ -110,51 +110,71 @@ bool ProjectGenerator::passAllMake()
 
 void ProjectGenerator::deleteCreatedFiles()
 {
+    //Get list of libraries and programs
+    vector<string> vLibraries;
+    m_ConfigHelper.getConfigList("LIBRARY_LIST", vLibraries);
+    vector<string> vPrograms;
+    m_ConfigHelper.getConfigList("PROGRAM_LIST", vPrograms);
+
     //Delete any previously generated files
     vector<string> vExistingFiles;
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "*.vcxproj", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "*.filters", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "*.def", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sProjectDirectory + "ffmpeg.sln", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sProjectDirectory + "libav.sln", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sProjectDirectory + "compat.h", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sProjectDirectory + "math.h", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sProjectDirectory + "unistd.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sProjectDirectory + "stdatomic.h", vExistingFiles, false);
+    for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
+        *vitLib = "lib" + *vitLib;
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".def", vExistingFiles, false);
+    }
+    for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".vcxproj", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".def", vExistingFiles, false);
+    }
     for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
         deleteFile(*itIt);
     }
-    //Check that the project directory is not the same as the root directory
-    bool IsRoot = (m_ConfigHelper.m_sProjectDirectory.compare(m_ConfigHelper.m_sRootDirectory) == 0);
+
+    //Check for any created folders
     vector<string> vExistingFolders;
-    findFolders(m_ConfigHelper.m_sProjectDirectory + "lib*", vExistingFolders);
-    findFolders(m_ConfigHelper.m_sProjectDirectory + "ff*", vExistingFolders);
-    findFolders(m_ConfigHelper.m_sProjectDirectory + "av*", vExistingFolders);
+    for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
+        findFolders(m_ConfigHelper.m_sProjectDirectory + *vitLib, vExistingFolders, false);
+    }
+    for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
+        findFolders(m_ConfigHelper.m_sProjectDirectory + *vitProg, vExistingFolders, false);
+    }
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
-        if (!IsRoot) {
+        //Search for any generated files in the directories
+        vExistingFiles.resize(0);
+        findFiles(*itIt + "/dce_defs.c", vExistingFiles, false);
+        findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
+        if (!m_ConfigHelper.m_bUsingExistingConfig) {
+            findFiles(*itIt + "/*_list.c", vExistingFiles, false);
+        }
+        for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
+            deleteFile(*itIt2);
+        }
+        //Check if the directory is now empty and delete if it is
+        if (isFolderEmpty(*itIt)) {
             deleteFolder(*itIt);
-        } else {
-            //If the project directory is the same as root then only delete generated files
-            vExistingFiles.resize(0);
-            findFiles(*itIt + "/*_defs.c", vExistingFiles, false);
-            findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
-            if (!m_ConfigHelper.m_bUsingExistingConfig) {
-                findFiles(*itIt + "/*_list.c", vExistingFiles, false);
-            }
-            for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
-                deleteFile(*itIt2);
-            }
         }
     }
 }
 
-void ProjectGenerator::errorFunc()
+void ProjectGenerator::errorFunc(bool bCleanupFiles)
 {
-    //Cleanup any partially created files
-    m_ConfigHelper.deleteCreatedFiles();
-    deleteCreatedFiles();
+    if (bCleanupFiles) {
+        //Cleanup any partially created files
+        m_ConfigHelper.deleteCreatedFiles();
+        deleteCreatedFiles();
 
-    //Delete any temporary file leftovers
-    deleteFolder(sTempDirectory);
+        //Delete any temporary file leftovers
+        deleteFolder(sTempDirectory);
+    }
 
     pressKeyToContinue();
     exit(1);
