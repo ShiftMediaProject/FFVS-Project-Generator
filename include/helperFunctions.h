@@ -82,6 +82,13 @@ void deleteFile(const string & sDestinationFile);
 void deleteFolder(const string & sDestinationFolder);
 
 /**
+ * Queries if a folder is empty.
+ * @param sFolder Pathname of the folder.
+ * @return True if the folder is empty, false if not.
+ */
+bool isFolderEmpty(const string & sFolder);
+
+/**
  * Copies a file.
  * @param sSourceFolder      Pathname of the source folder.
  * @param sDestinationFolder Pathname of the destination folder.

@@ -234,6 +234,28 @@ void deleteFolder(const string & sDestinationFolder)
 #endif
 }
 
+bool isFolderEmpty(const string & sFolder)
+{
+#ifdef _WIN32
+    return PathIsDirectoryEmpty(sFolder.c_str());
+#else
+    DIR *dir = opendir(sFolder.c_str());
+    if (dir == NULL) {
+        //Not a directory or doesn't exist
+        return false;
+    }
+    int n = 0;
+    struct dirent *d;
+    while ((d = readdir(dir)) != NULL) {
+        if (++n > 2) {
+            break;
+        }
+    }
+    closedir(dir);
+    return (n <= 2);
+#endif
+}
+
 bool copyFile(const string & sSourceFolder, const string & sDestinationFolder)
 {
 #ifdef _WIN32
