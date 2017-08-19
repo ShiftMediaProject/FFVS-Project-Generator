@@ -378,7 +378,9 @@ bool ProjectGenerator::outputSolution()
             m_sProjectName = mitPrograms->first;
             const string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj";
             const string sDestinationFilterFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj.filters";
-            outputProgramProject(sDestinationFile, sDestinationFilterFile);
+            if (!outputProgramProject(sDestinationFile, sDestinationFilterFile)) {
+                return false;
+            }
         }
         //next
         ++mitPrograms;
