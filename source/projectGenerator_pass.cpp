@@ -351,9 +351,9 @@ bool ProjectGenerator::passDLibUnknown()
 
 bool ProjectGenerator::passMake()
 {
-    outputLine("  Generating from Makefile (" + m_sProjectDir + ")...");
+    string sMakeFile = m_sProjectDir + "MakeFile";
+    outputLine("  Generating from Makefile (" + sMakeFile + ")...");
     //Open the input Makefile
-    string sMakeFile = m_sProjectDir + "/MakeFile";
     m_ifInputFile.open(sMakeFile);
     if (m_ifInputFile.is_open()) {
         //Read each line in the MakeFile
@@ -464,9 +464,9 @@ bool ProjectGenerator::passMake()
 
 bool ProjectGenerator::passProgramMake()
 {
-    outputLine("  Generating from Makefile (" + m_sProjectDir + ") for project " + m_sProjectName + "...");
+    string sMakeFile = m_sProjectDir + "MakeFile";
+    outputLine("  Generating from Makefile (" + sMakeFile + ") for project " + m_sProjectName + "...");
     //Open the input Makefile
-    string sMakeFile = m_sProjectDir + "/MakeFile";
     m_ifInputFile.open(sMakeFile);
     if (m_ifInputFile.is_open()) {
         string sObjTag = "OBJS-" + m_sProjectName;
@@ -528,6 +528,6 @@ bool ProjectGenerator::passProgramMake()
         m_vIncludes.push_back(m_sProjectName);
         return true;
     }
-    outputError("Could not open open MakeFile (./MakeFile)");
+    outputError("Could not open open MakeFile (" + sMakeFile + ")");
     return false;
 }
