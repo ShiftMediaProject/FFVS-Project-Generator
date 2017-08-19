@@ -30,9 +30,7 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
     if (!findFile(sRetFileName, sFileName)) {
         // Check if this is a built file
         uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
-        if (uiSPos == string::npos) {
-            return false;
-        }
+        uiSPos = (uiSPos == string::npos) ? 0 : uiSPos;
         string sProjectName = m_sProjectDir.substr(uiSPos);
         sRetFileName = m_ConfigHelper.m_sProjectDirectory + sProjectName + sFile + sExtension;
         return findFile(sRetFileName, sFileName);
