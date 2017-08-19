@@ -466,8 +466,16 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
     string sFromT, sToT;
     sFromT.reserve(MAX_PATH);
     sToT.reserve(MAX_PATH);
-    GetFullPathName(sPath.c_str(), MAX_PATH, const_cast<char*>(sFromT.data()), NULL);
-    GetFullPathName(sMakeRelativeTo.c_str(), MAX_PATH, const_cast<char*>(sToT.data()), NULL);
+    if (sPath.length() > 0) {
+        GetFullPathName(sPath.c_str(), MAX_PATH, const_cast<char*>(sFromT.data()), NULL);
+    } else {
+        GetFullPathName("./", MAX_PATH, const_cast<char*>(sFromT.data()), NULL);
+    }
+    if (sMakeRelativeTo.length() > 0) {
+        GetFullPathName(sMakeRelativeTo.c_str(), MAX_PATH, const_cast<char*>(sToT.data()), NULL);
+    } else {
+        GetFullPathName("./", MAX_PATH, const_cast<char*>(sToT.data()), NULL);
+    }
     PathRelativePathTo(const_cast<char*>(sRetPath.data()), sToT.c_str(), FILE_ATTRIBUTE_DIRECTORY, sFromT.c_str(), FILE_ATTRIBUTE_NORMAL);
     sRetPath.resize(strlen(sRetPath.c_str()));
     replace(sRetPath.begin(), sRetPath.end(), '\\', '/');
