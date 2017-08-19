@@ -39,8 +39,12 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     makeFileGeneratorRelative(sOutDir, sOutDir);
-    string sCLExtra = "/I\"" + sOutDir + "include/\"";
-    for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
+    vector<string> vIncludeDirs2 = vIncludeDirs;
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
+    string sCLExtra;
+    for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {
         string sIncludeDir = *vitIt;
         uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
         if (uiFindPos2 != string::npos) {
@@ -53,6 +57,11 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
         uiFindPos2 = sIncludeDir.find(")");
         if (uiFindPos2 != string::npos) {
             sIncludeDir.replace(uiFindPos2, 1, "%");
+        }
+        if (sIncludeDir.length() == 0) {
+            sIncludeDir = "./";
+        } else if (sIncludeDir.find_first_of("./%") != 0) {
+            sIncludeDir = "./" + sIncludeDir;
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
@@ -98,8 +107,8 @@ exit /b 1 \n\
 
         //Split calls into groups of 50 to prevent batch file length limit
         for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
-            sCLLaunchBat += "cl.exe";
-            sCLLaunchBat += " /I\"" + m_ConfigHelper.m_sRootDirectory + "\" /I\"" + m_ConfigHelper.m_sProjectDirectory + "\" " + sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
+            sCLLaunchBat += "cl.exe ";
+            sCLLaunchBat += sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
             uint uiStartPos = uiTotalPos;
             for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
@@ -107,7 +116,7 @@ exit /b 1 \n\
                 }
                 sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
             }
-            sCLLaunchBat += " > log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
+            sCLLaunchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
         if (iRunType == 1) {
             sCLLaunchBat += "move *.i " + sDirName + "/ >nul 2>&1\n";
@@ -116,21 +125,21 @@ exit /b 1 \n\
     if (iRunType == 0) {
         sCLLaunchBat += "del /F /S /Q *.obj >nul 2>&1\n";
     }
-    sCLLaunchBat += "del log.txt >nul 2>&1\n";
+    sCLLaunchBat += "del ffvs_log.txt >nul 2>&1\n";
     sCLLaunchBat += "exit /b 0\n:exitFail\n";
     if (iRunType == 1) {
         sCLLaunchBat += "del /F /S /Q *.i >nul 2>&1\n";
     }
     sCLLaunchBat += "rmdir /S /Q " + sTempDirectory + "\nexit /b 1";
-    if (!writeToFile("test.bat", sCLLaunchBat)) {
+    if (!writeToFile("ffvs_compile.bat", sCLLaunchBat)) {
         return false;
     }
 
-    if (0 != system("test.bat")) {
-        outputError("Errors detected during test compilation :-");
+    if (0 != system("ffvs_compile.bat")) {
+        outputError("Errors detected during compilation :-");
         string sTestOutput;
-        if (loadFromFile("log.txt", sTestOutput)) {
-            //Output errors from log.txt
+        if (loadFromFile("ffvs_log.txt", sTestOutput)) {
+            //Output errors from ffvs_log.txt
             bool bError = false;
             bool bMissingVS = false;
             bool bMissingDeps = false;
@@ -161,26 +170,26 @@ exit /b 1 \n\
             if (bMissingVS) {
                 outputError("Based on the above error(s) Visual Studio is not installed correctly on the host system.", false);
                 outputError("Install a compatible version of Visual Studio before trying again.", false);
-                deleteFile("log.txt");
+                deleteFile("ffvs_log.txt");
             } else if (bMissingDeps) {
                 outputError("Based on the above error(s) there are files required for dependency libraries that are not available", false);
                 outputError("Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again.", false);
                 outputError("Consult the supplied readme for instructions for installing varying dependencies.", false);
                 outputError("If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again.", false);
                 outputError("  Removing the offending configuration option can also be used to remove the error.", false);
-                deleteFile("log.txt");
+                deleteFile("ffvs_log.txt");
             } else if (bError) {
-                outputError("Unknown error detected. See log.txt for further details.", false);
+                outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
             }
         }
-        //Remove the test header files
-        deleteFile("test.bat");
+        //Remove the compile files
+        deleteFile("ffvs_compile.bat");
         deleteFolder(sTempDirectory);
         return false;
     }
 
     //Remove the compilation objects
-    deleteFile("test.bat");
+    deleteFile("ffvs_compile.bat");
     return true;
 }
 
@@ -189,8 +198,12 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     makeFileGeneratorRelative(sOutDir, sOutDir);
-    string sCLExtra = "-I\"" + sOutDir + "include/\"";
-    for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
+    vector<string> vIncludeDirs2 = vIncludeDirs;
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
+    string sCLExtra;
+    for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {
         string sIncludeDir = *vitIt;
         uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
         if (uiFindPos2 != string::npos) {
@@ -198,13 +211,18 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
         }
         uiFindPos2 = sIncludeDir.find("$(");
         if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 2, "$");
+            sIncludeDir.replace(uiFindPos2, 2, "%");
         }
         uiFindPos2 = sIncludeDir.find(")");
         if (uiFindPos2 != string::npos) {
-            sIncludeDir.erase(uiFindPos2, 1);
+            sIncludeDir.replace(uiFindPos2, 1, "%");
         }
-        sCLExtra += " -I\"" + sIncludeDir + '\"';
+        if (sIncludeDir.length() == 0) {
+            sIncludeDir = "./";
+        } else if (sIncludeDir.find_first_of("./%") != 0) {
+            sIncludeDir = "./" + sIncludeDir;
+        }
+        sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
     string sTempFolder = sTempDirectory + m_sProjectName;
 
@@ -238,8 +256,8 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
 
         //Split calls as gcc outputs a single file at a time
         for (StaticList::iterator vitJ = itI->second.begin(); vitJ < itI->second.end(); vitJ++) {
-            sCLLaunchBat += "gcc";
-            sCLLaunchBat += " -I\"" + m_ConfigHelper.m_sRootDirectory + "\" -I\"" + m_ConfigHelper.m_sProjectDirectory + "\" " + sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
+            sCLLaunchBat += "gcc ";
+            sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
             if (iRunType == 0) {
                 makeFileGeneratorRelative(*vitJ, *vitJ);
             }
@@ -249,27 +267,27 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
             } else if (iRunType == 1) {
                 sCLLaunchBat += " -o " + *vitJ + ".i";
             }
-            sCLLaunchBat += " > log.txt 2>&1\nif (( $? )); then\nexitFail\nfi\n";
+            sCLLaunchBat += " > ffvs_log.txt 2>&1\nif (( $? )); then\nexitFail\nfi\n";
         }
     }
     if (iRunType == 0) {
         sCLLaunchBat += "rm -rf *.o > /dev/null 2>&1\n";
     }
-    sCLLaunchBat += "rm log.txt > /dev/null 2>&1\n";
+    sCLLaunchBat += "rm ffvs_log.txt > /dev/null 2>&1\n";
     sCLLaunchBat += "exit 0\n";
-    if (!writeToFile("test.sh", sCLLaunchBat)) {
+    if (!writeToFile("ffvs_compile.sh", sCLLaunchBat)) {
         return false;
     }
-    if (0 != system("test.sh")) {
-        outputError("Errors detected during test compilation :-");
-        outputError("Unknown error detected. See log.txt for further details.", false);
-        //Remove the test header files
-        deleteFile("test.sh");
+    if (0 != system("ffvs_compile.sh")) {
+        outputError("Errors detected during compilation :-");
+        outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
+        //Remove the compilation files
+        deleteFile("ffvs_compile.sh");
         deleteFolder(sTempDirectory);
         return false;
     }
 
     //Remove the compilation objects
-    deleteFile("test.sh");
+    deleteFile("ffvs_compile.sh");
     return true;
 }
