@@ -88,7 +88,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 string sBack = sTemplateFile;
                 sTemplateFile = m_sProjectDir + sBack;
                 if (!findFile(sTemplateFile, sFound)) {
-                    sTemplateFile = m_ConfigHelper.m_sRootDirectory + '/' + sBack;
+                    sTemplateFile = (m_ConfigHelper.m_sRootDirectory.length() > 0) ? m_ConfigHelper.m_sRootDirectory + '/' + sBack : sBack;
                     if (!findFile(sTemplateFile, sFound)) {
                         sTemplateFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + '/' + sBack;
                         if (!findFile(sTemplateFile, sFound)) {
@@ -190,11 +190,15 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         map<string, vector<DCEParams>> mFunctionFiles;
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
             //Remove project dir from start of file
-            uint uiPos = itDCE->second.sFile.find(m_sProjectDir);
+            uint uiPos = itDCE->second.sFile.find((m_sProjectDir.find("./") == 0) ? m_sProjectDir.substr(2) : m_sProjectDir);
             uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
             string sFile = sTempFolder + '/' + itDCE->second.sFile.substr(uiPos);
             if (sFile.find('/', sTempFolder.length() + 1) != string::npos) {
-                makeDirectory(sFile.substr(0, sFile.rfind('/')));
+                string sFolder = sFile.substr(0, sFile.rfind('/'));
+                if (!makeDirectory(sFolder)) {
+                    outputError("Failed to create temporary working sub-directory (" + sFolder + ")");
+                    return false;
+                }
             }
             //Copy file to local working directory
             if (!copyFile(itDCE->second.sFile, sFile)) {
