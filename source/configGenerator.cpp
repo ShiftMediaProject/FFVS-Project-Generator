@@ -387,8 +387,14 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         string sValue = stOption.substr(9);
         m_sOutDirectory = sValue;
+        //Convert '\' to '/'
+        replace(m_sOutDirectory.begin(), m_sOutDirectory.end(), '\\', '/');
+        //Check if a directory has been passed
+        if (m_sOutDirectory.length() == 0) {
+            m_sOutDirectory = "./";
+        }
         //Check if directory has trailing '/'
-        if ((m_sOutDirectory.back() != '/') && (m_sOutDirectory.back() != '\\')) {
+        if (m_sOutDirectory.back() != '/') {
             m_sOutDirectory += '/';
         }
     } else if (stOption.find("--rootdir") == 0) {
@@ -398,8 +404,14 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         string sValue = stOption.substr(10);
         m_sRootDirectory = sValue;
+        //Convert '\' to '/'
+        replace(m_sRootDirectory.begin(), m_sRootDirectory.end(), '\\', '/');
+        //Check if a directory has been passed
+        if (m_sRootDirectory.length() == 0) {
+            m_sRootDirectory = "./";
+        }
         //Check if directory has trailing '/'
-        if ((m_sRootDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
+        if (m_sRootDirectory.back() != '/') {
             m_sRootDirectory += '/';
         }
         //rootdir is passed before all other options are set up so must skip any other remaining steps
@@ -411,8 +423,14 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         string sValue = stOption.substr(10);
         m_sProjectDirectory = sValue;
+        //Convert '\' to '/'
+        replace(m_sProjectDirectory.begin(), m_sProjectDirectory.end(), '\\', '/');
+        //Check if a directory has been passed
+        if (m_sProjectDirectory.length() == 0) {
+            m_sProjectDirectory = "./";
+        }
         //Check if directory has trailing '/'
-        if ((m_sProjectDirectory.back() != '/') && (m_sRootDirectory.back() != '\\')) {
+        if (m_sProjectDirectory.back() != '/') {
             m_sProjectDirectory += '/';
         }
     } else if (stOption.compare("--dce-only") == 0) {
