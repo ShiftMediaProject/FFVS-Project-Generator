@@ -68,24 +68,49 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
     string sTempFolder = sTempDirectory + m_sProjectName;
 
     //Use Microsoft compiler to pass the test file and retrieve declarations
-    string sCLLaunchBat = "@echo off\n";
-    sCLLaunchBat += "if exist \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" ( \n\
-call \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" >NUL 2>NUL \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS140COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS140COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS120COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS120COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else if exist \"%VS110COMNTOOLS%\\vsvars32.bat\" ( \n\
-call \"%VS110COMNTOOLS%\\vsvars32.bat\" \n\
-goto MSVCVarsDone \n\
-) else ( \n\
-echo fatal error : An installed version of Visual Studio could not be detected. \n\
-exit /b 1 \n\
-) \n\
-:MSVCVarsDone \n";
+    string sCLLaunchBat = "@echo off\nsetlocal enabledelayedexpansion\nset CALLDIR=%CD%\n";
+    sCLLaunchBat += "if \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" (\n\
+    set SYSARCH=64\n\
+) else if \"%PROCESSOR_ARCHITECTURE%\"==\"x86\" (\n\
+    if \"%PROCESSOR_ARCHITEW6432%\"==\"AMD64\" (\n\
+        set SYSARCH=64\n\
+    ) else (\n\
+        set SYSARCH=32\n\
+    )\n\
+) else (\n\
+    echo fatal error : Current Platform Architecture could not be detected. > ffvs_log.txt\n\
+    exit /b 1\n\
+)\n\
+if \"%SYSARCH%\"==\"32\" (\n\
+    set MSVCVARSDIR=\n\
+    set WOWNODE=\n\
+) else if \"%SYSARCH%\"==\"64\" (\n\
+    set MSVCVARSDIR=\\amd64\n\
+    set WOWNODE=\\WOW6432Node\n\
+)\n\
+pushd %CD%\n\
+reg.exe query \"HKLM\\SOFTWARE%WOWNODE%\\Microsoft\\VisualStudio\\SxS\\VS7\" /v 15.0 >nul 2>&1\n\
+if not ERRORLEVEL 1 (\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\SOFTWARE%WOWNODE%\\Microsoft\\VisualStudio\\SxS\\VS7\" /v 15.0') do (set VSINSTALLDIR=%%b)\n\
+    call \"!VSINSTALLDIR!VC\\Auxiliary\\Build\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    goto MSVCVarsDone\n\
+)\n\
+reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\14.0\" /v \"InstallDir\" >nul 2>&1\n\
+if not ERRORLEVEL 1 (\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\14.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
+    call \"!VSINSTALLDIR!\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    goto MSVCVarsDone\n\
+)\n\
+reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\13.0\" /v \"InstallDir\" >nul 2>&1\n\
+if not ERRORLEVEL 1 (\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\13.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
+    call \"!VSINSTALLDIR!\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    goto MSVCVarsDone\n\
+)\n\
+echo fatal error : An installed version of Visual Studio could not be detected. > ffvs_log.txt\n\
+exit /b 1\n\
+:MSVCVarsDone\n\
+popd\n";
     sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > nul 2>&1\n";
     sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > nul 2>&1\n";
     for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
