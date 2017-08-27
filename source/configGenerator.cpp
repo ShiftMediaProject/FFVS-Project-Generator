@@ -678,6 +678,7 @@ bool ConfigGenerator::passCurrentValues()
         }
     }
 
+#if defined(OPTIMISE_ENCODERS) || defined(OPTIMISE_DECODERS)
     //Optimise the config values. Based on user input different encoders/decoder can be disabled as there are now better inbuilt alternatives
     OptimisedConfigList mOptimisedDisables;
     buildOptimisedDisables(mOptimisedDisables);
@@ -708,6 +709,7 @@ bool ConfigGenerator::passCurrentValues()
             }
         }
     }
+#endif
 
     //Check the current options are valid for selected license
     if (getConfigOption("nonfree")->m_sValue.compare("1") != 0) {
