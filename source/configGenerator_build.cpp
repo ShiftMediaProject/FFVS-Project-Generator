@@ -569,8 +569,6 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDis
     //This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
     //  then simply disable the inbuilt so as to avoid unnecessary compilation
-    //This may have issues should a user not want to disable these but currently there are static compilation errors
-    //  that will occur as several of these overlapping decoder/encoders have similar named methods that cause link errors.
 
     mOptimisedDisables.clear();
     //From trac.ffmpeg.org/wiki/GuidelinesHighQualityAudio
