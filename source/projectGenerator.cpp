@@ -1181,14 +1181,14 @@ void ProjectGenerator::outputBuildEvents(string & sProjectTemplate)
       <Command>";
     const string sPostbuildClose = "</Command>\r\n\
     </PostBuildEvent>";
-    const string sInclude = "mkdir $(OutDir)\\include\r\n\
-mkdir $(OutDir)\\include\\";
+    const string sInclude = "mkdir \"$(OutDir)\"\\include\r\n\
+mkdir \"$(OutDir)\"\\include\\";
     const string sCopy = "\r\ncopy ";
-    const string sCopyEnd = " $(OutDir)\\include\\";
-    const string sLicense = "\r\nmkdir $(OutDir)\\licenses";
+    const string sCopyEnd = " \"$(OutDir)\"\\include\\";
+    const string sLicense = "\r\nmkdir \"$(OutDir)\"\\licenses";
     string sLicenseName = m_ConfigHelper.m_sProjectName;
     transform(sLicenseName.begin(), sLicenseName.end(), sLicenseName.begin(), ::tolower);
-    const string sLicenseEnd = " $(OutDir)\\licenses\\" + sLicenseName + ".txt";
+    const string sLicenseEnd = " \"$(OutDir)\"\\licenses\\" + sLicenseName + ".txt";
     const string sPrebuild = "\r\n    <PreBuildEvent>\r\n\
       <Command>if exist template_rootdirconfig.h (\r\n\
 del template_rootdirconfig.h\r\n\
@@ -1205,8 +1205,8 @@ del template_rootdirlibavutil\\avconfig.h\r\n\
 if exist template_rootdirlibavutil\\ffversion.h (\r\n\
 del template_rootdirlibavutil\\ffversion.h\r\n\
 )";
-    const string sPrebuildDir = "\r\nif exist $(OutDir)\\include\\" + m_sProjectName + " (\r\n\
-rd /s /q $(OutDir)\\include\\" + m_sProjectName + "\r\n\
+    const string sPrebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_sProjectName + " (\r\n\
+rd /s /q \"$(OutDir)\"\\include\\" + m_sProjectName + "\r\n\
 cd ../\r\n\
 cd $(ProjectDir)\r\n\
 )";
