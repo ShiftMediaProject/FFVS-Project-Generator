@@ -48,6 +48,14 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
             if (!changeConfig(stOption)) {
                 return false;
             }
+        } else  if (stOption.find("--projdir") == 0) {
+            if (!changeConfig(stOption)) {
+                return false;
+            }
+        } else  if (stOption.find("--prefix") == 0) {
+            if (!changeConfig(stOption)) {
+                return false;
+            }
         }
     }
     if (!passConfigureFile()) {
@@ -582,6 +590,16 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                 for (vitValues; vitValues < vList.end(); vitValues++) {
                     toggleConfigValue(*vitValues, bEnable);
                 }
+            } else if (sOption.compare("autodetect") == 0) {
+                //Change AUTODETECT_LIBS
+                vector<string> vList;
+                if (!getConfigList("AUTODETECT_LIBS", vList)) {
+                    return false;
+                }
+                vector<string>::iterator vitValues = vList.begin();
+                for (vitValues; vitValues < vList.end(); vitValues++) {
+                    toggleConfigValue(*vitValues, bEnable);
+                }
             } else {
                 //Check if the option is a component
                 vector<string> vList;
@@ -627,17 +645,6 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                 toggleConfigValue(sOption, bEnable);
             }
         }
-    }
-    //Set any unset values
-    if (m_sProjectDirectory.length() == 0) {
-        if (!m_bDCEOnly) {
-            m_sProjectDirectory = m_sRootDirectory + "SMP/";
-        } else {
-            m_sProjectDirectory = m_sRootDirectory;
-        }
-    }
-    if (m_sOutDirectory.length() == 0) {
-        m_sOutDirectory = "../../../msvc/";
     }
     //Add to the internal configuration variable
     ValuesList::iterator vitOption = m_vFixedConfigValues.begin();
