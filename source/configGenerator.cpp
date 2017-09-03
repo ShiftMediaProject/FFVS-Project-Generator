@@ -950,6 +950,42 @@ void ConfigGenerator::deleteCreatedFiles()
     }
 }
 
+void ConfigGenerator::makeFileProjectRelative(const string & sFileName, string & sRetFileName)
+{
+    string sPath;
+    string sFile = sFileName;
+    uint uiPos = sFile.rfind('/');
+    if (uiPos != string::npos) {
+        ++uiPos;
+        sPath = sFileName.substr(0, uiPos);
+        sFile = sFileName.substr(uiPos);
+    }
+    makePathsRelative(sPath, m_sProjectDirectory, sRetFileName);
+    //Check if relative to project dir
+    if (sRetFileName.find("./") == 0) {
+        sRetFileName = sRetFileName.substr(2);
+    }
+    sRetFileName += sFile;
+}
+
+void ConfigGenerator::makeFileGeneratorRelative(const string & sFileName, string & sRetFileName)
+{
+    string sPath;
+    string sFile = sFileName;
+    uint uiPos = sFile.rfind('/');
+    if (uiPos != string::npos) {
+        ++uiPos;
+        sPath = sFileName.substr(0, uiPos);
+        sFile = sFileName.substr(uiPos);
+    }
+    makePathsRelative(m_sProjectDirectory + sPath, "./", sRetFileName);
+    //Check if relative to current dir
+    if (sRetFileName.find("./") == 0) {
+        sRetFileName = sRetFileName.substr(2);
+    }
+    sRetFileName += sFile;
+}
+
 bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vReturn, bool bForce, uint uiCurrentFilePos)
 {
     //Find List name in file (searches backwards so that it finds the closest definition to where we currently are)

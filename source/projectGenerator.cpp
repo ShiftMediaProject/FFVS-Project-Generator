@@ -718,7 +718,7 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
 
     //Change all occurrences of template_rootdir with configured output directory
     string sRootDir = m_ConfigHelper.m_sRootDirectory;
-    makeFileProjectRelative(sRootDir, sRootDir);
+    m_ConfigHelper.makeFileProjectRelative(sRootDir, sRootDir);
     replace(sRootDir.begin(), sRootDir.end(), '/', '\\');
     const string sFFRootSearchTag = "template_rootdir";
     uiFindPos = sProjectTemplate.find(sFFRootSearchTag);
@@ -774,7 +774,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
 
             //Add the filters Filter
             string sSourceDir;
-            makeFileProjectRelative(this->m_ConfigHelper.m_sRootDirectory, sSourceDir);
+            m_ConfigHelper.makeFileProjectRelative(this->m_ConfigHelper.m_sRootDirectory, sSourceDir);
             uiPos = vitInclude->rfind(sSourceDir);
             uiPos = (uiPos == string::npos) ? 0 : uiPos + sSourceDir.length();
             sTypeFilesFiltTemp += sIncludeClose;
@@ -871,7 +871,7 @@ void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFi
     //Check if there is a resource file
     string sResourceFile;
     if (findSourceFile(m_sProjectName.substr(3) + "res", ".rc", sResourceFile)) {
-        makeFileProjectRelative(sResourceFile, sResourceFile);
+        m_ConfigHelper.makeFileProjectRelative(sResourceFile, sResourceFile);
         StaticList vResources;
         vResources.push_back(sResourceFile);
         outputSourceFileType(vResources, "ResourceCompile", "Resource", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false, false, true);

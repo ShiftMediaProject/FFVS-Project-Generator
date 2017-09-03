@@ -38,7 +38,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
 {
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
-    makeFileGeneratorRelative(sOutDir, sOutDir);
+    m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
     vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
@@ -137,7 +137,7 @@ popd\n";
             uint uiStartPos = uiTotalPos;
             for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
-                    makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
+                    m_ConfigHelper.makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
                 }
                 sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
             }
@@ -222,7 +222,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
 {
     //Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
-    makeFileGeneratorRelative(sOutDir, sOutDir);
+    m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
     vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
@@ -284,7 +284,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
             sCLLaunchBat += "gcc ";
             sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
             if (iRunType == 0) {
-                makeFileGeneratorRelative(*vitJ, *vitJ);
+                m_ConfigHelper.makeFileGeneratorRelative(*vitJ, *vitJ);
             }
             sCLLaunchBat += " \"" + *vitJ + "\"";
             if (iRunType == 0) {

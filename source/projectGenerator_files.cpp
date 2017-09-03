@@ -44,42 +44,6 @@ bool ProjectGenerator::findSourceFiles(const string & sFile, const string & sExt
     return findFiles(sFileName, vRetFiles);
 }
 
-void ProjectGenerator::makeFileProjectRelative(const string & sFileName, string & sRetFileName)
-{
-    string sPath;
-    string sFile = sFileName;
-    uint uiPos = sFile.rfind('/');
-    if (uiPos != string::npos) {
-        ++uiPos;
-        sPath = sFileName.substr(0, uiPos);
-        sFile = sFileName.substr(uiPos);
-    }
-    makePathsRelative(sPath, m_ConfigHelper.m_sProjectDirectory, sRetFileName);
-    //Check if relative to project dir
-    if (sRetFileName.find("./") == 0) {
-        sRetFileName = sRetFileName.substr(2);
-    }
-    sRetFileName += sFile;
-}
-
-void ProjectGenerator::makeFileGeneratorRelative(const string & sFileName, string & sRetFileName)
-{
-    string sPath;
-    string sFile = sFileName;
-    uint uiPos = sFile.rfind('/');
-    if (uiPos != string::npos) {
-        ++uiPos;
-        sPath = sFileName.substr(0, uiPos);
-        sFile = sFileName.substr(uiPos);
-    }
-    makePathsRelative(m_ConfigHelper.m_sProjectDirectory + sPath, "./", sRetFileName);
-    //Check if relative to current dir
-    if (sRetFileName.find("./") == 0) {
-        sRetFileName = sRetFileName.substr(2);
-    }
-    sRetFileName += sFile;
-}
-
 bool ProjectGenerator::checkProjectFiles()
 {
     //Check that all headers are correct
@@ -90,7 +54,7 @@ bool ProjectGenerator::checkProjectFiles()
             return false;
         }
         //Update the entry with the found file with complete path
-        makeFileProjectRelative(sRetFileName, *itIt);
+        m_ConfigHelper.makeFileProjectRelative(sRetFileName, *itIt);
     }
 
     //Check that all C Source are correct
@@ -101,7 +65,7 @@ bool ProjectGenerator::checkProjectFiles()
             return false;
         }
         //Update the entry with the found file with complete path
-        makeFileProjectRelative(sRetFileName, *itIt);
+        m_ConfigHelper.makeFileProjectRelative(sRetFileName, *itIt);
     }
 
     //Check that all CPP Source are correct
@@ -112,7 +76,7 @@ bool ProjectGenerator::checkProjectFiles()
             return false;
         }
         //Update the entry with the found file with complete path
-        makeFileProjectRelative(sRetFileName, *itIt);
+        m_ConfigHelper.makeFileProjectRelative(sRetFileName, *itIt);
     }
 
     //Check that all ASM Source are correct
@@ -123,7 +87,7 @@ bool ProjectGenerator::checkProjectFiles()
             return false;
         }
         //Update the entry with the found file with complete path
-        makeFileProjectRelative(sRetFileName, *itIt);
+        m_ConfigHelper.makeFileProjectRelative(sRetFileName, *itIt);
     }
 
     //Check the output Unknown Includes and find there corresponding file
@@ -199,7 +163,7 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
             return false;
         }
         //Add the new file to list of objects
-        makeFileProjectRelative(sOutFile, sOutFile);
+        m_ConfigHelper.makeFileProjectRelative(sOutFile, sOutFile);
         vExistingIncludes.push_back(sOutFile);
     }
     return true;
@@ -215,7 +179,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
                 //skip this item
                 continue;
             }
-            makeFileProjectRelative(sRetFileName, sRetFileName);
+            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
             vCIncludes.push_back(sRetFileName);
         } else if (findSourceFile(*itIt, ".cpp", sRetFileName)) {
             //Found a C++ File to include
@@ -223,7 +187,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
                 //skip this item
                 continue;
             }
-            makeFileProjectRelative(sRetFileName, sRetFileName);
+            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
             vCPPIncludes.push_back(sRetFileName);
         } else if (findSourceFile(*itIt, ".asm", sRetFileName)) {
             //Found a ASM File to include
@@ -231,7 +195,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
                 //skip this item
                 continue;
             }
-            makeFileProjectRelative(sRetFileName, sRetFileName);
+            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
             vASMIncludes.push_back(sRetFileName);
         } else if (findSourceFile(*itIt, ".h", sRetFileName)) {
             //Found a H File to include
@@ -239,7 +203,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList&
                 //skip this item
                 continue;
             }
-            makeFileProjectRelative(sRetFileName, sRetFileName);
+            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
             vHIncludes.push_back(sRetFileName);
         } else {
             outputError("Could not find valid source file for object (" + *itIt + ")");

@@ -58,7 +58,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
     //Search through each included file
     for (StaticList::iterator itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); itFile++) {
         //Open the input file
-        makeFileGeneratorRelative(*itFile, *itFile);
+        m_ConfigHelper.makeFileGeneratorRelative(*itFile, *itFile);
         string sFile;
         if (!loadFromFile(*itFile, sFile)) {
             return false;
@@ -102,7 +102,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 }
                 //Add the file to the list
                 if (find(vSearchFiles.begin(), vSearchFiles.end(), sTemplateFile) == vSearchFiles.end()) {
-                    makeFileProjectRelative(sTemplateFile, sTemplateFile);
+                    m_ConfigHelper.makeFileProjectRelative(sTemplateFile, sTemplateFile);
                     vSearchFiles.push_back(sTemplateFile);
                 }
             }
@@ -535,7 +535,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         //Output the new file
         string sOutName = m_ConfigHelper.m_sProjectDirectory + '/' + m_sProjectName + '/' + "dce_defs.c";
         writeToFile(sOutName, sFinalDCEOutFile);
-        makeFileProjectRelative(sOutName, sOutName);
+        m_ConfigHelper.makeFileProjectRelative(sOutName, sOutName);
         m_vCIncludes.push_back(sOutName);
     }
 
