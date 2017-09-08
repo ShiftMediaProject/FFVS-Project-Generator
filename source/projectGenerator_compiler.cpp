@@ -101,9 +101,9 @@ if not ERRORLEVEL 1 (\n\
     call \"!VSINSTALLDIR!\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
     goto MSVCVarsDone\n\
 )\n\
-reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\13.0\" /v \"InstallDir\" >nul 2>&1\n\
+reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\12.0\" /v \"InstallDir\" >nul 2>&1\n\
 if not ERRORLEVEL 1 (\n\
-    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\13.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\12.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
     call \"!VSINSTALLDIR!\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
     goto MSVCVarsDone\n\
 )\n\
