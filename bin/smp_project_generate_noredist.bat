@@ -19,6 +19,7 @@ libiconv, ^
 libilbc, ^
 liblzma, ^
 libssh, ^
+libxml2, ^
 libvpx, ^
 mfx_dispatch, ^
 modplug, ^
@@ -33,7 +34,7 @@ x265, ^
 xvid, ^
 zlib ^
 )
-SET PGOPTIONS=--enable-gpl --enable-version3 --enable-nonfree --enable-avisynth --enable-libmp3lame --enable-libvorbis --enable-libspeex --enable-libopus --enable-libilbc --enable-libtheora --enable-libx264 --enable-libx265 --enable-libxvid --enable-libvpx --enable-libgme --enable-libmodplug --enable-libsoxr --enable-libfreetype --enable-fontconfig --enable-libfribidi --enable-libass --enable-gnutls --disable-schannel --enable-gmp --enable-libssh --enable-libcdio --enable-libbluray --enable-opengl --enable-libmfx --enable-libfdk-aac --toolchain=msvc
+SET PGOPTIONS=--enable-gpl --enable-version3 --enable-nonfree --enable-avisynth --enable-libmp3lame --enable-libvorbis --enable-libspeex --enable-libopus --enable-libilbc --enable-libtheora --enable-libx264 --enable-libx265 --enable-libxvid --enable-libvpx --enable-libgme --enable-libmodplug --enable-libsoxr --enable-libfreetype --enable-fontconfig --enable-libfribidi --enable-libass --enable-libxml2 --enable-gnutls --disable-schannel --enable-gmp --enable-libssh --enable-libcdio --enable-libbluray --enable-opengl --enable-libmfx --enable-libfdk-aac --toolchain=msvc
 
 REM Store current directory and ensure working directory is the location of current .bat
 SET CURRDIR=%CD%
