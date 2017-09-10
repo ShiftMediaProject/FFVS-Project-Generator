@@ -126,7 +126,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
 
             string sLib;
             if (vitLib->compare("avisynth") == 0) {
-                //doesnt need any additional libs
+                //doesn't need any additional libs
             } else if (vitLib->compare("bzlib") == 0) {
                 sLib = "libbz2";
             } else if (vitLib->compare("libcdio") == 0) {
@@ -152,7 +152,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
                     vLibs.push_back("libcrypto");
                 }
             } else if (vitLib->compare("decklink") == 0) {
-                //doesnt need any additional libs
+                //Doesn't need any additional libs
             } else if (vitLib->compare("opengl") == 0) {
                 vAddLibs.push_back("Opengl32"); //Add the additional required libs
             } else if (vitLib->compare("opencl") == 0) {
@@ -163,7 +163,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
             } else if (vitLib->compare("openal") == 0) {
                 vAddLibs.push_back("OpenAL32"); //Add the additional required libs
             } else if (vitLib->compare("nvenc") == 0) {
-                //Doesnt require any additional libs
+                //Doesn't require any additional libs
             } else if (vitLib->compare("cuda") == 0) {
                 string sFileName;
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
@@ -246,6 +246,9 @@ void ProjectGenerator::buildDependencyDirs(StaticList & vIncludeDirs, StaticList
             } else if (mitLib->first.compare("libfribidi") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/fribidi");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
+            } else if (mitLib->first.compare("libxml2") == 0) {
+                vIncludeDirs.push_back("$(OutDir)/include/libxml2");
+                vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
             } else if ((mitLib->first.compare("sdl") == 0) && (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end())) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
@@ -400,6 +403,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps
     mProjectDeps["libx264"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libx265"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libxavs"] = (m_sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["libxml2"] = (m_sProjectName.compare("libavformat") == 0);
     mProjectDeps["libxvid"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["libzimg"] = (m_sProjectName.compare("libavfilter") == 0);
     mProjectDeps["libzmq"] = (m_sProjectName.compare("libavfilter") == 0);
