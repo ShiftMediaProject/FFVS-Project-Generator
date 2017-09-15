@@ -653,11 +653,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             break;
         }
     }
-    vitOption->m_sValue.resize(vitOption->m_sValue.length() - 1); //Remove trailing "
-    if (vitOption->m_sValue.length() > 2) {
-        vitOption->m_sValue += ' ';
+    if (vitOption != m_vFixedConfigValues.end()) { //This will happen when passing early --prefix, --rootdir etc.
+        vitOption->m_sValue.resize(vitOption->m_sValue.length() - 1); //Remove trailing "
+        if (vitOption->m_sValue.length() > 2) {
+            vitOption->m_sValue += ' ';
+        }
+        vitOption->m_sValue += stOption + "\"";
     }
-    vitOption->m_sValue += stOption + "\"";
     return true;
 }
 
