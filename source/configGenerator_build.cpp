@@ -218,18 +218,10 @@ bool ConfigGenerator::buildDefaultValues()
                 bEnable = false;
             } else if (vitValues->compare("bzlib") == 0) {
                 makeFileGeneratorRelative(m_sOutDirectory + "include/bzlib.h", sFileName);
-                if (findFile(sFileName, sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(sFileName, sFileName);
             } else if (vitValues->compare("iconv") == 0) {
                 makeFileGeneratorRelative(m_sOutDirectory + "include/iconv.h", sFileName);
-                if (findFile(sFileName, sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(sFileName, sFileName);
             } else if (vitValues->compare("jack") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("libxcb") == 0) {
@@ -242,20 +234,12 @@ bool ConfigGenerator::buildDefaultValues()
                 bEnable = false;
             } else if (vitValues->compare("lzma") == 0) {
                 makeFileGeneratorRelative(m_sOutDirectory + "include/lzma.h", sFileName);
-                if (findFile(sFileName, sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(sFileName, sFileName);
             } else if (vitValues->compare("schannel") == 0) {
                 bEnable = true;
             } else if (vitValues->compare("sdl2") == 0) {
                 makeFileGeneratorRelative(m_sOutDirectory + "include/SDL/SDL.h", sFileName);
-                if (findFile(sFileName, sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(sFileName, sFileName);
             } else if (vitValues->compare("securetransport") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("sndio") == 0) {
@@ -264,37 +248,21 @@ bool ConfigGenerator::buildDefaultValues()
                 bEnable = false;
             } else if (vitValues->compare("zlib") == 0) {
                 makeFileGeneratorRelative(m_sOutDirectory + "include/zlib.h", sFileName);
-                if (findFile(sFileName, sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(sFileName, sFileName);
             } else if (vitValues->compare("audiotoolbox") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("crystalhd") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("cuda") == 0) {
-                if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
             } else if (vitValues->compare("cuvid") == 0) {
-                if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
             } else if (vitValues->compare("d3d11va") == 0) {
                 bEnable = true;
             } else if (vitValues->compare("dxva2") == 0) {
                 bEnable = true;
             } else if (vitValues->compare("nvenc") == 0) {
-                if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
-                    bEnable = true;
-                } else {
-                    bEnable = false;
-                }
+                bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
             } else if (vitValues->compare("vaapi") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("vda") == 0) {
@@ -302,6 +270,8 @@ bool ConfigGenerator::buildDefaultValues()
             } else if (vitValues->compare("vdpau") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("videotoolbox_hwaccel") == 0) {
+                bEnable = false;
+            } else if (vitValues->compare("v4l2_m2m") == 0) {
                 bEnable = false;
             } else if (vitValues->compare("xvmc") == 0) {
                 bEnable = false;
