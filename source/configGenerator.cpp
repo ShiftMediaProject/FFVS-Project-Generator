@@ -1722,6 +1722,47 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
     }
     //Perform dependency check if still enabled
     if (vitOption->m_sValue.compare("1") == 0) {
+        //If conflict items are enabled then this one must be disabled
+        string sCheckFunc = sOptionLower + "_conflict";
+        vector<string> vCheckList;
+        if (getConfigList(sCheckFunc, vCheckList, false)) {
+            vector<string>::iterator vitCheckItem = vCheckList.begin();
+            bool bAnyEnabled = false;
+            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+                //Check if this is a not !
+                bool bToggle = false;
+                if (vitCheckItem->at(0) == '!') {
+                    vitCheckItem->erase(0);
+                    bToggle = true;
+                }
+                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
+                if (vitTemp == m_vConfigValues.end()) {
+                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
+                    if (mitDep == mAdditionalDependencies.end()) {
+                        outputInfo("Unknown option in conflict dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
+                        bAnyEnabled = false;
+                    } else {
+                        bAnyEnabled = mitDep->second ^ bToggle;
+                    }
+                } else {
+                    //Check if this variable has been initialized already
+                    if (vitTemp > vitOption) {
+                        if (!passDependencyCheck(vitTemp)) {
+                            return false;
+                        }
+                    }
+                    bAnyEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                }
+                if (bAnyEnabled) { break; }
+            }
+            if (bAnyEnabled) {
+                //If a single conflict is enabled then disable
+                toggleConfigValue(sOptionLower, false);
+            }
+        }
+    }
+    //Perform dependency check if still enabled
+    if (vitOption->m_sValue.compare("1") == 0) {
         //All select items are enabled when this item is enabled. If one of them has since been disabled then so must this one
         string sCheckFunc = sOptionLower + "_select";
         vector<string> vCheckList;
@@ -1759,7 +1800,6 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
             }
         }
     }
-
     //Enable any required deps if still enabled
     if (vitOption->m_sValue.compare("1") == 0) {
         string sCheckFunc = sOptionLower + "_select";
