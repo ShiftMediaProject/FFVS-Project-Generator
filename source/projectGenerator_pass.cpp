@@ -464,11 +464,23 @@ bool ProjectGenerator::passMake()
 
 bool ProjectGenerator::passProgramMake()
 {
-    string sMakeFile = m_sProjectDir + "MakeFile";
-    outputLine("  Generating from Makefile (" + sMakeFile + ") for project " + m_sProjectName + "...");
-    //Open the input Makefile
-    m_ifInputFile.open(sMakeFile);
-    if (m_ifInputFile.is_open()) {
+    string sMakeFolder = "fftools/";
+    string sMakeFile = m_sProjectDir + sMakeFolder + "MakeFile";
+    uint uiChecks = 2;
+    string sIgnore;
+    if (!findFile(sMakeFile, sIgnore)) {
+        sMakeFolder = "";
+        sMakeFile = m_sProjectDir + "MakeFile";
+        uiChecks = 1;
+    }
+    while (uiChecks >= 1) {
+        //Open the input Makefile
+        m_ifInputFile.open(sMakeFile);
+        if (!m_ifInputFile.is_open()) {
+            outputError("Could not open open MakeFile (" + sMakeFile + ")");
+        }
+
+        outputLine("  Generating from Makefile (" + sMakeFile + ") for project " + m_sProjectName + "...");
         string sObjTag = "OBJS-" + m_sProjectName;
         uint uiFindPos;
         //Read each line in the MakeFile
@@ -520,14 +532,47 @@ bool ProjectGenerator::passProgramMake()
                         return false;
                     }
                 }
+            } else if (((uiFindPos = m_sInLine.find("OBJS-$(1)")) != string::npos) && (uiFindPos == 0)) {
+                m_sInLine = m_sInLine.substr(uiFindPos + 5, m_sInLine.find(".o", uiFindPos + 9) + 2 - (uiFindPos + 5));
+                if (m_sInLine.at(4) == '-') {
+                    //Found some dynamic c includes
+                    if (!passDCInclude()) {
+                        m_ifInputFile.close();
+                        return false;
+                    }
+                } else {
+                    //Found some static c includes
+                    if (!passCInclude()) {
+                        m_ifInputFile.close();
+                        return false;
+                    }
+                }
+            } else if ((uiFindPos = m_sInLine.find("eval OBJS-$(P)")) != string::npos) {
+                m_sInLine = m_sInLine.substr(uiFindPos + 10);
+                if (m_sInLine.at(4) == '-') {
+                    //Found some dynamic c includes
+                    if (!passDCInclude()) {
+                        m_ifInputFile.close();
+                        return false;
+                    }
+                } else {
+                    //Found some static c includes
+                    if (!passCInclude()) {
+                        m_ifInputFile.close();
+                        return false;
+                    }
+                }
             }
         }
         m_ifInputFile.close();
-
-        //Program always include a file named after themselves
-        m_vIncludes.push_back(m_sProjectName);
-        return true;
+        --uiChecks;
+        if (sMakeFolder.length() > 0) {
+            //If using the Makefile in fftools then we need to read both it and the root Makefile
+            sMakeFile = m_sProjectDir + "MakeFile";
+        }
     }
-    outputError("Could not open open MakeFile (" + sMakeFile + ")");
-    return false;
+
+    //Program always includes a file named after themselves
+    m_vIncludes.push_back(sMakeFolder + m_sProjectName);
+    return true;
 }
