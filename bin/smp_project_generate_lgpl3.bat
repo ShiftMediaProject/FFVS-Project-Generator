@@ -47,10 +47,13 @@ IF NOT EXIST "project_generate.exe" (
 )
 
 REM Check if FFmpeg directory can be located
-SET SEARCHPATHS=(./, ../, ./ffmpeg, ../ffmpeg, ../../ffmpeg/)
+SET SEARCHPATHS=(./, ../, ./ffmpeg/, ../ffmpeg/, ../../ffmpeg/, ../../../, ../../)
 SET FFMPEGPATH=
 FOR %%I IN %SEARCHPATHS% DO (
     IF EXIST "%%I/ffmpeg.h" (
+        SET FFMPEGPATH=%%I
+    )
+    IF EXIST "%%I/fftools/ffmpeg.h" (
         SET FFMPEGPATH=%%I
     )
 )
