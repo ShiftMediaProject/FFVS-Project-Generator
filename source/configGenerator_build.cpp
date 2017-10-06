@@ -633,9 +633,11 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["ID3D11VideoDecoder"] = true;
     mAdditionalDependencies["ID3D11VideoContext"] = true;
     mAdditionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
+    mAdditionalDependencies["libdl"] = false;
     mAdditionalDependencies["linux_fb_h"] = false;
     mAdditionalDependencies["linux_videodev_h"] = false;
     mAdditionalDependencies["linux_videodev2_h"] = false;
+    mAdditionalDependencies["parisc64"] = false;
     mAdditionalDependencies["DXVA2_ConfigPictureDecode"] = true;
     mAdditionalDependencies["snd_pcm_htimestamp"] = false;
     mAdditionalDependencies["va_va_h"] = false;
