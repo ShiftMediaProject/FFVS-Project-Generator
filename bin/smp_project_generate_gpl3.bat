@@ -81,7 +81,7 @@ IF /I "%USERPROMPT%"=="Y" (
     CALL :getDeps || GOTO exit
     ECHO Ensure that any dependency projects have been built using the supplied project within the dependencies ./SMP folder before continuing.
     ECHO Warning: Some used dependencies require a manual download. Consult the readme for instructions to install the following needed components:
-    ECHO    OpenGL, NVENC
+    ECHO    OpenGL
     PAUSE
 )
 
