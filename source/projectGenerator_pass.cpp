@@ -464,17 +464,10 @@ bool ProjectGenerator::passMake()
 
 bool ProjectGenerator::passProgramMake()
 {
-    string sMakeFolder = "fftools/";
-    string sMakeFile = m_sProjectDir + sMakeFolder + "MakeFile";
     uint uiChecks = 2;
-    string sIgnore;
-    if (!findFile(sMakeFile, sIgnore)) {
-        sMakeFolder = "";
-        sMakeFile = m_sProjectDir + "MakeFile";
-        uiChecks = 1;
-    }
     while (uiChecks >= 1) {
         //Open the input Makefile
+        string sMakeFile = m_sProjectDir + "MakeFile";
         m_ifInputFile.open(sMakeFile);
         if (!m_ifInputFile.is_open()) {
             outputError("Could not open open MakeFile (" + sMakeFile + ")");
@@ -565,14 +558,30 @@ bool ProjectGenerator::passProgramMake()
             }
         }
         m_ifInputFile.close();
-        --uiChecks;
-        if (sMakeFolder.length() > 0) {
-            //If using the Makefile in fftools then we need to read both it and the root Makefile
-            sMakeFile = m_sProjectDir + "MakeFile";
+        if (uiChecks == 2) {
+            string sIgnore;
+            const string sMakeFolder = "fftools/";
+            sMakeFile = m_sProjectDir + sMakeFolder + "MakeFile";
+            if (findFile(sMakeFile, sIgnore)) {
+                //If using the Makefile in fftools then we need to read both it and the root Makefile
+                m_sProjectDir += sMakeFolder;
+            } else {
+                --uiChecks;
+            }
+        } else if (uiChecks == 1) {
+            //When passing the fftools folder some objects are added with fftools folder prefixed to file name
+            const string sMakeFolder = "fftools/";
+            uint uiPos;
+            for (vector<string>::iterator itI = m_vIncludes.begin(); itI < m_vIncludes.end(); itI++) {
+                if ((uiPos = itI->find(sMakeFolder)) != string::npos) {
+                    itI->erase(uiPos, sMakeFolder.length());
+                }
+            }
         }
+        --uiChecks;
     }
 
     //Program always includes a file named after themselves
-    m_vIncludes.push_back(sMakeFolder + m_sProjectName);
+    m_vIncludes.push_back(m_sProjectName);
     return true;
 }

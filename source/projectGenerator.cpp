@@ -367,13 +367,13 @@ bool ProjectGenerator::outputSolution()
         mProgramList["avplay"] = "CONFIG_AVPLAY";
         mProgramList["avprobe"] = "CONFIG_AVPROBE";
     }
-    m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
 
     //Next add the projects
     map<string, string>::iterator mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
         //Check if program is enabled
         if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_sValue.compare("1") == 0) {
+            m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
             //Create project files for program
             m_sProjectName = mitPrograms->first;
             const string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj";
