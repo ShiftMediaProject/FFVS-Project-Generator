@@ -32,6 +32,7 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
         uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
         uiSPos = (uiSPos == string::npos) ? 0 : uiSPos;
         string sProjectName = m_sProjectDir.substr(uiSPos);
+        sProjectName = (m_sProjectDir.compare("./") != 0) ? sProjectName : "";
         sRetFileName = m_ConfigHelper.m_sProjectDirectory + sProjectName + sFile + sExtension;
         return findFile(sRetFileName, sFileName);
     }

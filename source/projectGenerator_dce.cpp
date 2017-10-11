@@ -190,7 +190,8 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         map<string, vector<DCEParams>> mFunctionFiles;
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
             //Remove project dir from start of file
-            uint uiPos = itDCE->second.sFile.find((m_sProjectDir.find("./") == 0) ? m_sProjectDir.substr(2) : m_sProjectDir);
+            const string sProjectDirCut = (m_sProjectDir.find("./") == 0) ? m_sProjectDir.substr(2) : m_sProjectDir;
+            uint uiPos = (sProjectDirCut.length() > 0) ? itDCE->second.sFile.find(sProjectDirCut) : string::npos;
             uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
             string sFile = sTempFolder + '/' + itDCE->second.sFile.substr(uiPos);
             if (sFile.find('/', sTempFolder.length() + 1) != string::npos) {
@@ -243,7 +244,9 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
             }
         }
         //Add current directory to include list (must be done last to ensure correct include order)
-        vIncludeDirs2.push_back(m_sProjectDir);
+        if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), m_sProjectDir) == vIncludeDirs2.end()) {
+            vIncludeDirs2.push_back(m_sProjectDir);
+        }
 
         if (!runCompiler(vIncludeDirs2, mDirectoryObjects, 1)) {
             return false;
