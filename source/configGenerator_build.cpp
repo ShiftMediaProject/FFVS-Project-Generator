@@ -122,7 +122,7 @@ bool ConfigGenerator::buildDefaultValues()
 
     fastToggleConfigValue("access", true);
     fastToggleConfigValue("aligned_malloc", true);
-
+    fastToggleConfigValue("clock_gettime", false);
     fastToggleConfigValue("closesocket", true);
     fastToggleConfigValue("CommandLineToArgvW", true);
     fastToggleConfigValue("CoTaskMemFree", true);
@@ -204,116 +204,144 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("fft", true);
     fastToggleConfigValue("pixelutils", true);
 
-    //Enable all the auto detected libs
+    //Disable all external libs until explicitly enabled
     vList.resize(0);
-    if (getConfigList("AUTODETECT_LIBS", vList)) {
-        string sFileName;
+    if (getConfigList("EXTERNAL_LIBRARY_LIST", vList)) {
         vector<string>::iterator vitValues = vList.begin();
         for (vitValues; vitValues < vList.end(); vitValues++) {
-            bool bEnable;
-            //Handle detection of various libs
-            if (vitValues->compare("alsa") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("appkit") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("bzlib") == 0) {
-                makeFileGeneratorRelative(m_sOutDirectory + "include/bzlib.h", sFileName);
-                bEnable = findFile(sFileName, sFileName);
-            } else if (vitValues->compare("iconv") == 0) {
-                makeFileGeneratorRelative(m_sOutDirectory + "include/iconv.h", sFileName);
-                bEnable = findFile(sFileName, sFileName);
-            } else if (vitValues->compare("jack") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("libxcb") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("libxcb_shm") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("libxcb_shape") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("libxcb_xfixes") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("lzma") == 0) {
-                makeFileGeneratorRelative(m_sOutDirectory + "include/lzma.h", sFileName);
-                bEnable = findFile(sFileName, sFileName);
-            } else if (vitValues->compare("schannel") == 0) {
-                bEnable = true;
-            } else if (vitValues->compare("sdl2") == 0) {
-                makeFileGeneratorRelative(m_sOutDirectory + "include/SDL/SDL.h", sFileName);
-                bEnable = findFile(sFileName, sFileName);
-            } else if (vitValues->compare("securetransport") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("sndio") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("xlib") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("zlib") == 0) {
-                makeFileGeneratorRelative(m_sOutDirectory + "include/zlib.h", sFileName);
-                bEnable = findFile(sFileName, sFileName);
-            } else if (vitValues->compare("audiotoolbox") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("crystalhd") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("cuda") == 0) {
-                bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-            } else if (vitValues->compare("cuvid") == 0) {
-                bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-            } else if (vitValues->compare("d3d11va") == 0) {
-                bEnable = true;
-            } else if (vitValues->compare("dxva2") == 0) {
-                bEnable = true;
-            } else if (vitValues->compare("nvenc") == 0) {
-                bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
-            } else if (vitValues->compare("vaapi") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("vda") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("vdpau") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("videotoolbox_hwaccel") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("v4l2_m2m") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("xvmc") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("pthreads") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("os2threads") == 0) {
-                bEnable = false;
-            } else if (vitValues->compare("w32threads") == 0) {
-                bEnable = true;
-            } else {
-                //This is an unknown option
-                outputInfo("Found unknown auto detected option " + *vitValues);
-                //Just disable
-                bEnable = false;
+            fastToggleConfigValue(*vitValues, false);
+        }
+    }
+
+    //Disable all hwaccels until explicitly enabled
+    vList.resize(0);
+    if (getConfigList("HWACCEL_LIBRARY_LIST", vList)) {
+        vector<string>::iterator vitValues = vList.begin();
+        for (vitValues; vitValues < vList.end(); vitValues++) {
+            fastToggleConfigValue(*vitValues, false);
+        }
+    }
+
+    //Check if auto detection is enabled
+    ValuesList::iterator itAutoDet = ConfigGenerator::getConfigOption("autodetect");
+    if ((itAutoDet == m_vConfigValues.end()) || (itAutoDet->m_sValue.compare("0") != 0)) {
+        //Enable all the auto detected libs
+        vList.resize(0);
+        if (getConfigList("AUTODETECT_LIBS", vList)) {
+            string sFileName;
+            vector<string>::iterator vitValues = vList.begin();
+            for (vitValues; vitValues < vList.end(); vitValues++) {
+                bool bEnable;
+                //Handle detection of various libs
+                if (vitValues->compare("alsa") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("appkit") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("bzlib") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/bzlib.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("iconv") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/iconv.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("jack") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("libxcb") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("libxcb_shm") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("libxcb_shape") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("libxcb_xfixes") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("lzma") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/lzma.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("schannel") == 0) {
+                    bEnable = true;
+                } else if (vitValues->compare("sdl2") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/SDL/SDL.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("securetransport") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("sndio") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("xlib") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("zlib") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/zlib.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("audiotoolbox") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("crystalhd") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("cuda") == 0) {
+                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                } else if (vitValues->compare("cuvid") == 0) {
+                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                } else if (vitValues->compare("d3d11va") == 0) {
+                    bEnable = true;
+                } else if (vitValues->compare("dxva2") == 0) {
+                    bEnable = true;
+                } else if (vitValues->compare("nvenc") == 0) {
+                    bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
+                } else if (vitValues->compare("vaapi") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("vda") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("vdpau") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("videotoolbox_hwaccel") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("v4l2_m2m") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("xvmc") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("pthreads") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("os2threads") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("w32threads") == 0) {
+                    bEnable = true;
+                } else if (vitValues->compare("avfoundation") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("coreimage") == 0) {
+                    bEnable = false;
+                } else if (vitValues->compare("videotoolbox") == 0) {
+                    bEnable = false;
+                } else {
+                    //This is an unknown option
+                    outputInfo("Found unknown auto detected option " + *vitValues);
+                    //Just disable
+                    bEnable = false;
+                }
+                toggleConfigValue(*vitValues, bEnable);
             }
-            toggleConfigValue(*vitValues, bEnable);
-        }
-        fastToggleConfigValue("autodetect", true);
-    } else {
-        //If no auto list then just use hard enables
-        fastToggleConfigValue("bzlib", true);
-        fastToggleConfigValue("iconv", true);
-        fastToggleConfigValue("lzma", true);
-        fastToggleConfigValue("schannel", true);
-        fastToggleConfigValue("sdl", true);
-        fastToggleConfigValue("sdl2", true);
-        fastToggleConfigValue("zlib", true);
+            fastToggleConfigValue("autodetect", true);
+        } else {
+            //If no auto list then just use hard enables
+            fastToggleConfigValue("bzlib", true);
+            fastToggleConfigValue("iconv", true);
+            fastToggleConfigValue("lzma", true);
+            fastToggleConfigValue("schannel", true);
+            fastToggleConfigValue("sdl", true);
+            fastToggleConfigValue("sdl2", true);
+            fastToggleConfigValue("zlib", true);
 
-        //Enable hwaccels by default.
-        fastToggleConfigValue("d3d11va", true);
-        fastToggleConfigValue("dxva2", true);
+            //Enable hwaccels by default.
+            fastToggleConfigValue("d3d11va", true);
+            fastToggleConfigValue("dxva2", true);
 
-        string sFileName;
-        if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
-            fastToggleConfigValue("cuda", true);
-            fastToggleConfigValue("cuvid", true);
-        }
-        if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
-            fastToggleConfigValue("nvenc", true);
-        }
-        if (findFile(m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
-            fastToggleConfigValue("opencl", true);
+            string sFileName;
+            if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                fastToggleConfigValue("cuda", true);
+                fastToggleConfigValue("cuvid", true);
+            }
+            if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+                fastToggleConfigValue("nvenc", true);
+            }
+            if (findFile(m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
+                fastToggleConfigValue("opencl", true);
+            }
         }
     }
 
@@ -331,6 +359,8 @@ bool ConfigGenerator::buildForcedValues()
     fastToggleConfigValue("qtkit", false);
     fastToggleConfigValue("avfoundation", false);
     fastToggleConfigValue("mmal", false);
+    fastToggleConfigValue("libdrm", false);
+    fastToggleConfigValue("libv4l2", false);
 
     //values that are not correctly handled by configure
     fastToggleConfigValue("coreimage_filter", false);
@@ -633,7 +663,6 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["ID3D11VideoDecoder"] = true;
     mAdditionalDependencies["ID3D11VideoContext"] = true;
     mAdditionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
-    mAdditionalDependencies["libdl"] = false;
     mAdditionalDependencies["linux_fb_h"] = false;
     mAdditionalDependencies["linux_videodev_h"] = false;
     mAdditionalDependencies["linux_videodev2_h"] = false;
@@ -665,7 +694,17 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["shell32"] = true;
     mAdditionalDependencies["wincrypt"] = true;
     mAdditionalDependencies["psapi"] = true;
+    mAdditionalDependencies["user32"] = true;
     mAdditionalDependencies["qtkit"] = false;
+    mAdditionalDependencies["coreservices"] = false;
+    mAdditionalDependencies["corefoundation"] = false;
+    mAdditionalDependencies["corevideo"] = false;
+    mAdditionalDependencies["coremedia"] = false;
+    mAdditionalDependencies["coregraphics"] = false;
+    mAdditionalDependencies["applicationservices"] = false;
+    mAdditionalDependencies["libdl"] = false;
+    mAdditionalDependencies["libm"] = false;
+    mAdditionalDependencies["libvorbisenc"] = isConfigOptionEnabled("libvorbis");
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
@@ -738,6 +777,8 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
         fastToggleConfigValue("sdl2", true); //must use fastToggle to prevent infinite cycle
     } else if (sOptionLower.compare("sdl2") == 0) {
         fastToggleConfigValue("sdl", true); //must use fastToggle to prevent infinite cycle
+    } else if (sOptionLower.compare("libvorbis") == 0) {
+        CHECKFORCEDENABLES("libvorbisenc");
     }
 }
 

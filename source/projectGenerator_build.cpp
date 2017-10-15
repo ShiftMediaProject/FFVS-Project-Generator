@@ -110,8 +110,10 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
 
     //Loop through each known configuration option and add the required dependencies
     vector<string> vExternLibs;
+    m_ConfigHelper.getConfigList("EXTERNAL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
     m_ConfigHelper.getConfigList("EXTERNAL_LIBRARY_LIST", vExternLibs);
     m_ConfigHelper.getConfigList("HW_CODECS_LIST", vExternLibs, false); //used on some older ffmpeg versions
+    m_ConfigHelper.getConfigList("HWACCEL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
     m_ConfigHelper.getConfigList("HWACCEL_LIBRARY_LIST", vExternLibs, false);
     for (vector<string>::iterator vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); vitLib++) {
         //Check if enabled
