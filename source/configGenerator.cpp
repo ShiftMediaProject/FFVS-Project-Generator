@@ -1476,11 +1476,11 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
         }
     }
     if (!bRet) {
+        DependencyList mAdditionalDependencies;
+        buildAdditionalDependencies(mAdditionalDependencies);
+        DependencyList::iterator mitDep = mAdditionalDependencies.find(sOption);
         if (bRecursive) {
             //Ensure this is not already set
-            DependencyList mAdditionalDependencies;
-            buildAdditionalDependencies(mAdditionalDependencies);
-            DependencyList::iterator mitDep = mAdditionalDependencies.find(sOption);
             if (mitDep == mAdditionalDependencies.end()) {
                 //Some options are passed in recursively that do not exist in internal list
                 // However there dependencies should still be processed
@@ -1488,12 +1488,12 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
                 transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
                 m_vConfigValues.push_back(ConfigPair(sOptionUpper, "", ""));
                 outputInfo("Unlisted config dependency found (" + sOption + ")");
-                //Fix iterator in case of realloc
-                vitOption = m_vConfigValues.end() - 1;
             }
         } else {
-            outputError("Unknown config option (" + sOption + ")");
-            return false;
+            if (mitDep == mAdditionalDependencies.end()) {
+                outputError("Unknown config option (" + sOption + ")");
+                return false;
+            }
         }
     }
     return true;
