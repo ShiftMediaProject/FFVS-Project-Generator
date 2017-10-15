@@ -42,17 +42,11 @@ ConfigGenerator::ConfigGenerator() :
 bool ConfigGenerator::passConfig(int argc, char** argv)
 {
     //Check for initial input arguments
+    vector<string> vEarlyArgs;
+    buildEarlyConfigArgs(vEarlyArgs);
     for (int i = 1; i < argc; i++) {
         string stOption = string(argv[i]);
-        if (stOption.find("--rootdir") == 0) {
-            if (!changeConfig(stOption)) {
-                return false;
-            }
-        } else  if (stOption.find("--projdir") == 0) {
-            if (!changeConfig(stOption)) {
-                return false;
-            }
-        } else  if (stOption.find("--prefix") == 0) {
+        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stOption) != vEarlyArgs.end()) {
             if (!changeConfig(stOption)) {
                 return false;
             }
@@ -67,8 +61,12 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
     }
     //Pass input arguments
     for (int i = 1; i < argc; i++) {
-        if (!changeConfig(argv[i])) {
-            return false;
+        //Check that option hasn't already been processed
+        string stOption = string(argv[i]);
+        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stOption) == vEarlyArgs.end()) {
+            if (!changeConfig(stOption)) {
+                return false;
+            }
         }
     }
     //Ensure forced values

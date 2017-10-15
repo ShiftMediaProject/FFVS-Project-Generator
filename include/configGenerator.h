@@ -134,15 +134,44 @@ private:
 
     void buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues);
 
+    /**
+     * Creates a list of config items that are automatically set and should be be set by the user.
+     * @param [out] vReservedItems The reserved items.
+     */
     void buildReservedValues(vector<string> & vReservedItems);
 
+    /**
+     * Creates a list of additional config option dependencies that are not available as actual config options.
+     * @param [out] mAdditionalDependencies The additional dependencies.
+     */
     void buildAdditionalDependencies(DependencyList & mAdditionalDependencies);
 
+    /**
+     * Creates a list of components that can be disabled based on the current configuration as better alternatives are
+     * enabled.
+     * @param [in,out] mOptimisedDisables The optimised disables.
+     */
     void buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables);
 
+    /**
+     * Creates a list of config options that must be forced to be enabled if the specified option is enabled.
+     * @param          sOptionLower The enabled option (in lower case).
+     * @param [in,out] vForceEnable The forced enable options.
+     */
     void buildForcedEnables(string sOptionLower, vector<string> & vForceEnable);
 
+    /**
+    * Creates a list of config options that must be forced to be disabled if the specified option is disabled.
+    * @param          sOptionLower The disabled option (in lower case).
+    * @param [in,out] vForceEnable The forced enable options.
+    */
     void buildForcedDisables(string sOptionLower, vector<string> & vForceDisable);
+
+    /**
+     * Creates a list of command line arguments that must be handled before all others.
+     * @param [out] vEarlyArgs The early arguments.
+     */
+    void buildEarlyConfigArgs(vector<string> & vEarlyArgs);
 
     void buildObjects(const string & sTag, vector<string> & vObjects);
 

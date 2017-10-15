@@ -753,6 +753,17 @@ void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string> & 
     }
 }
 
+void ConfigGenerator::buildEarlyConfigArgs(vector<string> & vEarlyArgs)
+{
+    vEarlyArgs.resize(0);
+    vEarlyArgs.push_back("--rootdir");
+    vEarlyArgs.push_back("--projdir");
+    vEarlyArgs.push_back("--prefix");
+    vEarlyArgs.push_back("--loud");
+    vEarlyArgs.push_back("--quiet");
+    vEarlyArgs.push_back("--autodetect");
+}
+
 void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
 {
     if (sTag.compare("COMPAT_OBJS") == 0) {
