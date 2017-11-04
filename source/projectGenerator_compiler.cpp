@@ -133,7 +133,7 @@ popd\n";
         //Split calls into groups of 50 to prevent batch file length limit
         for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
             sCLLaunchBat += "cl.exe ";
-            sCLLaunchBat += sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
+            sCLLaunchBat += sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /D\"inline=__inline\" /D\"_XKEYCHECK_H\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
             uint uiStartPos = uiTotalPos;
             for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
