@@ -151,6 +151,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("local_aligned_32", true);
     fastToggleConfigValue("local_aligned_16", true);
     fastToggleConfigValue("local_aligned_8", true);
+    fastToggleConfigValue("local_aligned", true);
     fastToggleConfigValue("malloc_h", true);
     fastToggleConfigValue("MapViewOfFile", true);
     fastToggleConfigValue("MemoryBarrier", true);
