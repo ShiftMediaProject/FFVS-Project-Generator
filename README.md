@@ -71,8 +71,7 @@ However the following is a list of extra dependency options that require externa
 3. decklink (requires Blackmagic DeckLink SDK)
 	1. Download the "Blackmagic DeckLink SDK" from the Blackmagic website.
 	2. Extract the downloaded SDK wherever desired.
-    3. Create a batch file in the extracted "Win/include" folder containing the following (Note: you may have to change the first line depending on the installed Visual Studio version and location):
-    call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\vcvars32.bat"
+    3. Run the following command from a Visual Studio developer command prompt in the "Win/include" folder:
     midl /win32 /h DeckLinkAPI.h DeckLinkAPI.idl
     4. Copy the newly created "DeckLinkAPI.h" and "DeckLinkAPI_i.c" files to *OutputDir*/include/*.
  
