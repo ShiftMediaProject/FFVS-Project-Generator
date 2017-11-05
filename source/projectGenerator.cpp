@@ -41,16 +41,16 @@ bool ProjectGenerator::passAllMake()
 {
     if ((m_ConfigHelper.m_sToolchain.compare("msvc") == 0) || (m_ConfigHelper.m_sToolchain.compare("icl") == 0)) {
         //Copy the required header files to output directory
-        bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h");
+        bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h", true);
         if (!bCopy) {
             outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
             return false;
         }
-        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h");
-        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h");
+        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h", true);
+        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h", true);
         string sFileName;
         if (findFile(m_ConfigHelper.m_sRootDirectory + "compat/atomics/win32/stdatomic.h", sFileName)) {
-            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h");
+            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h", true);
         }
     }
 

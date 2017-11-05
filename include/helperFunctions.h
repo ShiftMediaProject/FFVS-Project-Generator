@@ -65,9 +65,11 @@ bool writeToFile(const string& sFileName, const string& sString, bool bBinary = 
  * Copies an internal embedded resource to a file.
  * @param iResourceID      Identifier for the resource.
  * @param sDestinationFile Destination file.
+ * @param bBinary          (Optional) True to write in binary mode (in normal text mode line ending are converted to
+ *                         OS specific).
  * @return True if it succeeds, false if it fails.
  */
-bool copyResourceFile(int iResourceID, const string & sDestinationFile);
+bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBinary = false);
 
 /**
  * Deletes s file.

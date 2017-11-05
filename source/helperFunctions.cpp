@@ -141,7 +141,7 @@ bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
     return true;
 }
 
-bool copyResourceFile(int iResourceID, const string & sDestinationFile)
+bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBinary)
 {
 #ifdef _WIN32
     // Can load directly from windows resource file
@@ -152,7 +152,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile)
     char* resText = (char*)LockResource(hMem);
 
     //Copy across the file
-    ofstream ofDest(sDestinationFile);
+    ofstream ofDest(sDestinationFile, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofDest.is_open()) {
         FreeResource(hMem);
         return false;
@@ -170,7 +170,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile)
 #else
     uint iSize = (uint)(&pp_cEndArray[iResourceID - 100] - &pp_cStartArray[iResourceID - 100]);
     //Copy across the file
-    ofstream ofDest(sDestinationFile);
+    ofstream ofDest(sDestinationFile, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofDest.is_open()) {
         return false;
     }
