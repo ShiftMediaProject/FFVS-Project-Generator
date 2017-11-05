@@ -209,7 +209,7 @@ private:
 
     void buildDependencies(StaticList & vLibs, StaticList & vAddLibs);
 
-    void buildDependencyDirs(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs);
+    void buildDependencyValues(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs, StaticList & vDefines);
 
     void buildProjectDependencies(map<string, bool> & mProjectDeps);
 
@@ -276,11 +276,33 @@ private:
      */
     bool runGCC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
 
+    /**
+     * Output additional build events to the project.
+     * @param [in,out] sProjectTemplate The project template.
+     */
     void outputBuildEvents(string & sProjectTemplate);
 
+    /**
+     * Output additional include search directories to project.
+     * @param          vIncludeDirs     The include dirs.
+     * @param [in,out] sProjectTemplate The project template.
+     */
     void outputIncludeDirs(const StaticList& vIncludeDirs, string & sProjectTemplate);
 
+    /**
+     * Output additional library search directories to project.
+     * @param          vLib32Dirs       The library 32b dirs.
+     * @param          vLib64Dirs       The library 64b dirs.
+     * @param [in,out] sProjectTemplate The project template.
+     */
     void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string & sProjectTemplate);
+
+    /**
+     * Output additional defines to the project.
+     * @param          vDefines         The defines.
+     * @param [in,out] sProjectTemplate The project template.
+     */
+    void outputDefines(const StaticList & vDefines, string & sProjectTemplate);
 
     /**
      * Output yasm tools to project template.

@@ -195,7 +195,8 @@ bool ProjectGenerator::outputProject()
     StaticList vIncludeDirs;
     StaticList vLib32Dirs;
     StaticList vLib64Dirs;
-    buildDependencyDirs(vIncludeDirs, vLib32Dirs, vLib64Dirs);
+    StaticList vDefines;
+    buildDependencyValues(vIncludeDirs, vLib32Dirs, vLib64Dirs, vDefines);
 
     //Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(vIncludeDirs)) {
@@ -247,6 +248,9 @@ bool ProjectGenerator::outputProject()
     //Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProjectFile);
 
+    //Add additional defines
+    outputDefines(vDefines, sProjectFile);
+
     //Replace all template tag arguments
     outputTemplateTags(sProjectFile, sFiltersFile);
 
@@ -281,7 +285,8 @@ bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, cons
     StaticList vIncludeDirs;
     StaticList vLib32Dirs;
     StaticList vLib64Dirs;
-    buildDependencyDirs(vIncludeDirs, vLib32Dirs, vLib64Dirs);
+    StaticList vDefines;
+    buildDependencyValues(vIncludeDirs, vLib32Dirs, vLib64Dirs, vDefines);
 
     //Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(vIncludeDirs)) {
@@ -327,6 +332,9 @@ bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, cons
 
     //Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProgramFile);
+
+    //Add additional defines
+    outputDefines(vDefines, sProgramFile);
 
     //Replace all template tag arguments
     outputTemplateTags(sProgramFile, sProgramFiltersFile);
@@ -1268,7 +1276,7 @@ cd $(ProjectDir)\r\n\
 
 void ProjectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string & sProjectTemplate)
 {
-    if (vIncludeDirs.size() > 0) {
+    if (!vIncludeDirs.empty()) {
         string sAddInclude;
         for (StaticList::const_iterator vitIt = vIncludeDirs.cbegin(); vitIt < vIncludeDirs.cend(); vitIt++) {
             sAddInclude += *vitIt + ";";
@@ -1289,7 +1297,7 @@ void ProjectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string
 
 void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const StaticList & vLib64Dirs, string & sProjectTemplate)
 {
-    if ((vLib32Dirs.size() > 0) || (vLib64Dirs.size() > 0)) {
+    if ((!vLib32Dirs.empty()) || (!vLib64Dirs.empty())) {
         //Add additional lib includes to include list based on current config
         string sAddLibs[2];
         for (StaticList::const_iterator vitIt = vLib32Dirs.cbegin(); vitIt < vLib32Dirs.cend(); vitIt++) {
@@ -1311,6 +1319,26 @@ void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const Static
             //Get next
             uiFindPos = sProjectTemplate.find(sAddLibDir, uiFindPos + 1);
             ui32Or64 = !ui32Or64;
+        }
+    }
+}
+
+void ProjectGenerator::outputDefines(const StaticList & vDefines, string & sProjectTemplate)
+{
+    if (!vDefines.empty()) {
+        string sDefines;
+        for (StaticList::const_iterator vitIt = vDefines.cbegin(); vitIt < vDefines.cend(); vitIt++) {
+            sDefines += *vitIt + ";";
+        }
+        const string sAddDefines = "<PreprocessorDefinitions>";
+        uint uiFindPos = sProjectTemplate.find(sAddDefines);
+        while (uiFindPos != string::npos) {
+            //Add to output
+            uiFindPos += sAddDefines.length();
+            sProjectTemplate.insert(uiFindPos, sDefines);
+            uiFindPos += sDefines.length();
+            //Get next
+            uiFindPos = sProjectTemplate.find(sDefines, uiFindPos + 1);
         }
     }
 }

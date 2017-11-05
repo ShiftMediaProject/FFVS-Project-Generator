@@ -227,7 +227,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
     }
 }
 
-void ProjectGenerator::buildDependencyDirs(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs)
+void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs, StaticList & vDefines)
 {
     //Determine only those dependencies that are valid for current project
     map<string, bool> mProjectDeps;
@@ -251,6 +251,7 @@ void ProjectGenerator::buildDependencyDirs(StaticList & vIncludeDirs, StaticList
             } else if (mitLib->first.compare("libxml2") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/libxml2");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
+                vDefines.push_back("LIBXML_STATIC");
             } else if ((mitLib->first.compare("sdl") == 0) && (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end())) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
