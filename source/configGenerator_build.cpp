@@ -283,6 +283,8 @@ bool ConfigGenerator::buildDefaultValues()
                     bEnable = true;
                 } else if (vitValues->compare("dxva2") == 0) {
                     bEnable = true;
+                } else if (vitValues->compare("nvdec") == 0) {
+                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName);
                 } else if (vitValues->compare("nvenc") == 0) {
                     bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
                 } else if (vitValues->compare("vaapi") == 0) {
@@ -659,6 +661,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["DXVA_PicParams_HEVC"] = true;
     mAdditionalDependencies["DXVA_PicParams_VP9"] = true;
     mAdditionalDependencies["dxva2api_h"] = true;
+    mAdditionalDependencies["fork"] = false;
     mAdditionalDependencies["jack_jack_h"] = false;
     mAdditionalDependencies["IBaseFilter"] = true;
     mAdditionalDependencies["ID3D11VideoDecoder"] = true;
@@ -667,6 +670,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["linux_fb_h"] = false;
     mAdditionalDependencies["linux_videodev_h"] = false;
     mAdditionalDependencies["linux_videodev2_h"] = false;
+    mAdditionalDependencies["LoadLibrary"] = true;
     mAdditionalDependencies["parisc64"] = false;
     mAdditionalDependencies["DXVA2_ConfigPictureDecode"] = true;
     mAdditionalDependencies["snd_pcm_htimestamp"] = false;

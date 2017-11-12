@@ -176,6 +176,8 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
                 if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
                     vAddLibs.push_back("nvcuvid"); //Add the additional required libs
                 }
+            } else if ((vitLib->compare("nvdec") == 0) || (vitLib->compare("nvenc") == 0)) {
+                //Doesn't need any additional libs
             } else if (vitLib->compare("schannel") == 0) {
                 vAddLibs.push_back("Secur32"); //Add the additional required libs
             } else if (vitLib->compare("sdl") == 0) {
@@ -412,6 +414,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps
     mProjectDeps["libzmq"] = (m_sProjectName.compare("libavfilter") == 0);
     mProjectDeps["libzvbi"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["lzma"] = (m_sProjectName.compare("libavcodec") == 0);
+    mProjectDeps["nvdec"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["nvenc"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["openal"] = (m_sProjectName.compare("libavdevice") == 0);
     mProjectDeps["opencl"] = (m_sProjectName.compare("libavutil") == 0) || (m_sProjectName.compare("libavfilter") == 0) || (m_sProjectName.compare("ffmpeg") == 0) || (m_sProjectName.compare("avconv") == 0)
