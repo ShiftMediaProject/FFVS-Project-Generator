@@ -489,6 +489,14 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #else\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 0\n\
 #endif";
+    mReplaceValues["HAVE_OPENCL_D3D11"] = "#ifdef _WIN32\n\
+#include <sdkddkver.h>\n\
+#endif\n\
+#if defined(NTDDI_WIN8)\n\
+#   define HAVE_OPENCL_D3D11 1\n\
+#else\n\
+#   define HAVE_OPENCL_D3D11 0\n\
+#endif";
 
     //Build replace values for all x86 inline asm
     vector<string> vInlineList;
@@ -784,6 +792,9 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
         fastToggleConfigValue("sdl", true); //must use fastToggle to prevent infinite cycle
     } else if (sOptionLower.compare("libvorbis") == 0) {
         CHECKFORCEDENABLES("libvorbisenc");
+    } else if (sOptionLower.compare("opencl") == 0) {
+        CHECKFORCEDENABLES("opencl_d3d11");
+        CHECKFORCEDENABLES("opencl_dxva2");
     }
 }
 
