@@ -271,6 +271,9 @@ bool ConfigGenerator::buildDefaultValues()
                 } else if (vitValues->compare("zlib") == 0) {
                     makeFileGeneratorRelative(m_sOutDirectory + "include/zlib.h", sFileName);
                     bEnable = findFile(sFileName, sFileName);
+                } else if (vitValues->compare("amf") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/AMF/core/Version.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
                 } else if (vitValues->compare("audiotoolbox") == 0) {
                     bEnable = false;
                 } else if (vitValues->compare("crystalhd") == 0) {
@@ -287,6 +290,9 @@ bool ConfigGenerator::buildDefaultValues()
                     bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName);
                 } else if (vitValues->compare("nvenc") == 0) {
                     bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
+                } else if (vitValues->compare("opencl") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/cl/cl.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
                 } else if (vitValues->compare("vaapi") == 0) {
                     bEnable = false;
                 } else if (vitValues->compare("vda") == 0) {
@@ -341,9 +347,6 @@ bool ConfigGenerator::buildDefaultValues()
             }
             if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                 fastToggleConfigValue("nvenc", true);
-            }
-            if (findFile(m_sRootDirectory + "compat/opencl/cl.h", sFileName)) {
-                fastToggleConfigValue("opencl", true);
             }
         }
     }
