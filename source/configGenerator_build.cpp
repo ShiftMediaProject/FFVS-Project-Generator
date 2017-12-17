@@ -210,7 +210,7 @@ bool ConfigGenerator::buildDefaultValues()
     if (getConfigList("EXTERNAL_LIBRARY_LIST", vList)) {
         vector<string>::iterator vitValues = vList.begin();
         for (vitValues; vitValues < vList.end(); vitValues++) {
-            fastToggleConfigValue(*vitValues, false);
+            toggleConfigValue(*vitValues, false);
         }
     }
 
@@ -219,7 +219,7 @@ bool ConfigGenerator::buildDefaultValues()
     if (getConfigList("HWACCEL_LIBRARY_LIST", vList)) {
         vector<string>::iterator vitValues = vList.begin();
         for (vitValues; vitValues < vList.end(); vitValues++) {
-            fastToggleConfigValue(*vitValues, false);
+            toggleConfigValue(*vitValues, false);
         }
     }
 
