@@ -66,6 +66,7 @@ private:
     bool m_bUsingExistingConfig;
     DefaultValuesList m_mReplaceList;
     DefaultValuesList m_mASMReplaceList;
+    bool m_bUseNASM;
 
 public:
     /** Default constructor. */

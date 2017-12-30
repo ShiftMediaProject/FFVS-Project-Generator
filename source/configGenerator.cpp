@@ -35,7 +35,8 @@ ConfigGenerator::ConfigGenerator() :
     m_bLibav(false),
     m_sProjectName("FFMPEG"),
     m_bDCEOnly(false),
-    m_bUsingExistingConfig(false)
+    m_bUsingExistingConfig(false),
+    m_bUseNASM(true)
 {
 }
 
@@ -349,6 +350,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         outputLine("Toolchain options:");
         outputLine("  --toolchain=NAME         set tool defaults according to NAME");
         outputLine("  --dce-only               do not output a project and only generate missing DCE files");
+        outputLine("  --use-yasm               use YASM instead of the default NASM (this is not advised as it does not support newer instructions)");
         // Add in reserved values
         vector<string> vReservedItems;
         buildReservedValues(vReservedItems);
@@ -442,6 +444,9 @@ bool ConfigGenerator::changeConfig(const string & stOption)
     } else if (stOption.compare("--dce-only") == 0) {
         //This has no parameters and just sets internal value
         m_bDCEOnly = true;
+    } else if (stOption.compare("--use-yasm") == 0) {
+        //This has no parameters and just sets internal value
+        m_bUseNASM = false;
     } else if (stOption.find("--use-existing-config") == 0) {
         //A input config file has been specified
         m_bUsingExistingConfig = true;

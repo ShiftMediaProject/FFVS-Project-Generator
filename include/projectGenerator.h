@@ -305,18 +305,6 @@ private:
     void outputDefines(const StaticList & vDefines, string & sProjectTemplate);
 
     /**
-     * Output yasm tools to project template.
-     * @param [in,out] sProjectTemplate The project template.
-     */
-    void outputYASMTools(string & sProjectTemplate);
-
-    /**
-     * Output nasm tools to project template.
-     * @param [in,out] sProjectTemplate The project template.
-     */
-    void outputNASMTools(string & sProjectTemplate);
-
-    /**
      * Output asm tools to project template.
      * @remark Either yasm or nasm tools will be used based on current configuration.
      * @param [in,out] sProjectTemplate The project template.

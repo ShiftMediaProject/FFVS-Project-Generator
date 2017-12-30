@@ -23,10 +23,6 @@
 #include <algorithm>
 #include <utility>
 
-//This can be used to change between outputting projects using either nasm
-// or yasm assembler
-#define USENASM 0
-
 #define TEMPLATE_COMPAT_ID 100
 #define TEMPLATE_MATH_ID 101
 #define TEMPLATE_UNISTD_ID 102
@@ -887,7 +883,7 @@ void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFi
 
     //Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (m_ConfigHelper.isASMEnabled()) {
-        outputSourceFileType(m_vASMIncludes, (USENASM) ? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+        outputSourceFileType(m_vASMIncludes, (m_ConfigHelper.m_bUseNASM) ? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
     }
 
     //Output C files
@@ -1343,98 +1339,57 @@ void ProjectGenerator::outputDefines(const StaticList & vDefines, string & sProj
     }
 }
 
-void ProjectGenerator::outputYASMTools(string & sProjectTemplate)
-{
-    const string sYASMDefines = "\r\n\
-    <YASM>\r\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;%(IncludePaths)</IncludePaths>\r\n\
-      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
-      <GenerateDebugInformation>true</GenerateDebugInformation>\r\n\
-    </YASM>";
-    const string sYASMProps = "\r\n\
-  <ImportGroup Label=\"ExtensionSettings\">\r\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.props\" />\r\n\
-  </ImportGroup>";
-    const string sYASMTargets = "\r\n\
-  <ImportGroup Label=\"ExtensionTargets\">\r\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\yasm.targets\" />\r\n\
-  </ImportGroup>";
-    const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
-    const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
-
-        //Add YASM defines
-    const string sEndPreBuild = "</PreBuildEvent>";
-    uint uiFindPos = sProjectTemplate.find(sEndPreBuild);
-    while (uiFindPos != string::npos) {
-        uiFindPos += sEndPreBuild.length();
-        //Add to output
-        sProjectTemplate.insert(uiFindPos, sYASMDefines);
-        uiFindPos += sYASMDefines.length();
-        //Get next
-        uiFindPos = sProjectTemplate.find(sEndPreBuild, uiFindPos + 1);
-    }
-
-    //Add YASM build customisation
-    uiFindPos = sProjectTemplate.find(sFindProps) + sFindProps.length();
-    //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add yasm props
-    sProjectTemplate.insert(uiFindPos, sYASMProps);
-    uiFindPos += sYASMProps.length();
-    uiFindPos = sProjectTemplate.find(sFindTargets) + sFindTargets.length();
-    //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add yasm target
-    sProjectTemplate.insert(uiFindPos, sYASMTargets);
-    uiFindPos += sYASMTargets.length();
-}
-
-void ProjectGenerator::outputNASMTools(string & sProjectTemplate)
-{
-    const string sNASMDefines = "\r\n\
-    <NASM>\r\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\libavutil\\x86;%(IncludePaths)</IncludePaths>\r\n\
-      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
-      <GenerateDebugInformation>true</GenerateDebugInformation>\r\n\
-    </NASM>";
-    const string sNASMProps = "\r\n\
-  <ImportGroup Label=\"ExtensionSettings\">\r\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\r\nasm.props\" />\r\n\
-  </ImportGroup>";
-    const string sNASMTargets = "\r\n\
-  <ImportGroup Label=\"ExtensionTargets\">\r\n\
-    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\r\nasm.targets\" />\r\n\
-  </ImportGroup>";
-    const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
-    const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
-
-        //Add NASM defines
-    const string sEndPreBuild = "</PreBuildEvent>";
-    uint uiFindPos = sProjectTemplate.find(sEndPreBuild);
-    while (uiFindPos != string::npos) {
-        uiFindPos += sEndPreBuild.length();
-        //Add to output
-        sProjectTemplate.insert(uiFindPos, sNASMDefines);
-        uiFindPos += sNASMDefines.length();
-        //Get next
-        uiFindPos = sProjectTemplate.find(sEndPreBuild, uiFindPos + 1);
-    }
-
-    //Add NASM build customisation
-    uiFindPos = sProjectTemplate.find(sFindProps) + sFindProps.length();
-    //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add nasm props
-    sProjectTemplate.insert(uiFindPos, sNASMProps);
-    uiFindPos += sNASMProps.length();
-    uiFindPos = sProjectTemplate.find(sFindTargets) + sFindTargets.length();
-    //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add nasm target
-    sProjectTemplate.insert(uiFindPos, sNASMTargets);
-    uiFindPos += sNASMTargets.length();
-}
-
 void ProjectGenerator::outputASMTools(string & sProjectTemplate)
 {
     if (m_ConfigHelper.isASMEnabled() && (m_vASMIncludes.size() > 0)) {
-#if USENASM
-        outputNASMTools(sProjectTemplate);
-#else
-        outputYASMTools(sProjectTemplate);
-#endif
+        string sASMDefines = "\r\n\
+    <NASM>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\$(ProjectName)\\x86;%(IncludePaths)</IncludePaths>\r\n\
+      <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
+      <GenerateDebugInformation>false</GenerateDebugInformation>\r\n\
+    </NASM>";
+        string sASMProps = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.props\" />\r\n\
+  </ImportGroup>";
+        string sASMTargets = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.targets\" />\r\n\
+  </ImportGroup>";
+        if (!m_ConfigHelper.m_bUseNASM) {
+            //Replace nasm with yasm
+            size_t n = 0;
+            while ((n = sASMDefines.find("NASM", n)) != string::npos) {
+                sASMDefines.replace(n, 4, "YASM");
+                n += 4;
+            }
+            sASMProps.replace(sASMProps.find("nasm"), 4, "yasm");
+            sASMTargets.replace(sASMTargets.find("nasm"), 4, "yasm");
+        }
+        const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
+        const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
+
+        //Add NASM defines
+        const string sEndPreBuild = "</PreBuildEvent>";
+        uint uiFindPos = sProjectTemplate.find(sEndPreBuild);
+        while (uiFindPos != string::npos) {
+            uiFindPos += sEndPreBuild.length();
+            //Add to output
+            sProjectTemplate.insert(uiFindPos, sASMDefines);
+            uiFindPos += sASMDefines.length();
+            //Get next
+            uiFindPos = sProjectTemplate.find(sEndPreBuild, uiFindPos + 1);
+        }
+
+        //Add NASM build customisation
+        uiFindPos = sProjectTemplate.find(sFindProps) + sFindProps.length();
+        //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add asm props
+        sProjectTemplate.insert(uiFindPos, sASMProps);
+        uiFindPos += sASMProps.length();
+        uiFindPos = sProjectTemplate.find(sFindTargets) + sFindTargets.length();
+        //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
+        sProjectTemplate.insert(uiFindPos, sASMTargets);
+        uiFindPos += sASMTargets.length();
     }
 }
 

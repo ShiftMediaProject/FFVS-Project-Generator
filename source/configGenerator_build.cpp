@@ -105,6 +105,17 @@ bool ConfigGenerator::buildDefaultValues()
     //Default we enable asm
     fastToggleConfigValue("yasm", true);
     fastToggleConfigValue("x86asm", true);
+    if (m_bUseNASM) {
+        //NASM doesn't support cpunop
+        fastToggleConfigValue("cpunop", false);
+        fastToggleConfigValue("cpunop_external", false);
+    } else {
+        //Yasm doesn't support avx512
+        fastToggleConfigValue("avx512", false);
+        fastToggleConfigValue("avx512_external", false);
+        //Yasm does have cpunop
+        fastToggleConfigValue("cpunop", true);
+    }
 
     //msvc specific options
     fastToggleConfigValue("w32threads", true);
@@ -126,7 +137,6 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("closesocket", true);
     fastToggleConfigValue("CommandLineToArgvW", true);
     fastToggleConfigValue("CoTaskMemFree", true);
-    fastToggleConfigValue("cpunop", true);
     fastToggleConfigValue("CryptGenRandom", true);
     fastToggleConfigValue("direct_h", true);
     fastToggleConfigValue("d3d11_h", true);
@@ -610,7 +620,30 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
     }
 
     //Add to config.asm only list
-    mASMReplaceValues["ARCH_X86_32"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+    if (m_bUseNASM) {
+        mASMReplaceValues["ARCH_X86_32"] = "%if __BITS__ = 64\n\
+%define ARCH_X86_32 0\n\
+%elif __BITS__ = 32\n\
+%define ARCH_X86_32 1\n\
+%define PREFIX\n\
+%endif";
+        mASMReplaceValues["ARCH_X86_64"] = "%if __BITS__ = 64\n\
+%define ARCH_X86_64 1\n\
+%elif __BITS__ = 32\n\
+%define ARCH_X86_64 0\n\
+%endif";
+        mASMReplaceValues["HAVE_ALIGNED_STACK"] = "%if __BITS__ = 64\n\
+%define HAVE_ALIGNED_STACK 1\n\
+%elif __BITS__ = 32\n\
+%define HAVE_ALIGNED_STACK 0\n\
+%endif";
+        mASMReplaceValues["HAVE_FAST_64BIT"] = "%if __BITS__ = 64\n\
+%define HAVE_FAST_64BIT 1\n\
+%elif __BITS__ = 32\n\
+%define HAVE_FAST_64BIT 0\n\
+%endif";
+    } else {
+        mASMReplaceValues["ARCH_X86_32"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define ARCH_X86_32 0\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define ARCH_X86_32 0\n\
@@ -618,27 +651,28 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 %define ARCH_X86_32 1\n\
 %define PREFIX\n\
 %endif";
-    mASMReplaceValues["ARCH_X86_64"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        mASMReplaceValues["ARCH_X86_64"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define ARCH_X86_64 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define ARCH_X86_64 1\n\
 %elifidn __OUTPUT_FORMAT__,win32\n\
 %define ARCH_X86_64 0\n\
 %endif";
-    mASMReplaceValues["HAVE_ALIGNED_STACK"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        mASMReplaceValues["HAVE_ALIGNED_STACK"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define HAVE_ALIGNED_STACK 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define HAVE_ALIGNED_STACK 1\n\
 %elifidn __OUTPUT_FORMAT__,win32\n\
 %define HAVE_ALIGNED_STACK 0\n\
 %endif";
-    mASMReplaceValues["HAVE_FAST_64BIT"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        mASMReplaceValues["HAVE_FAST_64BIT"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define HAVE_FAST_64BIT 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define HAVE_FAST_64BIT 1\n\
 %elifidn __OUTPUT_FORMAT__,win32\n\
 %define HAVE_FAST_64BIT 0\n\
 %endif";
+    }
 }
 
 void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
@@ -822,6 +856,7 @@ void ConfigGenerator::buildEarlyConfigArgs(vector<string> & vEarlyArgs)
     vEarlyArgs.push_back("--loud");
     vEarlyArgs.push_back("--quiet");
     vEarlyArgs.push_back("--autodetect");
+    vEarlyArgs.push_back("--use-yasm");
 }
 
 void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
