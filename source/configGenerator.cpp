@@ -1821,7 +1821,8 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
             vector<string>::iterator vitCheckItem = vCheckList.begin();
             for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
                 //Only enable if not forced to disable
-                if (getConfigOption(*vitCheckItem)->m_sValue.compare("0") != 0) {
+                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
+                if ((vitTemp != m_vConfigValues.end()) && (vitTemp->m_sValue.compare("0") != 0)) {
                     toggleConfigValue(*vitCheckItem, true); //Weak check
                 }
             }
