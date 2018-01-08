@@ -755,6 +755,10 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     mAdditionalDependencies["libdl"] = false;
     mAdditionalDependencies["libm"] = false;
     mAdditionalDependencies["libvorbisenc"] = isConfigOptionEnabled("libvorbis");
+    if (getConfigOption("atomics_native") == m_vConfigValues.end()) {
+        mAdditionalDependencies["atomics_native"] = true;
+    }
+    
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
