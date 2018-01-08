@@ -430,16 +430,16 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             outputError("Must specify a projdir value.");
         }
         string sValue = stOption.substr(10);
-        m_sProjectDirectory = sValue;
+        m_sSolutionDirectory = sValue;
         //Convert '\' to '/'
-        replace(m_sProjectDirectory.begin(), m_sProjectDirectory.end(), '\\', '/');
+        replace(m_sSolutionDirectory.begin(), m_sSolutionDirectory.end(), '\\', '/');
         //Check if a directory has been passed
-        if (m_sProjectDirectory.length() == 0) {
-            m_sProjectDirectory = "./";
+        if (m_sSolutionDirectory.length() == 0) {
+            m_sSolutionDirectory = "./";
         }
         //Check if directory has trailing '/'
-        if (m_sProjectDirectory.back() != '/') {
-            m_sProjectDirectory += '/';
+        if (m_sSolutionDirectory.back() != '/') {
+            m_sSolutionDirectory += '/';
         }
     } else if (stOption.compare("--dce-only") == 0) {
         //This has no parameters and just sets internal value
@@ -851,12 +851,12 @@ bool ConfigGenerator::outputConfig()
     //Output end header guard
     sConfigureFile += "#endif /* SMP_CONFIG_H */\n";
     //Write output files
-    string sConfigFile = m_sProjectDirectory + "config.h";
+    string sConfigFile = m_sSolutionDirectory + "config.h";
     if (!writeToFile(sConfigFile, sConfigureFile)) {
         outputError("Failed opening output configure file (" + sConfigFile + ")");
         return false;
     }
-    sConfigFile = m_sProjectDirectory + "config.asm";
+    sConfigFile = m_sSolutionDirectory + "config.asm";
     if (!writeToFile(sConfigFile, sASMConfigureFile)) {
         outputError("Failed opening output asm configure file (" + sConfigFile + ")");
         return false;
@@ -864,7 +864,7 @@ bool ConfigGenerator::outputConfig()
 
     //Output avconfig.h
     outputLine("  Outputting avconfig.h...");
-    if (!makeDirectory(m_sProjectDirectory + "libavutil")) {
+    if (!makeDirectory(m_sSolutionDirectory + "libavutil")) {
         outputError("Failed creating local libavutil directory");
         return false;
     }
@@ -885,7 +885,7 @@ bool ConfigGenerator::outputConfig()
         sAVConfigFile += "#define AV_HAVE_" + vitOption->m_sOption + ' ' + vitOption->m_sValue + '\n';
     }
     sAVConfigFile += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
-    sConfigFile = m_sProjectDirectory + "libavutil/avconfig.h";
+    sConfigFile = m_sSolutionDirectory + "libavutil/avconfig.h";
     if (!writeToFile(sConfigFile, sAVConfigFile)) {
         outputError("Failed opening output avconfig file (" + sAVConfigFile + ")");
         return false;
@@ -913,7 +913,7 @@ bool ConfigGenerator::outputConfig()
     sVersionFile += sVersion;
     sVersionFile += "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */\n";
     //Open output file
-    sConfigFile = m_sProjectDirectory + "libavutil/ffversion.h";
+    sConfigFile = m_sSolutionDirectory + "libavutil/ffversion.h";
     if (!writeToFile(sConfigFile, sVersionFile)) {
         outputError("Failed opening output version file (" + sVersionFile + ")");
         return false;
@@ -952,10 +952,10 @@ void ConfigGenerator::deleteCreatedFiles()
     if (!m_bUsingExistingConfig) {
         //Delete any previously generated files
         vector<string> vExistingFiles;
-        findFiles(m_sProjectDirectory + "config.h", vExistingFiles, false);
-        findFiles(m_sProjectDirectory + "config.asm", vExistingFiles, false);
-        findFiles(m_sProjectDirectory + "libavutil/avconfig.h", vExistingFiles, false);
-        findFiles(m_sProjectDirectory + "libavutil/ffversion.h", vExistingFiles, false);
+        findFiles(m_sSolutionDirectory + "config.h", vExistingFiles, false);
+        findFiles(m_sSolutionDirectory + "config.asm", vExistingFiles, false);
+        findFiles(m_sSolutionDirectory + "libavutil/avconfig.h", vExistingFiles, false);
+        findFiles(m_sSolutionDirectory + "libavutil/ffversion.h", vExistingFiles, false);
         for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
             deleteFile(*itIt);
         }
@@ -972,7 +972,7 @@ void ConfigGenerator::makeFileProjectRelative(const string & sFileName, string &
         sPath = sFileName.substr(0, uiPos);
         sFile = sFileName.substr(uiPos);
     }
-    makePathsRelative(sPath, m_sProjectDirectory, sRetFileName);
+    makePathsRelative(sPath, m_sSolutionDirectory, sRetFileName);
     //Check if relative to project dir
     if (sRetFileName.find("./") == 0) {
         sRetFileName = sRetFileName.substr(2);
@@ -990,7 +990,7 @@ void ConfigGenerator::makeFileGeneratorRelative(const string & sFileName, string
         sPath = sFileName.substr(0, uiPos);
         sFile = sFileName.substr(uiPos);
     }
-    makePathsRelative(m_sProjectDirectory + sPath, "./", sRetFileName);
+    makePathsRelative(m_sSolutionDirectory + sPath, "./", sRetFileName);
     //Check if relative to current dir
     if (sRetFileName.find("./") == 0) {
         sRetFileName = sRetFileName.substr(2);
@@ -1393,7 +1393,7 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
     sOutput += "    NULL };";
 
     //Open output file
-    writeToFile(m_sProjectDirectory + sFile, sOutput);
+    writeToFile(m_sSolutionDirectory + sFile, sOutput);
     return true;
 }
 

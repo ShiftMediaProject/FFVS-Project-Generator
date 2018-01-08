@@ -25,11 +25,11 @@
 bool ConfigGenerator::buildDefaultValues()
 {
     //Set any unset project values
-    if (m_sProjectDirectory.length() == 0) {
+    if (m_sSolutionDirectory.length() == 0) {
         if (!m_bDCEOnly) {
-            m_sProjectDirectory = m_sRootDirectory + "SMP/";
+            m_sSolutionDirectory = m_sRootDirectory + "SMP/";
         } else {
-            m_sProjectDirectory = m_sRootDirectory;
+            m_sSolutionDirectory = m_sRootDirectory;
         }
     }
     if (m_sOutDirectory.length() == 0) {
@@ -758,7 +758,6 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     if (getConfigOption("atomics_native") == m_vConfigValues.end()) {
         mAdditionalDependencies["atomics_native"] = true;
     }
-    
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)

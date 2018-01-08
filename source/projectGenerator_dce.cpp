@@ -90,7 +90,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 if (!findFile(sTemplateFile, sFound)) {
                     sTemplateFile = (m_ConfigHelper.m_sRootDirectory.length() > 0) ? m_ConfigHelper.m_sRootDirectory + '/' + sBack : sBack;
                     if (!findFile(sTemplateFile, sFound)) {
-                        sTemplateFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + '/' + sBack;
+                        sTemplateFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + '/' + sBack;
                         if (!findFile(sTemplateFile, sFound)) {
                             sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
                             if (!findFile(sTemplateFile, sFound)) {
@@ -536,7 +536,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         sFinalDCEOutFile += '\n' + sDCEOutFile;
 
         //Output the new file
-        string sOutName = m_ConfigHelper.m_sProjectDirectory + '/' + m_sProjectName + '/' + "dce_defs.c";
+        string sOutName = m_ConfigHelper.m_sSolutionDirectory + '/' + m_sProjectName + '/' + "dce_defs.c";
         writeToFile(sOutName, sFinalDCEOutFile);
         m_ConfigHelper.makeFileProjectRelative(sOutName, sOutName);
         m_vCIncludes.push_back(sOutName);

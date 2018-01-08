@@ -60,7 +60,7 @@ private:
     bool m_bLibav;
     string m_sProjectName;
     string m_sRootDirectory;
-    string m_sProjectDirectory;
+    string m_sSolutionDirectory;
     string m_sOutDirectory;
     bool m_bDCEOnly;
     bool m_bUsingExistingConfig;

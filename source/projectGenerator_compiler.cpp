@@ -41,7 +41,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sSolutionDirectory);
     vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
     string sCLExtra;
     for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {
@@ -225,7 +225,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sProjectDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sSolutionDirectory);
     vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
     string sCLExtra;
     for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {

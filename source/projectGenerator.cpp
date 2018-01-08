@@ -37,16 +37,16 @@ bool ProjectGenerator::passAllMake()
 {
     if ((m_ConfigHelper.m_sToolchain.compare("msvc") == 0) || (m_ConfigHelper.m_sToolchain.compare("icl") == 0)) {
         //Copy the required header files to output directory
-        bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sProjectDirectory + "compat.h", true);
+        bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sSolutionDirectory + "compat.h", true);
         if (!bCopy) {
             outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
             return false;
         }
-        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sProjectDirectory + "math.h", true);
-        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sProjectDirectory + "unistd.h", true);
+        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_sSolutionDirectory + "math.h", true);
+        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_sSolutionDirectory + "unistd.h", true);
         string sFileName;
         if (findFile(m_ConfigHelper.m_sRootDirectory + "compat/atomics/win32/stdatomic.h", sFileName)) {
-            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sProjectDirectory + "stdatomic.h", true);
+            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_sSolutionDirectory + "stdatomic.h", true);
         }
     }
 
@@ -114,22 +114,22 @@ void ProjectGenerator::deleteCreatedFiles()
 
     //Delete any previously generated files
     vector<string> vExistingFiles;
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "ffmpeg.sln", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "libav.sln", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "compat.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "math.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "unistd.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_sProjectDirectory + "stdatomic.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "ffmpeg.sln", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "libav.sln", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "compat.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "math.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "unistd.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "stdatomic.h", vExistingFiles, false);
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
         *vitLib = "lib" + *vitLib;
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".vcxproj.filters", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitLib + ".def", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitLib + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitLib + ".def", vExistingFiles, false);
     }
     for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".vcxproj", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".vcxproj.filters", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_sProjectDirectory + *vitProg + ".def", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitProg + ".vcxproj", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitProg + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitProg + ".def", vExistingFiles, false);
     }
     for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
         deleteFile(*itIt);
@@ -138,10 +138,10 @@ void ProjectGenerator::deleteCreatedFiles()
     //Check for any created folders
     vector<string> vExistingFolders;
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
-        findFolders(m_ConfigHelper.m_sProjectDirectory + *vitLib, vExistingFolders, false);
+        findFolders(m_ConfigHelper.m_sSolutionDirectory + *vitLib, vExistingFolders, false);
     }
     for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
-        findFolders(m_ConfigHelper.m_sProjectDirectory + *vitProg, vExistingFolders, false);
+        findFolders(m_ConfigHelper.m_sSolutionDirectory + *vitProg, vExistingFolders, false);
     }
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
         //Search for any generated files in the directories
@@ -251,13 +251,13 @@ bool ProjectGenerator::outputProject()
     outputTemplateTags(sProjectFile, sFiltersFile);
 
     //Write output project
-    string sOutProjectFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + ".vcxproj";
+    string sOutProjectFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + ".vcxproj";
     if (!writeToFile(sOutProjectFile, sProjectFile, true)) {
         return false;
     }
 
     //Write output filters
-    string sOutFiltersFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + ".vcxproj.filters";
+    string sOutFiltersFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + ".vcxproj.filters";
     if (!writeToFile(sOutFiltersFile, sFiltersFile, true)) {
         return false;
     }
@@ -380,8 +380,8 @@ bool ProjectGenerator::outputSolution()
             m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
             //Create project files for program
             m_sProjectName = mitPrograms->first;
-            const string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj";
-            const string sDestinationFilterFile = m_ConfigHelper.m_sProjectDirectory + mitPrograms->first + ".vcxproj.filters";
+            const string sDestinationFile = m_ConfigHelper.m_sSolutionDirectory + mitPrograms->first + ".vcxproj";
+            const string sDestinationFilterFile = m_ConfigHelper.m_sSolutionDirectory + mitPrograms->first + ".vcxproj.filters";
             if (!outputProgramProject(sDestinationFile, sDestinationFilterFile)) {
                 return false;
             }
@@ -628,7 +628,7 @@ bool ProjectGenerator::outputSolution()
     //Write output solution
     string sProjectName = m_ConfigHelper.m_sProjectName;
     transform(sProjectName.begin(), sProjectName.end(), sProjectName.begin(), ::tolower);
-    const string sOutSolutionFile = m_ConfigHelper.m_sProjectDirectory + sProjectName + ".sln";
+    const string sOutSolutionFile = m_ConfigHelper.m_sSolutionDirectory + sProjectName + ".sln";
     if (!writeToFile(sOutSolutionFile, sSolutionFile, true)) {
         return false;
     }
@@ -1117,7 +1117,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
     //Check for any exported functions in asm files
     for (StaticList::iterator itASM = m_vASMIncludes.begin(); itASM < m_vASMIncludes.end(); itASM++) {
         string sASMFile;
-        loadFromFile(m_ConfigHelper.m_sProjectDirectory + *itASM, sASMFile);
+        loadFromFile(m_ConfigHelper.m_sSolutionDirectory + *itASM, sASMFile);
 
         //Search through file for module exports
         for (StaticList::iterator itI = vExportStrings.begin(); itI < vExportStrings.end(); itI++) {
@@ -1170,7 +1170,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         sModuleFile += "    " + *itI + " DATA\r\n";
     }
 
-    string sDestinationFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + ".def";
+    string sDestinationFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + ".def";
     if (!writeToFile(sDestinationFile, sModuleFile, true)) {
         return false;
     }

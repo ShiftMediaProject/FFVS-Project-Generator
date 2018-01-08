@@ -33,7 +33,7 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
         uiSPos = (uiSPos == string::npos) ? 0 : uiSPos;
         string sProjectName = m_sProjectDir.substr(uiSPos);
         sProjectName = (m_sProjectDir.compare("./") != 0) ? sProjectName : "";
-        sRetFileName = m_ConfigHelper.m_sProjectDirectory + sProjectName + sFile + sExtension;
+        sRetFileName = m_ConfigHelper.m_sSolutionDirectory + sProjectName + sFile + sExtension;
         return findFile(sRetFileName, sFileName);
     }
     return true;
@@ -155,11 +155,11 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
 #   include \"" + sPrettyFile + "\"\n\
 #endif";
         //Write output project
-        if (!makeDirectory(m_ConfigHelper.m_sProjectDirectory + m_sProjectName)) {
+        if (!makeDirectory(m_ConfigHelper.m_sSolutionDirectory + m_sProjectName)) {
             outputError("Failed creating local " + m_sProjectName + " directory");
             return false;
         }
-        string sOutFile = m_ConfigHelper.m_sProjectDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
+        string sOutFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
         if (!writeToFile(sOutFile, sNewFile)) {
             return false;
         }
