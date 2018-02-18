@@ -1401,6 +1401,20 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
         if (vitOption->m_sValue.compare("1") == 0) {
             string sOptionLower = vitOption->m_sOption;
             transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+            //Check for device type replacements
+            if (sName.compare("indev_list") == 0) {
+                uint uiFind = sOptionLower.find("_indev");
+                if (uiFind != string::npos) {
+                    sOptionLower.resize(uiFind);
+                    sOptionLower += "_demuxer";
+                }
+            } else if (sName.compare("outdev_list") == 0) {
+                uint uiFind = sOptionLower.find("_outdev");
+                if (uiFind != string::npos) {
+                    sOptionLower.resize(uiFind);
+                    sOptionLower += "_muxer";
+                }
+            }
             sOutput += "    &ff_" + sOptionLower + ",\n";
         }
     }
