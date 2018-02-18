@@ -394,6 +394,7 @@ void ConfigGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
     mFixedValues["$(eval c_escape $datadir)"] = ".";
     mFixedValues["$(c_escape ${cc_ident:-Unknown compiler})"] = "msvc";
     mFixedValues["$_restrict"] = "__restrict";
+    mFixedValues["$restrict_keyword"] = "__restrict";
     mFixedValues["${extern_prefix}"] = "";
     mFixedValues["$build_suffix"] = "";
     mFixedValues["$SLIBSUF"] = "";
