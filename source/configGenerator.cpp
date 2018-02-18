@@ -1067,8 +1067,15 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
                 uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
                 string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                //Check for optional 4th argument
+                string sParam4;
+                if ((m_sConfigureFile.at(uiEnd) != ')') && (m_sConfigureFile.at(m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd)) != ')')) {
+                    uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                    uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
+                    sParam4 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                }
                 //Call function find_things
-                if (!passFindThingsExtern(sParam1, sParam2, sParam3, vReturn)) {
+                if (!passFindThingsExtern(sParam1, sParam2, sParam3, sParam4, vReturn)) {
                     return false;
                 }
                 //Make sure the closing ) is not included
@@ -1250,7 +1257,7 @@ bool ConfigGenerator::passFindThings(const string & sParam1, const string & sPar
     return true;
 }
 
-bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, vector<string>& vReturn)
+bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, const string & sParam4, vector<string>& vReturn)
 {
     //Need to find and open the specified file
     string sFile = m_sRootDirectory + sParam3;
@@ -1269,16 +1276,18 @@ bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string 
             uiStart += 6;
         }
         //Check for search tag
+        uiStart = sFindFile.find_first_not_of(sWhiteSpace, uiStart);
         if ((sFindFile.at(uiStart) != sParam2.at(0)) || (sFindFile.find(sParam2, uiStart) != uiStart)) {
             //Get next
-            uiStart = sFindFile.find(sParam2, uiStart + 1);
+            uiStart = sFindFile.find(sStartSearch, uiStart + 1);
             continue;
         }
         uiStart += sParam2.length() + 1;
+        uiStart = sFindFile.find_first_not_of(sWhiteSpace, uiStart);
         //Check for function start
         if ((sFindFile.at(uiStart) != 'f') || (sFindFile.find("ff_", uiStart) != uiStart)) {
             //Get next
-            uiStart = sFindFile.find(sParam2, uiStart + 1);
+            uiStart = sFindFile.find(sStartSearch, uiStart + 1);
             continue;
         }
         uiStart += 3;
@@ -1288,12 +1297,17 @@ bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string 
         uiEnd = (uiEnd2 < uiEnd) ? uiEnd2 : uiEnd;
         if ((sFindFile.at(uiEnd) != '_') || (uiEnd2 != uiEnd)) {
             //Get next
-            uiStart = sFindFile.find(sParam2, uiEnd + 1);
+            uiStart = sFindFile.find(sStartSearch, uiEnd + 1);
             continue;
         }
         //Get the tag string
         uiEnd += 1 + sParam1.length();
         string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        //Check for any 4th value replacements
+        if (sParam4.length() > 0) {
+            uint uiRep = sTag.find("_" + sParam1);
+            sTag.replace(uiRep, uiRep + 1 + sParam1.length(), "_" + sParam4);
+        }
         //Add the new value to list
         transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
         vReturn.push_back(sTag);

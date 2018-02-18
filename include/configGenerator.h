@@ -189,7 +189,7 @@ private:
      */
     bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn, vector<string> * vReturnExterns = NULL);
 
-    bool passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn);
+    bool passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, const string & sParam4, vector<string> & vReturn);
 
     bool passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos = string::npos);
 
