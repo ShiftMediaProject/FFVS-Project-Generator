@@ -27,6 +27,13 @@ bool ProjectGenerator::passStaticIncludeObject(uint & uiStartPos, uint & uiEndPo
 {
     //Add the found string to internal storage
     uiEndPos = m_sInLine.find_first_of(". \t", uiStartPos);
+    if ((uiEndPos != string::npos) && (m_sInLine.at(uiEndPos) == '.')) {
+        //Skip any ./ or ../
+        uint uiEndPos2 = m_sInLine.find_first_not_of(".\\", uiEndPos + 1);
+        if ((uiEndPos2 != string::npos) && (uiEndPos2 > uiEndPos + 1)) {
+            uiEndPos = m_sInLine.find_first_of(". \t", uiEndPos2 + 1);
+        }
+    }
     string sTag = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
     if (sTag.find('$') != string::npos) {
         // Invalid include. Occurs when include is actually a variable
@@ -153,6 +160,13 @@ bool ProjectGenerator::passDynamicIncludeObject(uint & uiStartPos, uint & uiEndP
             sCompare = "0";
         }
         uiEndPos = m_sInLine.find_first_of(". \t", uiStartPos);
+        if ((uiEndPos != string::npos) && (m_sInLine.at(uiEndPos) == '.')) {
+            //Skip any ./ or ../
+            uint uiEndPos2 = m_sInLine.find_first_not_of(".\\", uiEndPos + 1);
+            if ((uiEndPos2 != string::npos) && (uiEndPos2 > uiEndPos + 1)) {
+                uiEndPos = m_sInLine.find_first_of(". \t", uiEndPos2 + 1);
+            }
+        }
         //Add the found string to internal storage
         string sTag = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
         //Check if object already included in internal list
