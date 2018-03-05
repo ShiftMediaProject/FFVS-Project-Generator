@@ -246,6 +246,9 @@ bool ConfigGenerator::buildDefaultValues()
                 //Handle detection of various libs
                 if (vitValues->compare("alsa") == 0) {
                     bEnable = false;
+                } else if (vitValues->compare("amf") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/AMF/core/Factory.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
                 } else if (vitValues->compare("appkit") == 0) {
                     bEnable = false;
                 } else if (vitValues->compare("bzlib") == 0) {
