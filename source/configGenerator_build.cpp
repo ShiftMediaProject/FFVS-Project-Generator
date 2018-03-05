@@ -290,16 +290,33 @@ bool ConfigGenerator::buildDefaultValues()
                     bEnable = false;
                 } else if (vitValues->compare("cuda") == 0) {
                     bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    if (!bEnable) {
+                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                        bEnable = findFile(sFileName, sFileName);
+                    }
                 } else if (vitValues->compare("cuvid") == 0) {
                     bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    if (!bEnable) {
+                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                        bEnable = findFile(sFileName, sFileName);
+                    }
                 } else if (vitValues->compare("d3d11va") == 0) {
                     bEnable = true;
                 } else if (vitValues->compare("dxva2") == 0) {
                     bEnable = true;
                 } else if (vitValues->compare("nvdec") == 0) {
-                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName);
+                    bEnable = (findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
+                               findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
+                    if (!bEnable) {
+                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_loader.h", sFileName);
+                        bEnable = findFile(sFileName, sFileName);
+                    }
                 } else if (vitValues->compare("nvenc") == 0) {
                     bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
+                    if (!bEnable) {
+                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/nvEncodeAPI.h", sFileName);
+                        bEnable = findFile(sFileName, sFileName);
+                    }
                 } else if (vitValues->compare("opencl") == 0) {
                     makeFileGeneratorRelative(m_sOutDirectory + "include/cl/cl.h", sFileName);
                     bEnable = findFile(sFileName, sFileName);
