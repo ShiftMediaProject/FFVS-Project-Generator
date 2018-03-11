@@ -62,7 +62,8 @@ static Verbosity g_OutputVerbosity = VERBOSITY_INFO;
 static Verbosity g_OutputVerbosity = VERBOSITY_WARNING;
 #endif
 
-namespace project_generate {
+namespace project_generate
+{
 bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bool bOutError)
 {
     //Open the input file
@@ -554,6 +555,12 @@ void outputLine(const string & sMessage)
 
 void outputInfo(const string & sMessage, bool bHeader)
 {
+#if _WIN32
+    HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hstdout, &csbi);
+    SetConsoleTextAttribute(hstdout, FOREGROUND_GREEN);
+#endif
     if (g_OutputVerbosity <= VERBOSITY_INFO) {
         if (bHeader) {
             cout << "  Info: ";
@@ -562,10 +569,19 @@ void outputInfo(const string & sMessage, bool bHeader)
         }
         cout << sMessage << endl;
     }
+#if _WIN32
+    SetConsoleTextAttribute(hstdout, csbi.wAttributes);
+#endif
 }
 
 void outputWarning(const string & sMessage, bool bHeader)
 {
+#if _WIN32
+    HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hstdout, &csbi);
+    SetConsoleTextAttribute(hstdout, FOREGROUND_RED | FOREGROUND_GREEN);
+#endif
     if (g_OutputVerbosity <= VERBOSITY_WARNING) {
         if (bHeader) {
             cout << "  Warning: ";
@@ -574,16 +590,28 @@ void outputWarning(const string & sMessage, bool bHeader)
         }
         cout << sMessage << endl;
     }
+#if _WIN32
+    SetConsoleTextAttribute(hstdout, csbi.wAttributes);
+#endif
 }
 
 void outputError(const string & sMessage, bool bHeader)
 {
+#if _WIN32
+    HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hstdout, &csbi);
+    SetConsoleTextAttribute(hstdout, FOREGROUND_RED);
+#endif
     if (bHeader) {
         cout << "  Error: ";
     } else {
         cout << "         ";
     }
     cout << sMessage << endl;
+#if _WIN32
+    SetConsoleTextAttribute(hstdout, csbi.wAttributes);
+#endif
 }
 
 void setOutputVerbosity(Verbosity verbose)
