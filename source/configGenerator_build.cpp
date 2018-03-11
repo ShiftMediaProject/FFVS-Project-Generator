@@ -723,6 +723,7 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
 void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
 {
     mAdditionalDependencies.clear();
+    mAdditionalDependencies["android"] = false;
     mAdditionalDependencies["capCreateCaptureWindow"] = true;
     mAdditionalDependencies["const_nan"] = true;
     mAdditionalDependencies["CreateDIBSection"] = true;
