@@ -307,6 +307,9 @@ bool ConfigGenerator::buildDefaultValues()
                     bEnable = true;
                 } else if (vitValues->compare("dxva2") == 0) {
                     bEnable = true;
+                } else if (vitValues->compare("ffnvcodec") == 0) {
+                    makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                    bEnable = findFile(sFileName, sFileName);
                 } else if (vitValues->compare("nvdec") == 0) {
                     bEnable = (findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
                                findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
@@ -856,6 +859,10 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
     } else if (sOptionLower.compare("opencl") == 0) {
         CHECKFORCEDENABLES("opencl_d3d11");
         CHECKFORCEDENABLES("opencl_dxva2");
+    } else if (sOptionLower.compare("ffnvcodec") == 0) {
+        CHECKFORCEDENABLES("cuda");
+    } else if (sOptionLower.compare("cuda") == 0) {
+        CHECKFORCEDENABLES("ffnvcodec");
     }
 }
 

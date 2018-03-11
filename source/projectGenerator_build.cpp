@@ -164,16 +164,18 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
                 }
             } else if (vitLib->compare("openal") == 0) {
                 vAddLibs.push_back("OpenAL32"); //Add the additional required libs
+            } else if (vitLib->compare("ffnvcodec") == 0) {
+                //Doesn't require any additional libs
             } else if (vitLib->compare("nvenc") == 0) {
                 //Doesn't require any additional libs
             } else if (vitLib->compare("cuda") == 0) {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") && !findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     vAddLibs.push_back("cuda"); //Add the additional required libs
                 }
             } else if (vitLib->compare("cuvid") == 0) {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
+                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") && !findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
                     vAddLibs.push_back("nvcuvid"); //Add the additional required libs
                 }
             } else if ((vitLib->compare("nvdec") == 0) || (vitLib->compare("nvenc") == 0)) {
@@ -295,7 +297,7 @@ void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticLi
                 vLib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
             } else if (mitLib->first.compare("nvenc") == 0) {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") && !findFile(m_ConfigHelper.m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                     //Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
                         outputWarning("Could not find the CUDA SDK environment variable.");
@@ -309,7 +311,7 @@ void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticLi
                 }
             } else if ((mitLib->first.compare("cuda") == 0) || (mitLib->first.compare("cuvid") == 0)) {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") && !findFile(m_ConfigHelper.m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     //Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
                         outputWarning("Could not find the CUDA SDK environment variable.");
@@ -343,6 +345,10 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps
     mProjectDeps["dxva2"] = false;
     mProjectDeps["decklink"] = (m_sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libfontconfig"] = (m_sProjectName.compare("libavfilter") == 0);
+    mProjectDeps["ffnvcodec"] = (m_sProjectName.compare("libavutil") == 0) || (m_sProjectName.compare("libavfilter") == 0) ||
+        (m_ConfigHelper.isConfigOptionEnabled("nvenc") && (m_sProjectName.compare("libavcodec") == 0)) ||
+        (m_ConfigHelper.isConfigOptionEnabled("cuvid") && ((m_sProjectName.compare("libavcodec") == 0) ||
+        (m_sProjectName.compare("ffmpeg") == 0) || (m_sProjectName.compare("avconv") == 0)));
     mProjectDeps["frei0r"] = (m_sProjectName.compare("libavfilter") == 0);
     mProjectDeps["gcrypt"] = (m_sProjectName.compare("libavformat") == 0);
     mProjectDeps["gmp"] = (m_sProjectName.compare("libavformat") == 0);
