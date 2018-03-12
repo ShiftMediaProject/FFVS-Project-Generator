@@ -127,7 +127,9 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
             }
 
             string sLib;
-            if (vitLib->compare("avisynth") == 0) {
+            if (vitLib->compare("amf") == 0) {
+                //doesn't need any additional libs
+            } else if (vitLib->compare("avisynth") == 0) {
                 //doesn't need any additional libs
             } else if (vitLib->compare("bzlib") == 0) {
                 sLib = "libbz2";
@@ -332,6 +334,7 @@ void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticLi
 void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps)
 {
     string sNotUsed;
+    mProjectDeps["amf"] = false; //no dependencies ever needed
     mProjectDeps["avisynth"] = false; //no dependencies ever needed
     mProjectDeps["bzlib"] = (m_sProjectName.compare("libavformat") == 0) || (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["crystalhd"] = (m_sProjectName.compare("libavcodec") == 0);
