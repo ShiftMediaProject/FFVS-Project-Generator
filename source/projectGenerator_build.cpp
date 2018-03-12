@@ -348,10 +348,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps
     mProjectDeps["dxva2"] = false;
     mProjectDeps["decklink"] = (m_sProjectName.compare("libavdevice") == 0);
     mProjectDeps["libfontconfig"] = (m_sProjectName.compare("libavfilter") == 0);
-    mProjectDeps["ffnvcodec"] = (m_sProjectName.compare("libavutil") == 0) || (m_sProjectName.compare("libavfilter") == 0) ||
-        (m_ConfigHelper.isConfigOptionEnabled("nvenc") && (m_sProjectName.compare("libavcodec") == 0)) ||
-        (m_ConfigHelper.isConfigOptionEnabled("cuvid") && ((m_sProjectName.compare("libavcodec") == 0) ||
-        (m_sProjectName.compare("ffmpeg") == 0) || (m_sProjectName.compare("avconv") == 0)));
+    mProjectDeps["ffnvcodec"] = false;
     mProjectDeps["frei0r"] = (m_sProjectName.compare("libavfilter") == 0);
     mProjectDeps["gcrypt"] = (m_sProjectName.compare("libavformat") == 0);
     mProjectDeps["gmp"] = (m_sProjectName.compare("libavformat") == 0);
