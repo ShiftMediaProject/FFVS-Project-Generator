@@ -521,7 +521,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         }
 
         string sFinalDCEOutFile = getCopywriteHeader(m_sProjectName + " DCE definitions") + '\n';
-        sFinalDCEOutFile += "\n#include \"config.h\"\n\n";
+        sFinalDCEOutFile += "\n#include \"config.h\"\n#include \"stdint.h\"\n\n";
         //Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and h264pred.h)
         for (vector<DCEParams>::iterator vitHeaders = vIncludedHeaders.end(); vitHeaders > vIncludedHeaders.begin(); ) {
             --vitHeaders;
