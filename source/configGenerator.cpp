@@ -1096,7 +1096,7 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 //Make sure the closing ) is not included
                 uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
             } else if (sFunction.compare("filter_out") == 0) {
-                //This should filter out occurrance of first parameter from the list passed in the second
+                //This should filter out occurrence of first parameter from the list passed in the second
                 uint uiStartSearch = uiStart - sList.length() - 5; //ensure search is before current instance of list
                 //Get first parameter
                 uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
@@ -1108,6 +1108,17 @@ bool ConfigGenerator::getConfigList(const string & sList, vector<string> & vRetu
                 string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
                 //Call function add_suffix
                 if (!passFilterOut(sParam1, sParam2, vReturn, uiStartSearch)) {
+                    return false;
+                }
+                //Make sure the closing ) is not included
+                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
+            } else if (sFunction.compare("find_filters_extern") == 0) {
+                //Get file name
+                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
+                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
+                string sParam = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                //Call function find_filters_extern
+                if (!passFindFiltersExtern(sParam, vReturn)) {
                     return false;
                 }
                 //Make sure the closing ) is not included
@@ -1317,6 +1328,51 @@ bool ConfigGenerator::passFindThingsExtern(const string & sParam1, const string 
     return true;
 }
 
+bool ConfigGenerator::passFindFiltersExtern(const string & sParam1, vector<string>& vReturn)
+{
+    // s/^extern AVFilter ff_([avfsinkrc]{2,5})_([a-zA-Z0-9_]+);/\2_filter/p
+    //Need to find and open the specified file
+    const string sFile = m_sRootDirectory + sParam1;
+    string sFindFile;
+    if (!loadFromFile(sFile, sFindFile)) {
+        return false;
+    }
+
+    //Find the search pattern in the file
+    const string sSearch = "extern AVFilter ff_";
+    uint uiStart = sFindFile.find(sSearch);
+    while (uiStart != string::npos) {
+        //Find the start and end of the tag
+        uiStart += sSearch.length();
+        //Find end of tag
+        const uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();", uiStart);
+        //Get the tag string
+        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        //Get first part
+        uiStart = sTag.find("_");
+        if (uiStart == string::npos) {
+            //Get next
+            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            continue;
+        }
+        const string sFirst = sTag.substr(0, uiStart);
+        if (sFirst.find_first_not_of("avfsinkrc") != string::npos) {
+            //Get next
+            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            continue;
+        }
+        //Get second part
+        sTag = sTag.substr(++uiStart);
+        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
+        sTag = sTag + "_filter";
+        //Add the new value to list
+        vReturn.push_back(sTag);
+        //Get next
+        uiStart = sFindFile.find(sSearch, uiEnd + 1);
+    }
+    return true;
+}
+
 bool ConfigGenerator::passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos)
 {
     //Convert the first parameter to upper case
@@ -1358,6 +1414,53 @@ bool ConfigGenerator::passFilterOut(const string & sParam1, const string & sPara
     return false;
 }
 
+bool ConfigGenerator::passFullFilterName(const string & sParam1, string & sReturn)
+{
+    // sed -n "s/^extern AVFilter ff_\([avfsinkrc]\{2,5\}\)_$1;/\1_$1/p"
+    //Need to find and open the specified file
+    const string sFile = m_sRootDirectory + "libavfilter/allfilters.c";
+    string sFindFile;
+    if (!loadFromFile(sFile, sFindFile)) {
+        return false;
+    }
+
+    //Find the search pattern in the file
+    const string sSearch = "extern AVFilter ff_";
+    uint uiStart = sFindFile.find(sSearch);
+    while (uiStart != string::npos) {
+        //Find the start and end of the tag
+        uiStart += sSearch.length();
+        //Find end of tag
+        const uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();", uiStart);
+        //Get the tag string
+        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        //Get first part
+        uiStart = sTag.find("_");
+        if (uiStart == string::npos) {
+            //Get next
+            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            continue;
+        }
+        const string sFirst = sTag.substr(0, uiStart);
+        if (sFirst.find_first_not_of("avfsinkrc") != string::npos) {
+            //Get next
+            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            continue;
+        }
+        //Get second part
+        string sSecond = sTag.substr(++uiStart);
+        transform(sSecond.begin(), sSecond.end(), sSecond.begin(), ::tolower);
+        if (sSecond.compare(sParam1) == 0) {
+            sReturn = sTag;
+            transform(sReturn.begin(), sReturn.end(), sReturn.begin(), ::tolower);
+            return true;
+        }
+        //Get next
+        uiStart = sFindFile.find(sSearch, uiEnd + 1);
+    }
+    return true;
+}
+
 bool ConfigGenerator::passConfigList(const string & sPrefix, const string & sSuffix, const string & sList)
 {
     vector<string> vList;
@@ -1396,6 +1499,12 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
         return false;
     }
 
+    //Check if using newer static filter list
+    bool bStaticFilterList = false;
+    if ((sName.compare("filter_list") == 0) && (m_sConfigureFile.find("full_filter_name()") != string::npos)) {
+        bStaticFilterList = true;
+    }
+
     for (vector<string>::iterator vitList = vList.begin(); vitList < vList.end(); vitList++) {
         ValuesList::iterator vitOption = getConfigOption(*vitList);
         if (vitOption->m_sValue.compare("1") == 0) {
@@ -1414,9 +1523,23 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
                     sOptionLower.resize(uiFind);
                     sOptionLower += "_muxer";
                 }
+            } else if (bStaticFilterList) {
+                uint uiFind = sOptionLower.find("_filter");
+                if (uiFind != string::npos) {
+                    sOptionLower.resize(uiFind);
+                }
+                if (!passFullFilterName(sOptionLower, sOptionLower)) {
+                    continue;
+                }
             }
             sOutput += "    &ff_" + sOptionLower + ",\n";
         }
+    }
+    if (bStaticFilterList) {
+        sOutput += "    &ff_asrc_abuffer,\n";
+        sOutput += "    &ff_vsrc_buffer,\n";
+        sOutput += "    &ff_asink_abuffer,\n";
+        sOutput += "    &ff_vsink_buffer,\n";
     }
     sOutput += "    NULL };";
 

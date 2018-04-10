@@ -183,17 +183,42 @@ private:
      * @param          sParam1        The first parameter.
      * @param          sParam2        The second parameter.
      * @param          sParam3        The third parameter.
-     * @param [in,out] vReturn        Returns and detected configure defines.
+     * @param [in,out] vReturn        Returns any detected configure defines.
      * @param [in,out] vReturnExterns (Optional) If non-null, returns any detected extern variables.
      * @return True if it succeeds, false if it fails.
      */
     bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn, vector<string> * vReturnExterns = NULL);
 
+    /**
+     * Perform the equivalent of configures find_things_extern function.
+     * @param          sParam1 The first parameter.
+     * @param          sParam2 The second parameter.
+     * @param          sParam3 The third parameter.
+     * @param          sParam4 The fourth parameter.
+     * @param [in,out] vReturn Returns any detected configure defines.
+     * @return True if it succeeds, false if it fails.
+     */
     bool passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, const string & sParam4, vector<string> & vReturn);
+
+    /**
+     * Perform the equivalent of configures find_filters_extern function.
+     * @param          sParam1      The first parameter.
+     * @param [in,out] vReturn      Returns any detected configure defines.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passFindFiltersExtern(const string & sParam1, vector<string> & vReturn);
 
     bool passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos = string::npos);
 
     bool passFilterOut(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos);
+
+    /**
+     * Perform the equivalent of configures full_filter_name function.
+     * @param          sParam1 The first parameter.
+     * @param [in,out] sReturn The return.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passFullFilterName(const string & sParam1, string & sReturn);
 
     bool passConfigList(const string & sPrefix, const string & sSuffix, const string & sList);
 
