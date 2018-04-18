@@ -133,6 +133,7 @@ bool ConfigGenerator::buildDefaultValues()
 
     fastToggleConfigValue("access", true);
     fastToggleConfigValue("aligned_malloc", true);
+    fastToggleConfigValue("bcrypt", true);
     fastToggleConfigValue("clock_gettime", false);
     fastToggleConfigValue("closesocket", true);
     fastToggleConfigValue("CommandLineToArgvW", true);

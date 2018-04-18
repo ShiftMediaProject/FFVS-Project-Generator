@@ -115,6 +115,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
     m_ConfigHelper.getConfigList("HW_CODECS_LIST", vExternLibs, false); //used on some older ffmpeg versions
     m_ConfigHelper.getConfigList("HWACCEL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
     m_ConfigHelper.getConfigList("HWACCEL_LIBRARY_LIST", vExternLibs, false);
+    m_ConfigHelper.getConfigList("SYSTEM_LIBRARIES", vExternLibs, false);
     for (vector<string>::iterator vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); vitLib++) {
         //Check if enabled
         if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
@@ -131,6 +132,8 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
                 //doesn't need any additional libs
             } else if (vitLib->compare("avisynth") == 0) {
                 //doesn't need any additional libs
+            } else if (vitLib->compare("bcrypt") == 0) {
+                vAddLibs.push_back("Bcrypt"); //Add the additional required libs
             } else if (vitLib->compare("bzlib") == 0) {
                 sLib = "libbz2";
             } else if (vitLib->compare("libcdio") == 0) {
@@ -188,6 +191,8 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
                 if (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end()) {
                     vLibs.push_back("libsdl"); //Only add if not sdl2
                 }
+            } else if (vitLib->compare("wincrypt") == 0) {
+                vAddLibs.push_back("Advapi32"); //Add the additional required libs
             } else {
                 //By default just use the lib name and prefix with lib if not already
                 if (vitLib->find("lib") == 0) {
@@ -336,6 +341,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool> & mProjectDeps
     string sNotUsed;
     mProjectDeps["amf"] = false; //no dependencies ever needed
     mProjectDeps["avisynth"] = false; //no dependencies ever needed
+    mProjectDeps["bcrypt"] = (m_sProjectName.compare("libavutil") == 0);
     mProjectDeps["bzlib"] = (m_sProjectName.compare("libavformat") == 0) || (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["crystalhd"] = (m_sProjectName.compare("libavcodec") == 0);
     mProjectDeps["chromaprint"] = (m_sProjectName.compare("libavformat") == 0);
