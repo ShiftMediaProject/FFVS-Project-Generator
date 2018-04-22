@@ -86,3 +86,7 @@ YASM is required to compile all used assembly files.
 
 1. Visual Studio YASM integration can be downloaded from https://github.com/ShiftMediaProject/VSYASM/releases/latest
 2. Once downloaded simply follow the install instructions included in the download.
+
+## License
+
+FFVS-Project-Generator itself is released under [LGPLv2](https://www.gnu.org/licenses/lgpl-2.0.html). The generated output project(s) and source can be used with existing FFmpeg source code such that any resultant binaries created by the generated projects will still conform to the license of the FFmpeg source code itself. This means the output binaries are licensed based on the command line specified when generating the projects (i.e. --enable-gpl etc.).
