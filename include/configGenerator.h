@@ -279,6 +279,14 @@ private:
      */
     bool isASMEnabled();
 
+    /**
+     * Gets minimum supported windows version from config file.
+     * @param [out] uiMajor The version number major.
+     * @param [out] uiMinor The version number minor.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool getMinWindowsVersion(uint & uiMajor, uint & uiMinor);
+
     bool passDependencyCheck(const ValuesList::iterator vitOption);
 };
 

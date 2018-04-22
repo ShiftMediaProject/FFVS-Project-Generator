@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <utility>
+#include <sstream>
+#include <iomanip>
 
 #define TEMPLATE_COMPAT_ID 100
 #define TEMPLATE_MATH_ID 101
@@ -732,6 +734,81 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
         //Get next
         uiFindPos = sProjectTemplate.find(sFFRootSearchTag, uiFindPos + 1);
     }
+
+    //Change all occurrences of template_winver
+    uint uiMajor, uiMinor;
+    if (!m_ConfigHelper.getMinWindowsVersion(uiMajor, uiMinor)) {
+        outputWarning("Could not detect a supported Windows version. Defaults of WinXP will be used instead.");
+        uiMajor = 5;
+        uiMinor = 1;
+    }
+    stringstream ss;
+    ss << uiMajor;
+    string sSubsystemVer32, sSubsystemVerMin;
+    ss >> sSubsystemVer32;
+    ss.clear();
+    ss << uiMinor;
+    ss >> sSubsystemVerMin;
+    sSubsystemVer32 += ".";
+    sSubsystemVer32 += sSubsystemVerMin;
+    //Create 64bit version which must have min of Vista 6.0
+    string sSubsystemVer64;
+    if (uiMajor < 6) {
+        sSubsystemVer64 = "6.0";
+    } else {
+        sSubsystemVer64 = sSubsystemVer32;
+    }
+    const string sWinver32Tag = "template_winver32";
+    uiFindPos = sProjectTemplate.find(sWinver32Tag);
+    while (uiFindPos != string::npos) {
+        //Replace
+        sProjectTemplate.replace(uiFindPos, sWinver32Tag.length(), sSubsystemVer32);
+        //Get next
+        uiFindPos = sProjectTemplate.find(sWinver32Tag, uiFindPos + 1);
+    }
+    const string sWinver64Tag = "template_winver64";
+    uiFindPos = sProjectTemplate.find(sWinver64Tag);
+    while (uiFindPos != string::npos) {
+        //Replace
+        sProjectTemplate.replace(uiFindPos, sWinver64Tag.length(), sSubsystemVer64);
+        //Get next
+        uiFindPos = sProjectTemplate.find(sWinver64Tag, uiFindPos + 1);
+    }
+
+    //Change all occurrences of template_winnt
+    string sWinNTVer, sWinNTVer32 = "0x";
+    ss.clear();
+    ss << std::setfill('0') << std::setw(sizeof(char) * 2) << std::hex << uiMajor;
+    ss >> sWinNTVer;
+    ss.clear();
+    sWinNTVer32 += sWinNTVer;
+    ss << std::setfill('0') << std::setw(sizeof(char) * 2) << std::hex << uiMinor;
+    ss >> sWinNTVer;
+    ss.clear();
+    sWinNTVer32 += sWinNTVer;
+    string sWinNTVer64;
+    if (uiMajor < 6) {
+        sWinNTVer64 = "0x0600";
+    } else {
+        sWinNTVer64 = sWinNTVer32;
+    }
+    const string sWinnt32Tag = "template_winnt32";
+    uiFindPos = sProjectTemplate.find(sWinnt32Tag);
+    while (uiFindPos != string::npos) {
+        //Replace
+        sProjectTemplate.replace(uiFindPos, sWinnt32Tag.length(), sWinNTVer32);
+        //Get next
+        uiFindPos = sProjectTemplate.find(sWinnt32Tag, uiFindPos + 1);
+    }
+    const string sWinnt64Tag = "template_winnt64";
+    uiFindPos = sProjectTemplate.find(sWinnt64Tag);
+    while (uiFindPos != string::npos) {
+        //Replace
+        sProjectTemplate.replace(uiFindPos, sWinnt64Tag.length(), sWinNTVer64);
+        //Get next
+        uiFindPos = sProjectTemplate.find(sWinnt64Tag, uiFindPos + 1);
+    }
+
 }
 
 void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)

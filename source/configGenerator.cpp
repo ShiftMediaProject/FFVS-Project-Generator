@@ -1700,6 +1700,46 @@ bool ConfigGenerator::isASMEnabled()
     return false;
 }
 
+
+bool ConfigGenerator::getMinWindowsVersion(uint & uiMajor, uint & uiMinor)
+{
+    const string sSearch = "cppflags -D_WIN32_WINNT=0x";
+    uint uiPos = m_sConfigureFile.find(sSearch);
+    uint uiMajorT = 10; //Initially set minimum version to Win 10
+    uint uiMinorT = 0;
+    bool bFound = false;
+    while (uiPos != string::npos) {
+        uiPos += sSearch.length();
+        uint uiEndPos = m_sConfigureFile.find_first_of(sNonName, uiPos);
+        //Check if valid version tag
+        if ((uiEndPos - uiPos) != 4) {
+            outputInfo("Unknown windows version string found (" + sSearch + ")");
+        } else {
+            const string sVersionMajor = m_sConfigureFile.substr(uiPos, 2);
+            //Convert to int from hex string
+            uint uiVersionMajor = stoul(sVersionMajor, 0, 16);
+            //Check if new version is less than current
+            if (uiVersionMajor <= uiMajorT) {
+                const string sVersionMinor = m_sConfigureFile.substr(uiPos + 2, 2);
+                uint uiVersionMinor = stoul(sVersionMinor, 0, 16);
+                if ((uiVersionMajor < uiMajorT) || (uiVersionMinor < uiMinorT)) {
+                    //Update best found version
+                    uiMajorT = uiVersionMajor;
+                    uiMinorT = uiVersionMinor;
+                    bFound = true;
+                }
+            }
+        }
+        //Get next
+        uiPos = m_sConfigureFile.find(sSearch, uiEndPos + 1);
+    }
+    if (bFound) {
+        uiMajor = uiMajorT;
+        uiMinor = uiMinorT;
+    }
+    return bFound;
+}
+
 bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
 {
     //Need to convert the name to lower case
