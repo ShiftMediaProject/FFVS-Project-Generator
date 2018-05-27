@@ -365,6 +365,12 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         return false;
     } else if (stOption.find("--toolchain") == 0) {
+        //Check for correct command syntax
+        if (stOption.at(11) != '=') {
+            outputError("Incorrect toolchain syntax (" + stOption + ")");
+            outputError("Excepted syntax (--toolchain=NAME)", false);
+            return false;
+        }
         //A tool chain has been specified
         string sToolChain = stOption.substr(12);
         if (sToolChain.compare("msvc") == 0) {
@@ -394,10 +400,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         }
         m_sToolchain = sToolChain;
     } else if (stOption.find("--prefix") == 0) {
-        //A output dir has been specified
-        if (stOption.at(8) != '=') {
-            outputError("Must specify a prefix value.");
+        //Check for correct command syntax
+        if (stOption.at(7) != '=') {
+            outputError("Incorrect prefix syntax (" + stOption + ")");
+            outputError("Excepted syntax (--prefix=PREFIX)", false);
+            return false;
         }
+        //A output dir has been specified
         string sValue = stOption.substr(9);
         m_sOutDirectory = sValue;
         //Convert '\' to '/'
@@ -411,10 +420,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             m_sOutDirectory += '/';
         }
     } else if (stOption.find("--rootdir") == 0) {
-        //A output dir has been specified
+        //Check for correct command syntax
         if (stOption.at(9) != '=') {
-            outputError("Must specify a rootdir value.");
+            outputError("Incorrect rootdir syntax (" + stOption + ")");
+            outputError("Excepted syntax (--rootdir=DIR)", false);
+            return false;
         }
+        //A source dir has been specified
         string sValue = stOption.substr(10);
         m_sRootDirectory = sValue;
         //Convert '\' to '/'
@@ -430,10 +442,13 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         //rootdir is passed before all other options are set up so must skip any other remaining steps
         return true;
     } else if (stOption.find("--projdir") == 0) {
-        //A output dir has been specified
+        //Check for correct command syntax
         if (stOption.at(9) != '=') {
-            outputError("Must specify a projdir value.");
+            outputError("Incorrect projdir syntax (" + stOption + ")");
+            outputError("Excepted syntax (--projdir=DIR)", false);
+            return false;
         }
+        //A project dir has been specified
         string sValue = stOption.substr(10);
         m_sSolutionDirectory = sValue;
         //Convert '\' to '/'
