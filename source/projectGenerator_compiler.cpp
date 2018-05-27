@@ -54,14 +54,14 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
         if (uiFindPos2 != string::npos) {
             sIncludeDir.replace(uiFindPos2, 2, "%");
         }
-        uiFindPos2 = sIncludeDir.find(")");
+        uiFindPos2 = sIncludeDir.find(')');
         if (uiFindPos2 != string::npos) {
             sIncludeDir.replace(uiFindPos2, 1, "%");
         }
         if (sIncludeDir.length() == 0) {
             sIncludeDir = "./";
-        } else if (sIncludeDir.find_first_of("./%") != 0) {
-            sIncludeDir = "./" + sIncludeDir;
+        } else if ((sIncludeDir.find(':') == string::npos) && (sIncludeDir.find_first_of("./%") != 0)) {
+            sIncludeDir.insert(0, "./");
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
