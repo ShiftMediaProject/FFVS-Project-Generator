@@ -314,7 +314,27 @@ bool makeDirectory(const string & sDirectory)
 #else
     int iRet = mkdir(sDirectory.c_str());
 #endif
-    return ((iRet == 0) || (errno == EEXIST));
+    if ((iRet == 0) || (errno == EEXIST)) {
+        return true;
+    }
+    if (errno == ENOENT) {
+        //The parent directory doesnt exist
+        uint uiPos = sDirectory.find_last_of('/');
+#if defined(_WIN32)
+        if (uiPos == string::npos) {
+            uiPos = sDirectory.find_last_of('\\');
+        }
+#endif
+        if (uiPos == string::npos) {
+            return false;
+        }
+        if (!makeDirectory(sDirectory.substr(0, uiPos))) {
+            return false;
+        }
+        //Try again
+        return makeDirectory(sDirectory);
+    }
+    return false;
 }
 
 bool findFile(const string & sFileName, string & sRetFileName)
