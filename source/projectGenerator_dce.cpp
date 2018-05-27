@@ -188,12 +188,17 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         }
         //Get all the files that include functions
         map<string, vector<DCEParams>> mFunctionFiles;
+        //Remove project dir from start of file
+        string sProjectDirCut, sFile;
+        makePathsRelative(m_sProjectDir, m_ConfigHelper.m_sRootDirectory, sProjectDirCut);
+        sProjectDirCut = (sProjectDirCut.find('.') == 0) ? sProjectDirCut.substr(2) : sProjectDirCut;
         for (map<string, DCEParams>::iterator itDCE = mFoundDCEUsage.begin(); itDCE != mFoundDCEUsage.end(); itDCE++) {
-            //Remove project dir from start of file
-            const string sProjectDirCut = (m_sProjectDir.find("./") == 0) ? m_sProjectDir.substr(2) : m_sProjectDir;
-            uint uiPos = (sProjectDirCut.length() > 0) ? itDCE->second.sFile.find(sProjectDirCut) : string::npos;
-            uiPos = (uiPos == string::npos) ? 0 : uiPos + m_sProjectDir.length();
-            string sFile = sTempFolder + '/' + itDCE->second.sFile.substr(uiPos);
+            //Make source file relative to root
+            makePathsRelative(itDCE->second.sFile, m_ConfigHelper.m_sRootDirectory, sFile);
+            sFile = (sFile.find('.') == 0) ? sFile.substr(2) : sFile;
+            uint uiPos = (sProjectDirCut.length() > 0) ? sFile.find(sProjectDirCut) : string::npos;
+            uiPos = (uiPos == string::npos) ? 0 : uiPos + sProjectDirCut.length();
+            sFile = sTempFolder + '/' + sFile.substr(uiPos);
             if (sFile.find('/', sTempFolder.length() + 1) != string::npos) {
                 string sFolder = sFile.substr(0, sFile.rfind('/'));
                 if (!makeDirectory(sFolder)) {
