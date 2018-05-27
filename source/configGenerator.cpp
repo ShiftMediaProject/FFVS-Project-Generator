@@ -1598,10 +1598,9 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
         if (vitOption->m_sOption.compare(sOptionUpper) == 0) {
             bRet = true;
             if (!vitOption->m_bLock) {
+                //Lock the item to prevent cyclic conditions
+                vitOption->m_bLock = true;
                 if (bEnable && (vitOption->m_sValue.compare("1") != 0)) {
-                    //Lock the item to prevent cyclic conditions
-                    vitOption->m_bLock = true;
-
                     //Need to convert the name to lower case
                     string sOptionLower = sOption;
                     transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
@@ -1631,9 +1630,6 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
                     for (vitForcedItem; vitForcedItem < vForceEnable.end(); vitForcedItem++) {
                         toggleConfigValue(*vitForcedItem, true, true);
                     }
-
-                    //Unlock item
-                    vitOption->m_bLock = false;
                 } else if (!bEnable && (vitOption->m_sValue.compare("0") != 0)) {
                     //Need to convert the name to lower case
                     string sOptionLower = sOption;
@@ -1648,6 +1644,8 @@ bool ConfigGenerator::toggleConfigValue(const string & sOption, bool bEnable, bo
                 }
                 //Change the items value
                 vitOption->m_sValue = (bEnable) ? "1" : "0";
+                //Unlock item
+                vitOption->m_bLock = false;
             }
         }
     }
