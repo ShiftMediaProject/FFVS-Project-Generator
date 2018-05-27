@@ -47,7 +47,12 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
     buildEarlyConfigArgs(vEarlyArgs);
     for (int i = 1; i < argc; i++) {
         string stOption = string(argv[i]);
-        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stOption) != vEarlyArgs.end()) {
+        string stCommand = stOption;
+        const uint uiPos = stOption.find('=');
+        if (uiPos != string::npos){
+            stCommand = stOption.substr(0, uiPos);
+        }
+        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stCommand) != vEarlyArgs.end()) {
             if (!changeConfig(stOption)) {
                 return false;
             }
