@@ -401,7 +401,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
         m_sToolchain = sToolChain;
     } else if (stOption.find("--prefix") == 0) {
         //Check for correct command syntax
-        if (stOption.at(7) != '=') {
+        if (stOption.at(8) != '=') {
             outputError("Incorrect prefix syntax (" + stOption + ")");
             outputError("Excepted syntax (--prefix=PREFIX)", false);
             return false;
@@ -1717,7 +1717,6 @@ bool ConfigGenerator::isASMEnabled()
     }
     return false;
 }
-
 
 bool ConfigGenerator::getMinWindowsVersion(uint & uiMajor, uint & uiMinor)
 {
