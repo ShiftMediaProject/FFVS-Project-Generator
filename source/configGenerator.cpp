@@ -1521,7 +1521,7 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
 
     //Check if using newer static filter list
     bool bStaticFilterList = false;
-    if ((sName.compare("filter_list") == 0) && (m_sConfigureFile.find("full_filter_name()") != string::npos)) {
+    if ((sName.compare("filter_list") == 0) && ((m_sConfigureFile.find("full_filter_name()") != string::npos) || (m_sConfigureFile.find("$full_filter_name_$") != string::npos))) {
         bStaticFilterList = true;
     }
 
