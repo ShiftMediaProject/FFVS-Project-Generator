@@ -83,28 +83,44 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
 )\n\
 if \"%SYSARCH%\"==\"32\" (\n\
     set MSVCVARSDIR=\n\
-    set WOWNODE=\n\
+    set VSWHERE=\"%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe\"\n\
 ) else if \"%SYSARCH%\"==\"64\" (\n\
     set MSVCVARSDIR=\\amd64\n\
+    set VSWHERE=\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\"\n\
+)\n\
+if exist %VSWHERE% (\n\
+    for /f \"usebackq delims=\" %%i in (`%VSWHERE% -prerelease -latest -property installationPath`) do (set VSINSTDIR=%%i)\n\
+    if exist \"!VSINSTDIR!\\VC\\Auxiliary\\Build\\vcvars%SYSARCH%.bat\" (\n\
+        call \"!VSINSTDIR!\\VC\\Auxiliary\\Build\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+        goto MSVCVarsDone\n\
+    )\n\
+    if exist \"!VSINSTDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" (\n\
+        call \"!VSINSTDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+        goto MSVCVarsDone\n\
+    )\n\
+)\n\
+if \"%SYSARCH%\"==\"32\" (\n\
+    set WOWNODE=\n\
+) else if \"%SYSARCH%\"==\"64\" (\n\
     set WOWNODE=\\WOW6432Node\n\
 )\n\
 pushd %CD%\n\
 reg.exe query \"HKLM\\SOFTWARE%WOWNODE%\\Microsoft\\VisualStudio\\SxS\\VS7\" /v 15.0 >nul 2>&1\n\
 if not ERRORLEVEL 1 (\n\
-    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\SOFTWARE%WOWNODE%\\Microsoft\\VisualStudio\\SxS\\VS7\" /v 15.0') do (set VSINSTALLDIR=%%b)\n\
-    call \"!VSINSTALLDIR!VC\\Auxiliary\\Build\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\SOFTWARE%WOWNODE%\\Microsoft\\VisualStudio\\SxS\\VS7\" /v 15.0') do (set VSINSTDIR=%%b)\n\
+    call \"!VSINSTDIR!VC\\Auxiliary\\Build\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
     goto MSVCVarsDone\n\
 )\n\
 reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\14.0\" /v \"InstallDir\" >nul 2>&1\n\
 if not ERRORLEVEL 1 (\n\
-    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\14.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
-    call \"!VSINSTALLDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\14.0\" /v \"InstallDir\"') do (set VSINSTDIR=%%b)\n\
+    call \"!VSINSTDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
     goto MSVCVarsDone\n\
 )\n\
 reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\12.0\" /v \"InstallDir\" >nul 2>&1\n\
 if not ERRORLEVEL 1 (\n\
-    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\12.0\" /v \"InstallDir\"') do (set VSINSTALLDIR=%%b)\n\
-    call \"!VSINSTALLDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
+    for /f \"skip=2 tokens=2,*\" %%a in ('reg.exe query \"HKLM\\Software%WOWNODE%\\Microsoft\\VisualStudio\\12.0\" /v \"InstallDir\"') do (set VSINSTDIR=%%b)\n\
+    call \"!VSINSTDIR!\\..\\..\\VC\\bin%MSVCVARSDIR%\\vcvars%SYSARCH%.bat\" >nul 2>&1\n\
     goto MSVCVarsDone\n\
 )\n\
 echo fatal error : An installed version of Visual Studio could not be detected. > ffvs_log.txt\n\
