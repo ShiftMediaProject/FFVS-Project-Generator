@@ -93,7 +93,7 @@ GOTO exit
 :makeGetDeps
 ECHO Creating project_get_dependencies.bat...
 FOR %%I IN %DEPENDENCIES% DO SET LASTDEP=%%I
-MKDIR %FFMPEGPATH%/SMP >NUL 2>&1
+MKDIR "%FFMPEGPATH%/SMP" >NUL 2>&1
 (
     ECHO @ECHO OFF
     ECHO SETLOCAL EnableDelayedExpansion
