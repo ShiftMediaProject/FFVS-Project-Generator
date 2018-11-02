@@ -94,7 +94,7 @@ GOTO exit
 :makeGetDeps
 ECHO Creating project_get_dependencies.bat...
 FOR %%I IN %DEPENDENCIES% DO SET LASTDEP=%%I
-MKDIR %FFMPEGPATH%/SMP >NUL 2>&1
+MKDIR "%FFMPEGPATH%/SMP" >NUL 2>&1
 (
     ECHO @ECHO OFF
     ECHO SETLOCAL EnableDelayedExpansion
@@ -116,7 +116,7 @@ EXIT /B %ERRORLEVEL%
 :getDeps
 REM Add current repo to list of already passed dependencies
 ECHO Getting and updating any required dependency libs...
-cd %FFMPEGPATH%/SMP
+cd "%FFMPEGPATH%/SMP"
 CALL project_get_dependencies.bat "ffmpeg" || EXIT /B 1
 cd %~dp0
 ECHO.
