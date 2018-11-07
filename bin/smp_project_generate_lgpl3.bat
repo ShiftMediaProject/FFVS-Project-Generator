@@ -28,7 +28,7 @@ theora, ^
 vorbis, ^
 zlib ^
 )
-SET PGOPTIONS=--enable-version3 --enable-libmp3lame --enable-libvorbis --enable-libspeex --enable-libopus --enable-libilbc --enable-libtheora --enable-libvpx --enable-libgme --enable-libmodplug --enable-libsoxr --enable-libfreetype --enable-fontconfig --enable-libfribidi --enable-libass --enable-libxml2 --enable-gnutls --disable-schannel --enable-gmp --enable-libssh --enable-libbluray --enable-opengl --enable-libmfx --toolchain=msvc
+SET PGOPTIONS=--enable-version3 --enable-bzlib --enable-iconv --enable-lzma --enable-sdl2 --enable-zlib --enable-libmp3lame --enable-libvorbis --enable-libspeex --enable-libopus --enable-libilbc --enable-libtheora --enable-libvpx --enable-libgme --enable-libmodplug --enable-libsoxr --enable-libfreetype --enable-fontconfig --enable-libfribidi --enable-libass --enable-libxml2 --enable-gnutls --disable-schannel --enable-gmp --enable-libssh --enable-libbluray --enable-opengl --enable-libmfx--enable-ffnvcodec --enable-cuda --enable-amf --toolchain=msvc
 
 REM Store current directory and ensure working directory is the location of current .bat
 SET CURRDIR=%CD%
@@ -110,7 +110,7 @@ EXIT /B %ERRORLEVEL%
 :getDeps
 REM Add current repo to list of already passed dependencies
 ECHO Getting and updating any required dependency libs...
-cd %FFMPEGPATH%/SMP
+cd "%FFMPEGPATH%/SMP"
 CALL project_get_dependencies.bat "ffmpeg" || EXIT /B 1
 cd %~dp0
 ECHO.
