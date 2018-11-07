@@ -61,14 +61,23 @@ Sevaral automated batch files are supplied with the project that can be used to 
 Many of the possible FFmpeg dependencies (and their dependencies) are provided by the ShiftMediaProject repositories.
 
 Many of the possible FFmpeg dependencies (and there dependencies) are available in the ShiftMediaProject repositories.
-However the following is a list of extra dependency options that require external downloads:
+However the following is a list of extra dependency options that require external downloads if used:
 1. opengl (requires glext)
 	1. Download glext.h and wglext.h from opengl.org.
 	2. Save the header files into *OutputDir*/include/gl/*.
 2. opencl (requires latest Intel/AMD OpenCL or NVIDIA CUDA SDK)
 	1. Download either the "Intel OpenCL SDK", "AMD OpenCL SDK" or the "NVIDIA CUDA SDK" from their respective suppliers.
 	2. Install the downloaded SDK wherever desired.
-3. decklink (requires Blackmagic DeckLink SDK)
+3. ffnvcodec/nvdec/nvenc (requires nv-codec-headers)
+    1. Download the nv-codec-headers repository from https://github.com/FFmpeg/nv-codec-headers
+    2. Save the contents of the nv-codec-headers repositories "include" folder into "OutputDir/include/*".
+5. cuda-sdk (requires latest NVIDIA CUDA SDK)
+    1. Download the NVIDIA CUDA SDK from the NVIDIA website
+    2. Install the downloaded SDK wherever desired.
+6. amf (requires Advanced Media Framework (AMF) SDK headers)
+    1. Download the AMF repository from https://github.com/GPUOpen-LibrariesAndSDKs/AMF
+    2. Save the contents of the AMF repositories "amf/public/include" into "OutputDir/include/AMF/*".
+7. decklink (requires Blackmagic DeckLink SDK)
 	1. Download the "Blackmagic DeckLink SDK" from the Blackmagic website.
 	2. Extract the downloaded SDK wherever desired.
     3. Run the following command from a Visual Studio developer command prompt in the "Win/include" folder:
@@ -79,13 +88,16 @@ Any dependencies supplied by ShiftMediaProject should be downloaded next to the 
 
 Only dependencies built from supplied ShiftMediaProject repositories are tested and supported. Using compiled dependencies from other sources may result in version or other issues. Although these external sources generally work fine any problems associated with them are not covered by ShiftMediaProject and so they should be used with discretion.
 
-## Building with YASM
+## Building with ASM
 
-If the enable-yasm option is used to generate a project then in order to use the output project file using msvc you must first download and install YASM.
-YASM is required to compile all used assembly files.
+If the enable-nasm option is used to generate a project then in order to use the output project file using msvc you must first download and install NASM.
+NASM is required to compile all used assembly files.
 
-1. Visual Studio YASM integration can be downloaded from https://github.com/ShiftMediaProject/VSYASM/releases/latest
+1. Visual Studio NASM integration can be downloaded from https://github.com/ShiftMediaProject/VSNASM/releases/latest
 2. Once downloaded simply follow the install instructions included in the download.
+
+Note: Older source versions of FFmpeg used YASM for assembly compilation instead of NASM if using an older source release then YASM integration will be needed instead. The installation of YASM is identical to that of NASM
+https://github.com/ShiftMediaProject/VSYASM/releases/latest
 
 ## License
 
