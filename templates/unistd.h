@@ -1,6 +1,5 @@
 /*
  * MSVC unistd.h compatibility header.
- * Copyright (c) 2015 Matthew Oliver
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
