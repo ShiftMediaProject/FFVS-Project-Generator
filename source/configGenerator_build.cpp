@@ -592,9 +592,16 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
                                 transform(sReplaceCheck.begin(), sReplaceCheck.end(), sReplaceCheck.begin(), ::toupper);
                                 DefaultValuesList::iterator mitDep = mReplaceValues.find(sReplaceCheck);
                                 if (mitDep != mReplaceValues.end()) {
-                                    sAddConfig += " " + sReplaceCheck;
-                                    if (bToggle)
+                                    if (sAddConfig.length() == 0) {
+                                        sAddConfig += " " + sReplaceCheck;
+                                    } else {
+                                        sAddConfig += " && " + sReplaceCheck;
+                                        sAddConfig.insert(1, "(");
+                                        sAddConfig += ')';
+                                    }
+                                    if (bToggle) {
                                         sAddConfig = '!' + sAddConfig;
+                                    }
                                     bReservedDeps = true;
                                 }
                                 if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
