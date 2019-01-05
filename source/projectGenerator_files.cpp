@@ -30,11 +30,18 @@ bool ProjectGenerator::findSourceFile(const string & sFile, const string & sExte
     if (!findFile(sRetFileName, sFileName)) {
         // Check if this is a built file
         uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
-        uiSPos = (uiSPos == string::npos) ? 0 : uiSPos;
+        uiSPos = (uiSPos == string::npos) ? 0 : uiSPos + 1;
         string sProjectName = m_sProjectDir.substr(uiSPos);
         sProjectName = (m_sProjectDir.compare("./") != 0) ? sProjectName : "";
         sRetFileName = m_ConfigHelper.m_sSolutionDirectory + sProjectName + sFile + sExtension;
-        return findFile(sRetFileName, sFileName);
+        if (!findFile(sRetFileName, sFileName)) {
+            // Check if this file already includes the project folder in its name
+            if(sFile.find(sProjectName) != string::npos) {
+                sRetFileName = m_sProjectDir + sFile.substr(sFile.find(sProjectName) + sProjectName.length()) + sExtension;
+                return findFile(sRetFileName, sFileName);
+            }
+            return false;
+        }
     }
     return true;
 }
