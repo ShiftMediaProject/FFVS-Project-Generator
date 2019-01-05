@@ -582,14 +582,13 @@ bool ProjectGenerator::passProgramMake()
             } else {
                 --uiChecks;
             }
-        } else if (uiChecks == 1) {
-            //When passing the fftools folder some objects are added with fftools folder prefixed to file name
-            const string sMakeFolder = "fftools/";
-            uint uiPos;
-            for (vector<string>::iterator itI = m_vIncludes.begin(); itI < m_vIncludes.end(); itI++) {
-                if ((uiPos = itI->find(sMakeFolder)) != string::npos) {
-                    itI->erase(uiPos, sMakeFolder.length());
-                }
+        }
+        //When passing the fftools folder some objects are added with fftools folder prefixed to file name
+        const string sMakeFolder = "fftools/";
+        uint uiPos;
+        for (vector<string>::iterator itI = m_vIncludes.begin(); itI < m_vIncludes.end(); itI++) {
+            if ((uiPos = itI->find(sMakeFolder)) != string::npos) {
+                itI->erase(uiPos, sMakeFolder.length());
             }
         }
         --uiChecks;
