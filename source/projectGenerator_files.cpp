@@ -144,6 +144,15 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
         uint uiCutPos = itIt->rfind('/') + 1;
         string sFilename = itIt->substr(uiCutPos, uiExtPos - uiCutPos);
         string sExtension = itIt->substr(uiExtPos);
+        string sOutFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
+        string sNewOutFile;
+        m_ConfigHelper.makeFileProjectRelative(sOutFile, sNewOutFile);
+        // Check hasnt already been included as a wrapped object
+        if (find(vExistingIncludes.begin(), vExistingIncludes.end(), sNewOutFile) != vExistingIncludes.end()) {
+            // skip this item
+            outputInfo(sNewOutFile);
+            continue;
+        }
         //Get the files dynamic config requirement
         string sIdents;
         for (StaticList::iterator itIdents = m_mReplaceIncludes[sFilename].begin(); itIdents < m_mReplaceIncludes[sFilename].end(); itIdents++) {
@@ -166,13 +175,11 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
             outputError("Failed creating local " + m_sProjectName + " directory");
             return false;
         }
-        string sOutFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
         if (!writeToFile(sOutFile, sNewFile)) {
             return false;
         }
         //Add the new file to list of objects
-        m_ConfigHelper.makeFileProjectRelative(sOutFile, sOutFile);
-        vExistingIncludes.push_back(sOutFile);
+        vExistingIncludes.push_back(sNewOutFile);
     }
     return true;
 }
