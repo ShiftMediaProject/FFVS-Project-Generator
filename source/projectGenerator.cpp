@@ -83,17 +83,7 @@ bool ProjectGenerator::passAllMake()
             if (!outputProject()) {
                 return false;
             }
-            //Reset all internal values
-            m_sInLine.clear();
-            m_vIncludes.clear();
-            m_mReplaceIncludes.clear();
-            m_vCPPIncludes.clear();
-            m_vCIncludes.clear();
-            m_vASMIncludes.clear();
-            m_vHIncludes.clear();
-            m_vLibs.clear();
-            m_mUnknowns.clear();
-            m_sProjectDir.clear();
+            outputProjectCleanup();
         }
     }
 
@@ -347,17 +337,24 @@ bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, cons
         return false;
     }
 
-    //Reset all internal values
+    outputProjectCleanup();
+
+    return true;
+}
+
+void ProjectGenerator::outputProjectCleanup()
+{
+    // Reset all internal values
     m_sInLine.clear();
     m_vIncludes.clear();
+    m_mReplaceIncludes.clear();
     m_vCPPIncludes.clear();
     m_vCIncludes.clear();
     m_vASMIncludes.clear();
     m_vHIncludes.clear();
     m_vLibs.clear();
     m_mUnknowns.clear();
-
-    return true;
+    m_sProjectDir.clear();
 }
 
 bool ProjectGenerator::outputSolution()

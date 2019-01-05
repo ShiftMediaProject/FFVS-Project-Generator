@@ -81,6 +81,9 @@ private:
      */
     bool outputProgramProject(const string& sDestinationFile, const string& sDestinationFilterFile);
 
+    /** Cleans up any used variables after a project file has been created. */
+    void outputProjectCleanup();
+
     /**
      * Outputs a solution file (Also calls outputProgramProject for any programs).
      * @return True if it succeeds, false if it fails.
@@ -208,6 +211,13 @@ private:
     void buildInterDependencies(StaticList & vLibs);
 
     void buildDependencies(StaticList & vLibs, StaticList & vAddLibs);
+
+    /**
+     * Updates existing library dependency lists by adding/removing those required/unavailable by WinRT.
+     * @param [in,out] vLibs    The project dependency libs.
+     * @param [in,out] vAddLibs The windows dependency libs.
+     */
+    void buildDependenciesWinRT(StaticList & vLibs, StaticList & vAddLibs);
 
     void buildDependencyValues(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs, StaticList & vDefines);
 
