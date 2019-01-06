@@ -26,8 +26,7 @@ void ProjectGenerator::buildInterDependenciesHelper(const StaticList & vConfigOp
 {
     bool bFound = false;
     for (StaticList::const_iterator itI = vConfigOptions.begin(); itI < vConfigOptions.end(); itI++) {
-        ConfigGenerator::ValuesList::iterator itConfOpt = m_ConfigHelper.getConfigOption(*itI);
-        bFound = ((itConfOpt != m_ConfigHelper.m_vConfigValues.end()) && (m_ConfigHelper.getConfigOption(*itI)->m_sValue.compare("1") == 0));
+        bFound = m_ConfigHelper.isConfigOptionEnabled(*itI);
         if (!bFound) {
             break;
         }
@@ -188,7 +187,7 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
             } else if (vitLib->compare("schannel") == 0) {
                 vAddLibs.push_back("Secur32"); //Add the additional required libs
             } else if (vitLib->compare("sdl") == 0) {
-                if (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end()) {
+                if (!m_ConfigHelper.isConfigOptionValid("sdl2")) {
                     vLibs.push_back("libsdl"); //Only add if not sdl2
                 }
             } else if (vitLib->compare("wincrypt") == 0) {
@@ -247,8 +246,7 @@ void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticLi
     //Loop through each known configuration option and add the required dependencies
     for (map<string, bool>::iterator mitLib = mProjectDeps.begin(); mitLib != mProjectDeps.end(); mitLib++) {
         //Check if enabled//Check if optimised value is valid for current configuration
-        ConfigGenerator::ValuesList::iterator vitProjectDep = m_ConfigHelper.getConfigOption(mitLib->first);
-        if (mitLib->second && (vitProjectDep != m_ConfigHelper.m_vConfigValues.end()) && (vitProjectDep->m_sValue.compare("1") == 0)) {
+        if (mitLib->second && m_ConfigHelper.isConfigOptionEnabled(mitLib->first)) {
             //Add in the additional include directories
             if (mitLib->first.compare("libopus") == 0) {
                 vIncludeDirs.push_back("$(OutDir)/include/opus");
@@ -263,7 +261,7 @@ void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticLi
                 vIncludeDirs.push_back("$(OutDir)/include/libxml2");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
                 vDefines.push_back("LIBXML_STATIC");
-            } else if ((mitLib->first.compare("sdl") == 0) && (m_ConfigHelper.getConfigOption("sdl2") == m_ConfigHelper.m_vConfigValues.end())) {
+            } else if ((mitLib->first.compare("sdl") == 0) && !m_ConfigHelper.isConfigOptionValid("sdl2")) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
             } else if (mitLib->first.compare("sdl2") == 0) {

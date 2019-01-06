@@ -278,7 +278,7 @@ bool ConfigGenerator::passExistingConfig()
         string sOption = sConfigH.substr(uiPos, uiPos2 - uiPos);
 
         //Check if the options is valid
-        if (getConfigOptionPrefixed(sOption) == m_vConfigValues.end()) {
+        if (!isConfigOptionValidPrefixed(sOption)) {
             //Check if it is a fixed value and skip
             bool bFound = false;
             for (ValuesList::iterator vitOption = m_vFixedConfigValues.begin(); vitOption < m_vFixedConfigValues.end(); vitOption++) {
@@ -537,8 +537,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
             //The actual element name is suffixed by list name (all after the =)
             sOption = sOption.substr(uiStartPos + 1) + "_" + sList;
             //Get the config element
-            ValuesList::iterator vitOption = getConfigOption(sOption);
-            if (vitOption == m_vConfigValues.end()) {
+            if (!isConfigOptionValid(sOption)) {
                 outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
                 outputError("Use --help to get available options", false);
                 return false;
@@ -640,8 +639,7 @@ bool ConfigGenerator::changeConfig(const string & stOption)
                     }
                 } else {
                     //If not one of above components then check if it exists as standalone option
-                    ValuesList::iterator vitOption = getConfigOption(sOption);
-                    if (vitOption == m_vConfigValues.end()) {
+                    if (!isConfigOptionValid(sOption)) {
                         outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
                         outputError("Use --help to get available options", false);
                         return false;
@@ -1709,10 +1707,21 @@ bool ConfigGenerator::isConfigOptionEnabled(const string & sOption)
     return (vitOpt != m_vConfigValues.end()) && (vitOpt->m_sValue.compare("1") == 0);
 }
 
+bool ConfigGenerator::isConfigOptionValid(const string& sOption)
+{
+    const ValuesList::iterator vitOpt = getConfigOption(sOption);
+    return vitOpt != m_vConfigValues.end();
+}
+
+bool ConfigGenerator::isConfigOptionValidPrefixed(const string& sOption)
+{
+    const ValuesList::iterator vitOpt = getConfigOptionPrefixed(sOption);
+    return vitOpt != m_vConfigValues.end();
+}
+
 bool ConfigGenerator::isASMEnabled()
 {
-    if (((getConfigOptionPrefixed("HAVE_X86ASM") != m_vConfigValues.end()) && (getConfigOptionPrefixed("HAVE_X86ASM")->m_sValue.compare("1") == 0)) ||
-        (getConfigOptionPrefixed("HAVE_YASM")->m_sValue.compare("1") == 0)) {
+    if (isConfigOptionValidPrefixed("HAVE_X86ASM") || isConfigOptionValidPrefixed("HAVE_YASM")) {
         return true;
     }
     return false;

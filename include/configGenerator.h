@@ -133,7 +133,13 @@ private:
 
     void buildFixedValues(DefaultValuesList & mFixedValues);
 
-    void buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues);
+    /**
+     * Builds a list of configuration options that need to be replaced with the returned values.
+     * @param [in,out] mReplaceValues    The replace values for config.h.
+     * @param [in,out] header            The header that must be output at top of config file.
+     * @param [in,out] mASMReplaceValues The replace values for config.asm.
+     */
+    void buildReplaceValues(DefaultValuesList& mReplaceValues, string& header, DefaultValuesList& mASMReplaceValues);
 
     /**
      * Creates a list of config items that are automatically set and should be be set by the user.
@@ -272,6 +278,20 @@ private:
      * @return True if the configuration option is enabled, false if not.
      */
     bool isConfigOptionEnabled(const string & sOption);
+
+    /**
+     * Queries if a configuration option exists.
+     * @param sOption The option.
+     * @return True if the configuration option is valid, false if not.
+     */
+    bool isConfigOptionValid(const string& sOption);
+
+    /**
+     * Queries if a configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) exists.
+     * @param sOption The option.
+     * @return True if the configuration option is valid, false if not.
+     */
+    bool isConfigOptionValidPrefixed(const string& sOption);
 
     /**
      * Queries if assembly is enabled.
