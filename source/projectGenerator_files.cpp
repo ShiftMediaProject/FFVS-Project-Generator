@@ -153,11 +153,24 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, St
             outputInfo(sNewOutFile);
             continue;
         }
+        //Find the file in the original list
+        string sOrigName;
+        for (UnknownList::iterator i = m_mReplaceIncludes.begin(); i != m_mReplaceIncludes.end(); i++) {
+            if (i->first.find(sFilename) != string::npos) {
+                sOrigName = i->first;
+                break;
+            }
+        }
+        if (sOrigName.length() == 0) {
+            outputError("Could not find original file name for source file (" + sFilename + ")");
+            return false;
+        }
         //Get the files dynamic config requirement
         string sIdents;
-        for (StaticList::iterator itIdents = m_mReplaceIncludes[sFilename].begin(); itIdents < m_mReplaceIncludes[sFilename].end(); itIdents++) {
+        for (StaticList::iterator itIdents = m_mReplaceIncludes[sOrigName].begin();
+             itIdents < m_mReplaceIncludes[sOrigName].end(); itIdents++) {
             sIdents += *itIdents;
-            if ((itIdents + 1) < m_mReplaceIncludes[sFilename].end()) {
+            if ((itIdents + 1) < m_mReplaceIncludes[sOrigName].end()) {
                 sIdents += " || ";
             }
         }
