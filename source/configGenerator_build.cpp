@@ -560,7 +560,7 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
     //Add any values that may depend on a replace value from above^
     DefaultValuesList mNewReplaceValues;
     ValuesList::iterator vitOption = m_vConfigValues.begin();
-    string sSearchSuffix[] = {"_deps", "_select"};
+    string sSearchSuffix[] = {"_deps", "_select", "_deps_any"};
     for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
         string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
         //Check for forced replacement (only if attribute is not disabled)
@@ -604,10 +604,10 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
                                     bReservedDeps = true;
                                 } else if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
                                     //Check recursively if dep has any deps that are reserved types
-                                    sOptionLower = vitTemp->m_sOption;
-                                    transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+                                    string sOptionLower2 = vitTemp->m_sOption;
+                                    transform(sOptionLower2.begin(), sOptionLower2.end(), sOptionLower2.begin(), ::tolower);
                                     for (int iSuff2 = 0; iSuff2 < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff2++) {
-                                        sCheckFunc = sOptionLower + sSearchSuffix[iSuff2];
+                                        sCheckFunc = sOptionLower2 + sSearchSuffix[iSuff2];
                                         vector<string> vCheckList2;
                                         if (getConfigList(sCheckFunc, vCheckList2, false)) {
                                             uint uiCPos = vitCheckItem - vCheckList.begin();
