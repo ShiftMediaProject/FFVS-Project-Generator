@@ -593,18 +593,16 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
                                 DefaultValuesList::iterator mitDep = mReplaceValues.find(sReplaceCheck);
                                 if (mitDep != mReplaceValues.end()) {
                                     if (sAddConfig.length() == 0) {
-                                        sAddConfig += " " + sReplaceCheck;
+                                        sAddConfig += sReplaceCheck;
                                     } else {
                                         sAddConfig += " && " + sReplaceCheck;
-                                        sAddConfig.insert(1, "(");
-                                        sAddConfig += ')';
+                                        sAddConfig = '(' + sAddConfig + ')';
                                     }
                                     if (bToggle) {
                                         sAddConfig = '!' + sAddConfig;
                                     }
                                     bReservedDeps = true;
-                                }
-                                if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
+                                } else if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
                                     //Check recursively if dep has any deps that are reserved types
                                     sOptionLower = vitTemp->m_sOption;
                                     transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
@@ -639,7 +637,11 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 
                         if (bReservedDeps) {
                             //Add to list
-                            mNewReplaceValues[sTagName] = "#define " + sTagName + sAddConfig;
+                            mNewReplaceValues[sTagName] = "#if " + sAddConfig + "\n\
+#   define " + sTagName + " 1\n\
+#else\n\
+#   define " + sTagName + " 0\n\
+#endif";
                         }
                     }
                 }
