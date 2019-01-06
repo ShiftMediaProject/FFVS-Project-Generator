@@ -1550,7 +1550,16 @@ bool ConfigGenerator::passEnabledComponents(const string & sFile, const string &
                     continue;
                 }
             }
-            sOutput += "    &ff_" + sOptionLower + ",\n";
+            // Check if option requires replacement
+            const DefaultValuesList::iterator replaced = m_mReplaceList.find(vitOption->m_sPrefix + vitOption->m_sOption);
+            if (replaced != m_mReplaceList.end()) {
+                //Since this is a replaced option we need to wrap it in its config preprocessor
+                sOutput += "#if " + vitOption->m_sPrefix + vitOption->m_sOption + '\n';
+                sOutput += "    &ff_" + sOptionLower + ",\n";
+                sOutput += "#endif\n";
+            } else {
+                sOutput += "    &ff_" + sOptionLower + ",\n";
+            }
         }
     }
     if (bStaticFilterList) {
