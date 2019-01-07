@@ -9,20 +9,26 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x86 = Debug|x86
 		Debug|x64 = Debug|x64
-		DebugDLL|x86 = DebugDLL|x86
+		Debug|x86 = Debug|x86
 		DebugDLL|x64 = DebugDLL|x64
-		DebugDLLStaticDeps|x86 = DebugDLLStaticDeps|x86
-		DebugDLLStaticDeps|x64 = DebugDLLStaticDeps|x64
-		Release|x86 = Release|x86
+		DebugDLL|x86 = DebugDLL|x86
+		DebugDLLWinRT|x64 = DebugDLLWinRT|x64
+		DebugDLLWinRT|x86 = DebugDLLWinRT|x86
+		DebugWinRT|x64 = DebugWinRT|x64
+		DebugWinRT|x86 = DebugWinRT|x86
 		Release|x64 = Release|x64
-		ReleaseDLL|x86 = ReleaseDLL|x86
+		Release|x86 = Release|x86
 		ReleaseDLL|x64 = ReleaseDLL|x64
-		ReleaseDLLStaticDeps|x86 = ReleaseDLLStaticDeps|x86
+		ReleaseDLL|x86 = ReleaseDLL|x86
 		ReleaseDLLStaticDeps|x64 = ReleaseDLLStaticDeps|x64
-		ReleaseLTO|x86 = ReleaseLTO|x86
-		ReleaseLTO|x64 = ReleaseLTO|x64
+		ReleaseDLLStaticDeps|x86 = ReleaseDLLStaticDeps|x86
+		ReleaseDLLWinRT|x64 = ReleaseDLLWinRT|x64
+		ReleaseDLLWinRT|x86 = ReleaseDLLWinRT|x86
+		ReleaseDLLWinRTStaticDeps|x64 = ReleaseDLLWinRTStaticDeps|x64
+		ReleaseDLLWinRTStaticDeps|x86 = ReleaseDLLWinRTStaticDeps|x86
+		ReleaseWinRT|x64 = ReleaseWinRT|x64
+		ReleaseWinRT|x86 = ReleaseWinRT|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 	EndGlobalSection

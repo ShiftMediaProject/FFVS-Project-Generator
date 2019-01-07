@@ -823,7 +823,11 @@ bool ConfigGenerator::outputConfig()
     }
 
     //Build inbuilt force replace list
-    buildReplaceValues(m_mReplaceList, m_mASMReplaceList);
+    string header;
+    buildReplaceValues(m_mReplaceList, header, m_mASMReplaceList);
+
+    //Ouptut header
+    sConfigureFile += header + '\n';
 
     //Output all fixed config options
     vitOption = m_vFixedConfigValues.begin();

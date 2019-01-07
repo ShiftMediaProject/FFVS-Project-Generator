@@ -34,6 +34,7 @@
 #define TEMPLATE_PROG_VCXPROJ_ID 106
 #define TEMPLATE_PROG_FILTERS_ID 107
 #define TEMPLATE_STDATOMIC_ID 108
+#define TEMPLATE_BAT_ID 109
 
 bool ProjectGenerator::passAllMake()
 {
@@ -112,6 +113,8 @@ void ProjectGenerator::deleteCreatedFiles()
     findFiles(m_ConfigHelper.m_sSolutionDirectory + "math.h", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sSolutionDirectory + "unistd.h", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sSolutionDirectory + "stdatomic.h", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "ffmpeg_with_latest_sdk.bat", vExistingFiles, false);
+    findFiles(m_ConfigHelper.m_sSolutionDirectory + "libav_with_latest_sdk.bat", vExistingFiles, false);
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
         *vitLib = "lib" + *vitLib;
         findFiles(m_ConfigHelper.m_sSolutionDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
@@ -538,7 +541,8 @@ bool ProjectGenerator::outputSolution()
     string sConfigPlatform = "\r\n		{";
     string sConfigPlatform2 = "}.";
     string sConfigPlatform3 = "|";
-    string aBuildConfigs[7] = {"Debug", "DebugDLL", "DebugDLLStaticDeps", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps", "ReleaseLTO"};
+    string aBuildConfigs[10] = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps",
+        "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
     string aBuildArchsSol[2] = {"x86", "x64"};
     string aBuildArchs[2] = {"Win32", "x64"};
     string aBuildTypes[2] = {".ActiveCfg = ", ".Build.0 = "};
@@ -568,12 +572,12 @@ bool ProjectGenerator::outputSolution()
     //Add the program keys
     for (vector<string>::iterator vitIt = vAddedPrograms.begin(); vitIt < vAddedPrograms.end(); vitIt++) {
         //loop over build configs
-        for (uint uiI = 0; uiI < 7; uiI++) {
+        for (uint uiI = 0; uiI < sizeof(aBuildConfigs) / sizeof(aBuildConfigs[0]); uiI++) {
             //loop over build archs
-            for (uint uiJ = 0; uiJ < 2; uiJ++) {
+            for (uint uiJ = 0; uiJ < sizeof(aBuildArchsSol) / sizeof(aBuildArchsSol[0]); uiJ++) {
                 //loop over build types
-                for (uint uiK = 0; uiK < 2; uiK++) {
-                    if ((uiK == 1) && (uiI != 3)) {
+                for (uint uiK = 0; uiK < sizeof(aBuildTypes) / sizeof(aBuildTypes[0]); uiK++) {
+                    if ((uiK == 1) && (uiI != 4)) {
                         //We dont build programs by default except for Release config
                         continue;
                     }
@@ -586,11 +590,16 @@ bool ProjectGenerator::outputSolution()
                     sAddPlatform += aBuildTypes[uiK];
                     if (uiI == 2) {
                         sAddPlatform += aBuildConfigs[1];
-                    } else if (uiI == 5) {
-                        sAddPlatform += aBuildConfigs[4];
+                    } else if (uiI == 3) {
+                        sAddPlatform += aBuildConfigs[0];
                     } else if (uiI == 6) {
-                        //there is no program lto build so use release instead
-                        sAddPlatform += aBuildConfigs[3];
+                        sAddPlatform += aBuildConfigs[5];
+                    } else if (uiI == 7) {
+                        sAddPlatform += aBuildConfigs[5];
+                    } else if (uiI == 8) {
+                        sAddPlatform += aBuildConfigs[5];
+                    } else if (uiI == 9) {
+                        sAddPlatform += aBuildConfigs[4];
                     } else {
                         sAddPlatform += aBuildConfigs[uiI];
                     }
@@ -629,6 +638,29 @@ bool ProjectGenerator::outputSolution()
     transform(sProjectName.begin(), sProjectName.end(), sProjectName.begin(), ::tolower);
     const string sOutSolutionFile = m_ConfigHelper.m_sSolutionDirectory + sProjectName + ".sln";
     if (!writeToFile(sOutSolutionFile, sSolutionFile, true)) {
+        return false;
+    }
+
+    outputLine("  Generating SDK batch file...");
+    // Open the input temp project file
+    string sBatFile;
+    if (!loadFromResourceFile(TEMPLATE_BAT_ID, sBatFile)) {
+        return false;
+    }
+
+    // Change all occurrences of template_in with solution name
+    const string sFFSearchTag = "template_in";
+    uint uiFindPos = sBatFile.find(sFFSearchTag);
+    while (uiFindPos != string::npos) {
+        // Replace
+        sBatFile.replace(uiFindPos, sFFSearchTag.length(), sProjectName);
+        // Get next
+        uiFindPos = sBatFile.find(sFFSearchTag, uiFindPos + 1);
+    }
+
+    //Write to output
+    const string sOutBatFile = m_ConfigHelper.m_sSolutionDirectory + sProjectName + "_with_latest_sdk.bat";
+    if (!writeToFile(sOutBatFile, sBatFile, true)) {
         return false;
     }
 
@@ -805,7 +837,6 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
         //Get next
         uiFindPos = sProjectTemplate.find(sWinnt64Tag, uiFindPos + 1);
     }
-
 }
 
 void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)
@@ -1469,24 +1500,57 @@ void ProjectGenerator::outputASMTools(string & sProjectTemplate)
 
 bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bProgram)
 {
-    //Check current libs list for valid lib names
-    for (StaticList::iterator vitLib = m_vLibs.begin(); vitLib < m_vLibs.end(); vitLib++) {
-        //prepend lib if needed
+    // Check current libs list for valid lib names
+    for (StaticList::iterator vitLib = m_vLibs.begin(); vitLib < m_vLibs.end(); ++vitLib) {
+        // prepend lib if needed
         if (vitLib->find("lib") != 0) {
             *vitLib = "lib" + *vitLib;
         }
     }
 
-    //Add additional dependencies based on current config to Libs list
+    // Add additional dependencies based on current config to Libs list
     buildInterDependencies(m_vLibs);
-    m_mProjectLibs[m_sProjectName] = m_vLibs; //Backup up current libs for solution
+    m_mProjectLibs[m_sProjectName] = m_vLibs;    // Backup up current libs for solution
     StaticList vAddLibs;
     buildDependencies(m_vLibs, vAddLibs);
+    StaticList vLibsWinRT;
+    StaticList vAddLibsWinRT;
+    for (StaticList::iterator vitLib = m_vLibs.begin() + m_mProjectLibs[m_sProjectName].size(); vitLib < m_vLibs.end();
+         ++vitLib) {
+        vLibsWinRT.push_back(*vitLib);
+    }
+    buildDependenciesWinRT(vLibsWinRT, vAddLibsWinRT);
+    // Create list of additional internal dependencies used for static linking (since static libs dont include cross
+    // dependency libs in them)
+    StaticList staticLibs = m_mProjectLibs[m_sProjectName];
+    for (StaticList::iterator i = staticLibs.begin(); i < staticLibs.end(); ++i) {
+        // Get the list of dependency dependencies
+        StaticList extraDeps;
+        const map<string, StaticList>::iterator findStatic = m_mProjectLibs.find(*i);
+        if (findStatic != m_mProjectLibs.end()) {
+            extraDeps = findStatic->second;
+        } else {
+            string backup = m_sProjectName;
+            m_sProjectName = *i;
+            buildInterDependencies(extraDeps);
+            m_sProjectName = backup;
+        }
+        //Add new dependencies to list
+        uint pos = i - staticLibs.begin();
+        for (StaticList::iterator j = extraDeps.begin(); j < extraDeps.end(); ++j) {
+            if (find(staticLibs.begin(), staticLibs.end(), *j) == staticLibs.end()) {
+                staticLibs.push_back(*j);
+            }
+        }
+        //Update iterator in case of memory changes
+        i = staticLibs.begin() + pos;
+    }
 
     if ((m_vLibs.size() > 0) || (vAddLibs.size() > 0)) {
-        //Create list of additional ffmpeg dependencies
-        string sAddFFmpegLibs[4]; //debug, release, debugDll, releaseDll
-        for (StaticList::iterator vitLib = m_mProjectLibs[m_sProjectName].begin(); vitLib < m_mProjectLibs[m_sProjectName].end(); vitLib++) {
+        // Create list of additional ffmpeg dependencies
+        string sAddFFmpegLibs[4];    // debug, release, debugDll, releaseDll
+        for (StaticList::iterator vitLib = m_mProjectLibs[m_sProjectName].begin();
+             vitLib < m_mProjectLibs[m_sProjectName].end(); ++vitLib) {
             sAddFFmpegLibs[0] += *vitLib;
             sAddFFmpegLibs[0] += "d.lib;";
             sAddFFmpegLibs[1] += *vitLib;
@@ -1496,9 +1560,44 @@ bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bPro
             sAddFFmpegLibs[3] += vitLib->substr(3);
             sAddFFmpegLibs[3] += ".lib;";
         }
-        //Create List of additional dependencies
-        string sAddDeps[4]; //debug, release, debugDll, releaseDll
-        for (StaticList::iterator vitLib = m_vLibs.begin() + m_mProjectLibs[m_sProjectName].size(); vitLib < m_vLibs.end(); vitLib++) {
+        string sAddFFmpegLibsWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
+        for (StaticList::iterator vitLib = m_mProjectLibs[m_sProjectName].begin();
+             vitLib < m_mProjectLibs[m_sProjectName].end(); ++vitLib) {
+            sAddFFmpegLibsWinRT[0] += *vitLib;
+            sAddFFmpegLibsWinRT[0] += "d_winrt.lib;";
+            sAddFFmpegLibsWinRT[1] += *vitLib;
+            sAddFFmpegLibsWinRT[1] += "_winrt.lib;";
+            sAddFFmpegLibsWinRT[2] += vitLib->substr(3);
+            sAddFFmpegLibsWinRT[2] += "d_winrt.lib;";
+            sAddFFmpegLibsWinRT[3] += vitLib->substr(3);
+            sAddFFmpegLibsWinRT[3] += "_winrt.lib;";
+        }
+        string sAddFFmpegLibsStatic[4];    // debug, release, debugDll, releaseDll
+        for (StaticList::iterator vitLib = staticLibs.begin(); vitLib < staticLibs.end(); ++vitLib) {
+            sAddFFmpegLibsStatic[0] += *vitLib;
+            sAddFFmpegLibsStatic[0] += "d.lib;";
+            sAddFFmpegLibsStatic[1] += *vitLib;
+            sAddFFmpegLibsStatic[1] += ".lib;";
+            sAddFFmpegLibsStatic[2] += vitLib->substr(3);
+            sAddFFmpegLibsStatic[2] += "d.lib;";
+            sAddFFmpegLibsStatic[3] += vitLib->substr(3);
+            sAddFFmpegLibsStatic[3] += ".lib;";
+        }
+        string sAddFFmpegLibsStaticWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
+        for (StaticList::iterator vitLib = staticLibs.begin(); vitLib < staticLibs.end(); ++vitLib) {
+            sAddFFmpegLibsStaticWinRT[0] += *vitLib;
+            sAddFFmpegLibsStaticWinRT[0] += "d_winrt.lib;";
+            sAddFFmpegLibsStaticWinRT[1] += *vitLib;
+            sAddFFmpegLibsStaticWinRT[1] += "_winrt.lib;";
+            sAddFFmpegLibsStaticWinRT[2] += vitLib->substr(3);
+            sAddFFmpegLibsStaticWinRT[2] += "d_winrt.lib;";
+            sAddFFmpegLibsStaticWinRT[3] += vitLib->substr(3);
+            sAddFFmpegLibsStaticWinRT[3] += "_winrt.lib;";
+        }
+        // Create List of additional dependencies
+        string sAddDeps[4];    // debug, release, debugDll, releaseDll
+        for (StaticList::iterator vitLib = m_vLibs.begin() + m_mProjectLibs[m_sProjectName].size();
+             vitLib < m_vLibs.end(); ++vitLib) {
             sAddDeps[0] += *vitLib;
             sAddDeps[0] += "d.lib;";
             sAddDeps[1] += *vitLib;
@@ -1508,47 +1607,98 @@ bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bPro
             sAddDeps[3] += vitLib->substr(3);
             sAddDeps[3] += ".lib;";
         }
-        //Create List of additional external dependencies
+        string sAddDepsWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
+        for (StaticList::iterator vitLib = vLibsWinRT.begin(); vitLib < vLibsWinRT.end(); ++vitLib) {
+            sAddDepsWinRT[0] += *vitLib;
+            sAddDepsWinRT[0] += "d_winrt.lib;";
+            sAddDepsWinRT[1] += *vitLib;
+            sAddDepsWinRT[1] += "_winrt.lib;";
+            sAddDepsWinRT[2] += vitLib->substr(3);
+            sAddDepsWinRT[2] += "d_winrt.lib;";
+            sAddDepsWinRT[3] += vitLib->substr(3);
+            sAddDepsWinRT[3] += "_winrt.lib;";
+        }
+        // Create List of additional external dependencies
         string sAddExternDeps;
-        for (StaticList::iterator vitLib = vAddLibs.begin(); vitLib < vAddLibs.end(); vitLib++) {
+        for (StaticList::iterator vitLib = vAddLibs.begin(); vitLib < vAddLibs.end(); ++vitLib) {
             sAddExternDeps += *vitLib;
             sAddExternDeps += ".lib;";
         }
-        //Add to Additional Dependencies
+        string sAddExternDepsWinRT;
+        for (StaticList::iterator vitLib = vAddLibsWinRT.begin(); vitLib < vAddLibsWinRT.end(); ++vitLib) {
+            sAddExternDepsWinRT += *vitLib;
+            sAddExternDepsWinRT += ".lib;";
+        }
+        // Add to Additional Dependencies
         string asLibLink2[2] = {"<Link>", "<Lib>"};
-        for (uint uiLinkLib = 0; uiLinkLib < ((bProgram) ? 1u : 2u); uiLinkLib++) {
-            //loop over each debug/release sequence
+        for (uint uiLinkLib = 0; uiLinkLib < (!bProgram ? 2 : 1); uiLinkLib++) {
+            // loop over each debug/release sequence
             uint uiFindPos = sProjectTemplate.find(asLibLink2[uiLinkLib]);
             for (uint uiDebugRelease = 0; uiDebugRelease < 2; uiDebugRelease++) {
-                uint uiMax = ((uiDebugRelease == 0) && (uiLinkLib == 1)) ? 2 : 4; //No LTO option in debug
-                //x86, x64, x86LTO/Static, x64LTO/Static -- x86, x64, x86DLL, x64DLL (projects)
+                uint uiMax = !bProgram ? (((uiDebugRelease == 1) && (uiLinkLib == 0)) ? 2 : 1) : 2;
+                // Libs have:
+                // link:
+                //  DebugDLL|Win32, DebugDLLWinRT|Win32, DebugDLL|x64, DebugDLLWinRT|x64,
+                //  ReleaseDLL|Win32, ReleaseDLLWinRT|Win32, ReleaseDLL|x64, ReleaseDLLWinRT|x64,
+                //  ReleaseDLLStaticDeps|Win32, ReleaseDLLWinRTStaticDeps|Win32, ReleaseDLLStaticDeps|x64, ReleaseDLLWinRTStaticDeps|x64
+                // lib:
+                //  Debug32, DebugWinRT|Win32, Debug|x64, DebugWinRT|x64,
+                //  Release|Win32, ReleaseWinRT|Win32, Release|x64, ReleaseWinRT|x64,
+                // Programs have:
+                // link:
+                //  Debug32, Debug|x64,
+                //  DebugDLL|Win32, DebugDLL|x64,
+                //  Release|Win32, Release|x64,
+                //  ReleaseDLL|Win32, ReleaseDLL|x64,
                 for (uint uiConf = 0; uiConf < uiMax; uiConf++) {
-                    uiFindPos = sProjectTemplate.find("%(AdditionalDependencies)", uiFindPos);
-                    if (uiFindPos == string::npos) {
-                        outputError("Failed finding dependencies in template.");
-                        return false;
-                    }
-                    uint uiAddIndex = uiDebugRelease;
-                    if ((uiLinkLib == 0) && (((!bProgram) && (uiConf < 2)) || ((bProgram) && (uiConf >= 2)))) {
-                        //Use DLL libs
-                        uiAddIndex += 2;
-                    }
-                    string sAddString;
-                    if (uiLinkLib == 0) {
-                        //If the dependency is actually for one of the ffmpeg libs then we can ignore it in static linking mode
-                        //  as this just causes unnecessary code bloat
-                        if ((!bProgram) || (uiConf >= 2)) {
-                            sAddString = sAddFFmpegLibs[uiDebugRelease + 2]; //Always link ffmpeg libs to the dll even in DLLStatic
-                        } else if (bProgram) {
-                            sAddString = sAddFFmpegLibs[uiDebugRelease];
+                    // Loop over x32/x64
+                    for (uint uiArch = 0; uiArch < 2; uiArch++) {
+                        // Loop over any WinRT configs
+                        for (uint uiWin = 0; uiWin < (!bProgram ? 2 : 1); uiWin++) {
+                            uiFindPos = sProjectTemplate.find("%(AdditionalDependencies)", uiFindPos);
+                            if (uiFindPos == string::npos) {
+                                outputError("Failed finding %(AdditionalDependencies) in template.");
+                                return false;
+                            }
+                            // Add in ffmpeg inter-dependencies
+                            uint uiAddIndex = uiDebugRelease;
+                            if ((uiLinkLib == 0) &&
+                                (((!bProgram) && (uiConf < 1)) || (bProgram && (uiConf % 2 != 0)))) {
+                                // Use DLL libs
+                                uiAddIndex += 2;
+                            }
+                            string sAddString;
+                            // If the dependency is actually for one of the ffmpeg libs then we can ignore it in
+                            // static linking mode as this just causes unnecessary code bloat
+                            if (uiLinkLib == 0) {
+                                if ((!bProgram && (uiConf == 1)) || (bProgram && (uiConf % 2 == 0))) {
+                                    if (uiWin == 0) {
+                                        sAddString = sAddFFmpegLibsStatic[uiAddIndex];
+                                    } else {
+                                        sAddString = sAddFFmpegLibsStaticWinRT[uiAddIndex];
+                                    }
+                                } else {
+                                    if (uiWin == 0) {
+                                        sAddString = sAddFFmpegLibs[uiAddIndex];
+                                    } else {
+                                        sAddString = sAddFFmpegLibsWinRT[uiAddIndex];
+                                    }
+                                }
+                            }
+                            // Add to output
+                            if (uiWin == 0) {
+                                sAddString += sAddDeps[uiAddIndex];
+                                sAddString += sAddExternDeps;
+                            } else {
+                                sAddString += sAddDepsWinRT[uiAddIndex];
+                                sAddString += sAddExternDepsWinRT;
+                            }
+                            sProjectTemplate.insert(uiFindPos, sAddString);
+                            uiFindPos += sAddString.length();
+                            // Get next
+                            uiFindPos = sProjectTemplate.find(asLibLink2[uiLinkLib], uiFindPos + 1);
                         }
                     }
-                    //Add to output
-                    sAddString += sAddDeps[uiAddIndex] + sAddExternDeps;
-                    sProjectTemplate.insert(uiFindPos, sAddString);
-                    uiFindPos += sAddString.length();
-                    //Get next
-                    uiFindPos = sProjectTemplate.find(asLibLink2[uiLinkLib], uiFindPos + 1);
                 }
             }
         }

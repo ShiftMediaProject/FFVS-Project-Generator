@@ -133,16 +133,20 @@ bool ConfigGenerator::buildDefaultValues()
 
     fastToggleConfigValue("access", true);
     fastToggleConfigValue("aligned_malloc", true);
+    fastToggleConfigValue("Audioclient_h", true);
     fastToggleConfigValue("bcrypt", true);
     fastToggleConfigValue("clock_gettime", false);
     fastToggleConfigValue("closesocket", true);
     fastToggleConfigValue("CommandLineToArgvW", true);
     fastToggleConfigValue("CoTaskMemFree", true);
     fastToggleConfigValue("CryptGenRandom", true);
-    fastToggleConfigValue("direct_h", true);
     fastToggleConfigValue("d3d11_h", true);
+    fastToggleConfigValue("direct_h", true);
+    fastToggleConfigValue("dos_paths", true);
     fastToggleConfigValue("dxgidebug_h", true);
     fastToggleConfigValue("dxva_h", true);
+    fastToggleConfigValue("dxva2api_cobj", true);
+    fastToggleConfigValue("dxva2_lib", true);
     fastToggleConfigValue("ebp_available", true);
     fastToggleConfigValue("ebx_available", true);
     fastToggleConfigValue("fast_clz", true);
@@ -184,15 +188,12 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("struct_sockaddr_in6", true);
     fastToggleConfigValue("struct_sockaddr_storage", true);
     fastToggleConfigValue("unistd_h", true);
+    fastToggleConfigValue("uwp", true);
     fastToggleConfigValue("VirtualAlloc", true);
-    fastToggleConfigValue("Audioclient_h", true);
     fastToggleConfigValue("windows_h", true);
     fastToggleConfigValue("winsock2_h", true);
+    fastToggleConfigValue("winrt", true);
     fastToggleConfigValue("wglgetprocaddress", true);
-
-    fastToggleConfigValue("dos_paths", true);
-    fastToggleConfigValue("dxva2api_cobj", true);
-    fastToggleConfigValue("dxva2_lib", true);
 
     fastToggleConfigValue("aligned_stack", true);
     fastToggleConfigValue("pragma_deprecated", true);
@@ -425,8 +426,13 @@ void ConfigGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
     mFixedValues["$sws_max_filter_size"] = "256";
 }
 
-void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, DefaultValuesList & mASMReplaceValues)
+void ConfigGenerator::buildReplaceValues(
+    DefaultValuesList& mReplaceValues, string& header, DefaultValuesList& mASMReplaceValues)
 {
+    header = "#ifdef _WIN32\n\
+#   include <sdkddkver.h>\n\
+#   include <winapifamily.h>\n\
+#endif";
     mReplaceValues.clear();
     //Add to config.h only list
     mReplaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
@@ -450,10 +456,10 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #   define SLIBSUF \".lib\"\n\
 #endif";
 
-    mReplaceValues["ARCH_X86_32"] = "#if defined(__x86_64) || defined(_M_X64)\n\
-#   define ARCH_X86_32 0\n\
-#else\n\
+    mReplaceValues["ARCH_X86_32"] = "#if !defined(__x86_64) && !defined(_M_X64)\n\
 #   define ARCH_X86_32 1\n\
+#else\n\
+#   define ARCH_X86_32 0\n\
 #endif";
     mReplaceValues["ARCH_X86_64"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define ARCH_X86_64 1\n\
@@ -465,10 +471,10 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #else\n\
 #   define CONFIG_SHARED 0\n\
 #endif";
-    mReplaceValues["CONFIG_STATIC"] = "#if defined(_USRDLL) || defined(_WINDLL)\n\
-#   define CONFIG_STATIC 0\n\
-#else\n\
+    mReplaceValues["CONFIG_STATIC"] = "#if !defined(_USRDLL) && !defined(_WINDLL)\n\
 #   define CONFIG_STATIC 1\n\
+#else\n\
+#   define CONFIG_STATIC 0\n\
 #endif";
     mReplaceValues["HAVE_ALIGNED_STACK"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define HAVE_ALIGNED_STACK 1\n\
@@ -495,45 +501,135 @@ void ConfigGenerator::buildReplaceValues(DefaultValuesList & mReplaceValues, Def
 #else\n\
 #   define HAVE_STRUCT_POLLFD 0\n\
 #endif";
-    mReplaceValues["CONFIG_D3D11VA"] = "#ifdef _WIN32\n\
-#include <sdkddkver.h>\n\
-#endif\n\
-#if defined(NTDDI_WIN8)\n\
+    mReplaceValues["CONFIG_D3D11VA"] = "#if defined(NTDDI_WIN8)\n\
 #   define CONFIG_D3D11VA 1\n\
 #else\n\
 #   define CONFIG_D3D11VA 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#ifdef _WIN32\n\
-#include <sdkddkver.h>\n\
-#endif\n\
-#if defined(NTDDI_WIN10_TH2)\n\
+    mReplaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_D3D11VA2_HWACCEL"] = "#ifdef _WIN32\n\
-#include <sdkddkver.h>\n\
-#endif\n\
-#if defined(NTDDI_WIN10_TH2)\n\
+    mReplaceValues["CONFIG_VP9_D3D11VA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_D3D11VA2_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_D3D11VA2_HWACCEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#ifdef _WIN32\n\
-#include <sdkddkver.h>\n\
-#endif\n\
-#if defined(NTDDI_WIN10_TH2)\n\
+    mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 0\n\
 #endif";
-    mReplaceValues["HAVE_OPENCL_D3D11"] = "#ifdef _WIN32\n\
-#include <sdkddkver.h>\n\
-#endif\n\
-#if defined(NTDDI_WIN8)\n\
+    mReplaceValues["HAVE_OPENCL_D3D11"] = "#if defined(NTDDI_WIN8)\n\
 #   define HAVE_OPENCL_D3D11 1\n\
 #else\n\
 #   define HAVE_OPENCL_D3D11 0\n\
+#endif";
+
+    //Build values specific for WinRT builds
+    mReplaceValues["HAVE_UWP"] = "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+#   define HAVE_UWP 1\n\
+#else\n\
+#   define HAVE_UWP 0\n\
+#endif";
+    mReplaceValues["HAVE_WINRT"] = "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+#   define HAVE_WINRT 1\n\
+#else\n\
+#   define HAVE_WINRT 0\n\
+#endif";
+
+    bool winrt = isConfigOptionValid("WINRT");
+    bool uwp = isConfigOptionValid("UWP");
+    string winrtDefine;
+    if (winrt) {
+        winrtDefine += "!HAVE_WINRT";
+    }
+    if (uwp) {
+        if (winrtDefine.length() > 0) {
+            winrtDefine += " && ";
+        }
+        winrtDefine += "!HAVE_UWP";
+    }
+    mReplaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_AVISYNTH 1\n\
+#else\n\
+#   define CONFIG_AVISYNTH 0\n\
+#endif";
+    mReplaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_LIBMFX 1\n\
+#else\n\
+#   define CONFIG_LIBMFX 0\n\
+#endif";
+    mReplaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_AMF 1\n\
+#else\n\
+#   define CONFIG_AMF 0\n\
+#endif";
+    mReplaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_CUDA 1\n\
+#else\n\
+#   define CONFIG_CUDA 0\n\
+#endif";
+    mReplaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_CUVID 1\n\
+#else\n\
+#   define CONFIG_CUVID 0\n\
+#endif";
+    mReplaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_DECKLINK 1\n\
+#else\n\
+#   define CONFIG_DECKLINK 0\n\
+#endif";
+    mReplaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_DXVA2 1\n\
+#else\n\
+#   define CONFIG_DXVA2 0\n\
+#endif";
+    mReplaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_FFNVCODEC 1\n\
+#else\n\
+#   define CONFIG_FFNVCODEC 0\n\
+#endif";
+    mReplaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_NVDEC 1\n\
+#else\n\
+#   define CONFIG_NVDEC 0\n\
+#endif";
+    mReplaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_NVENC 1\n\
+#else\n\
+#   define CONFIG_NVENC 0\n\
+#endif";
+    mReplaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_SCHANNEL 1\n\
+#else\n\
+#   define CONFIG_SCHANNEL 0\n\
+#endif";
+    mReplaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_NVENC 1\n\
+#else\n\
+#   define CONFIG_NVENC 0\n\
+#endif";
+    mReplaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_NVENC 1\n\
+#else\n\
+#   define CONFIG_NVENC 0\n\
+#endif";
+    mReplaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_NVENC 1\n\
+#else\n\
+#   define CONFIG_NVENC 0\n\
+#endif";
+    mReplaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_OPENGL 1\n\
+#else\n\
+#   define CONFIG_OPENGL 0\n\
+#endif";
+    mReplaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_OPENAL 1\n\
+#else\n\
+#   define CONFIG_OPENAL 0\n\
 #endif";
 
     //Build replace values for all x86 inline asm
@@ -728,6 +824,8 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("small");
     vReservedItems.push_back("lto");
     vReservedItems.push_back("pic");
+    vReservedItems.push_back("uwp");
+    vReservedItems.push_back("winrt");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)

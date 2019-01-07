@@ -237,6 +237,53 @@ void ProjectGenerator::buildDependencies(StaticList & vLibs, StaticList & vAddLi
     }
 }
 
+void ProjectGenerator::buildDependenciesWinRT(StaticList& vLibs, StaticList& vAddLibs)
+{
+    //Search through dependency list and remove any not supported by WinRT
+    for (vector<string>::iterator vitLib = vLibs.begin(); vitLib < vLibs.end(); vitLib++) {
+        if (vitLib->compare("libmfx") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        }
+    }
+    //Remove any additional windows libs
+    for (vector<string>::iterator vitLib = vAddLibs.begin(); vitLib < vAddLibs.end(); vitLib++) {
+        if (vitLib->compare("cuda") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("nvcuvid") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("ws2_32") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("Bcrypt") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("Advapi32") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("strmiids") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("vfw32") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("shlwapi") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        } else if (vitLib->compare("ksuser") == 0) {
+            --vitLib;
+            vLibs.erase(vitLib);
+        }
+    }
+    //Add additional windows libs
+    if (m_ConfigHelper.getConfigOption("CONFIG_D3D11VA")->m_sValue.compare("1") == 0) {
+        vAddLibs.push_back("dxgi");
+        vAddLibs.push_back("d3d11");
+    }
+}
+
 void ProjectGenerator::buildDependencyValues(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs, StaticList & vDefines)
 {
     //Determine only those dependencies that are valid for current project
