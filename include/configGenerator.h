@@ -136,10 +136,9 @@ private:
     /**
      * Builds a list of configuration options that need to be replaced with the returned values.
      * @param [in,out] mReplaceValues    The replace values for config.h.
-     * @param [in,out] header            The header that must be output at top of config file.
      * @param [in,out] mASMReplaceValues The replace values for config.asm.
      */
-    void buildReplaceValues(DefaultValuesList& mReplaceValues, string& header, DefaultValuesList& mASMReplaceValues);
+    void buildReplaceValues(DefaultValuesList& mReplaceValues, DefaultValuesList& mASMReplaceValues);
 
     /**
      * Creates a list of config items that are automatically set and should be be set by the user.

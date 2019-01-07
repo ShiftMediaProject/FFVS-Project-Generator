@@ -1393,22 +1393,22 @@ void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const Static
     }
 }
 
-void ProjectGenerator::outputDefines(const StaticList & vDefines, string & sProjectTemplate)
+void ProjectGenerator::outputDefines(const StaticList& defines, string& projectTemplate)
 {
-    if (!vDefines.empty()) {
-        string sDefines;
-        for (StaticList::const_iterator vitIt = vDefines.cbegin(); vitIt < vDefines.cend(); vitIt++) {
-            sDefines += *vitIt + ";";
+    if (!defines.empty()) {
+        string defines2;
+        for (const auto& i : defines) {
+            defines2 += i + ";";
         }
-        const string sAddDefines = "<PreprocessorDefinitions>";
-        uint uiFindPos = sProjectTemplate.find(sAddDefines);
-        while (uiFindPos != string::npos) {
-            //Add to output
-            uiFindPos += sAddDefines.length();
-            sProjectTemplate.insert(uiFindPos, sDefines);
-            uiFindPos += sDefines.length();
-            //Get next
-            uiFindPos = sProjectTemplate.find(sDefines, uiFindPos + 1);
+        const string addDefines = "<PreprocessorDefinitions>";
+        uint findPos = projectTemplate.find(addDefines);
+        while (findPos != string::npos) {
+            // Add to output
+            findPos += addDefines.length();
+            projectTemplate.insert(findPos, defines2);
+            findPos += defines2.length();
+            // Get next
+            findPos = projectTemplate.find(defines2, findPos + 1);
         }
     }
 }

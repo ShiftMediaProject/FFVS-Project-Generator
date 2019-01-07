@@ -309,10 +309,10 @@ private:
 
     /**
      * Output additional defines to the project.
-     * @param          vDefines         The defines.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param          defines         The defines.
+     * @param [in,out] projectTemplate The project template.
      */
-    void outputDefines(const StaticList & vDefines, string & sProjectTemplate);
+    void outputDefines(const StaticList& defines, string& projectTemplate);
 
     /**
      * Output asm tools to project template.
