@@ -21,9 +21,9 @@
 #include "projectGenerator.h"
 
 #include <algorithm>
-#include <utility>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <utility>
 
 #define TEMPLATE_COMPAT_ID 100
 #define TEMPLATE_MATH_ID 101
@@ -39,7 +39,7 @@
 bool ProjectGenerator::passAllMake()
 {
     if ((m_ConfigHelper.m_sToolchain.compare("msvc") == 0) || (m_ConfigHelper.m_sToolchain.compare("icl") == 0)) {
-        //Copy the required header files to output directory
+        // Copy the required header files to output directory
         bool bCopy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_sSolutionDirectory + "compat.h", true);
         if (!bCopy) {
             outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
@@ -53,34 +53,34 @@ bool ProjectGenerator::passAllMake()
         }
     }
 
-    //Loop through each library make file
+    // Loop through each library make file
     vector<string> vLibraries;
     m_ConfigHelper.getConfigList("LIBRARY_LIST", vLibraries);
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
-        //Check if library is enabled
+        // Check if library is enabled
         if (m_ConfigHelper.getConfigOption(*vitLib)->m_sValue.compare("1") == 0) {
             m_sProjectDir = m_ConfigHelper.m_sRootDirectory + "lib" + *vitLib + "/";
-            //Locate the project dir for specified library
+            // Locate the project dir for specified library
             string sRetFileName;
             if (!findFile(m_sProjectDir + "MakeFile", sRetFileName)) {
                 outputError("Could not locate directory for library (" + *vitLib + ")");
                 return false;
             }
-            //Run passMake on default Makefile
+            // Run passMake on default Makefile
             if (!passMake()) {
                 return false;
             }
-            //Check for any sub directories
+            // Check for any sub directories
             m_sProjectDir += "x86/";
             if (findFile(m_sProjectDir + "MakeFile", sRetFileName)) {
-                //Pass the sub directory
+                // Pass the sub directory
                 if (!passMake()) {
                     return false;
                 }
             }
-            //Reset project dir so it does not include additions
+            // Reset project dir so it does not include additions
             m_sProjectDir.resize(m_sProjectDir.length() - 4);
-            //Output the project
+            // Output the project
             if (!outputProject()) {
                 return false;
             }
@@ -88,24 +88,24 @@ bool ProjectGenerator::passAllMake()
         }
     }
 
-    //Output the solution file
+    // Output the solution file
     return outputSolution();
 
     if (m_ConfigHelper.m_bDCEOnly) {
-        //Delete no longer needed compilation files
+        // Delete no longer needed compilation files
         deleteCreatedFiles();
     }
 }
 
 void ProjectGenerator::deleteCreatedFiles()
 {
-    //Get list of libraries and programs
+    // Get list of libraries and programs
     vector<string> vLibraries;
     m_ConfigHelper.getConfigList("LIBRARY_LIST", vLibraries);
     vector<string> vPrograms;
     m_ConfigHelper.getConfigList("PROGRAM_LIST", vPrograms);
 
-    //Delete any previously generated files
+    // Delete any previously generated files
     vector<string> vExistingFiles;
     findFiles(m_ConfigHelper.m_sSolutionDirectory + "ffmpeg.sln", vExistingFiles, false);
     findFiles(m_ConfigHelper.m_sSolutionDirectory + "libav.sln", vExistingFiles, false);
@@ -130,7 +130,7 @@ void ProjectGenerator::deleteCreatedFiles()
         deleteFile(*itIt);
     }
 
-    //Check for any created folders
+    // Check for any created folders
     vector<string> vExistingFolders;
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
         findFolders(m_ConfigHelper.m_sSolutionDirectory + *vitLib, vExistingFolders, false);
@@ -139,7 +139,7 @@ void ProjectGenerator::deleteCreatedFiles()
         findFolders(m_ConfigHelper.m_sSolutionDirectory + *vitProg, vExistingFolders, false);
     }
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
-        //Search for any generated files in the directories
+        // Search for any generated files in the directories
         vExistingFiles.resize(0);
         findFiles(*itIt + "/dce_defs.c", vExistingFiles, false);
         findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
@@ -149,7 +149,7 @@ void ProjectGenerator::deleteCreatedFiles()
         for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
             deleteFile(*itIt2);
         }
-        //Check if the directory is now empty and delete if it is
+        // Check if the directory is now empty and delete if it is
         if (isFolderEmpty(*itIt)) {
             deleteFolder(*itIt);
         }
@@ -159,11 +159,11 @@ void ProjectGenerator::deleteCreatedFiles()
 void ProjectGenerator::errorFunc(bool bCleanupFiles)
 {
     if (bCleanupFiles) {
-        //Cleanup any partially created files
+        // Cleanup any partially created files
         m_ConfigHelper.deleteCreatedFiles();
         deleteCreatedFiles();
 
-        //Delete any temporary file leftovers
+        // Delete any temporary file leftovers
         deleteFolder(sTempDirectory);
     }
 
@@ -173,85 +173,85 @@ void ProjectGenerator::errorFunc(bool bCleanupFiles)
 
 bool ProjectGenerator::outputProject()
 {
-    //Output the generated files
+    // Output the generated files
     uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2) + 1;
     m_sProjectName = m_sProjectDir.substr(uiSPos, m_sProjectDir.length() - 1 - uiSPos);
 
-    //Check all files are correctly located
+    // Check all files are correctly located
     if (!checkProjectFiles()) {
         return false;
     }
 
-    //Get dependency directories
+    // Get dependency directories
     StaticList vIncludeDirs;
     StaticList vLib32Dirs;
     StaticList vLib64Dirs;
     StaticList vDefines;
     buildDependencyValues(vIncludeDirs, vLib32Dirs, vLib64Dirs, vDefines);
 
-    //Create missing definitions of functions removed by DCE
+    // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(vIncludeDirs)) {
         return false;
     }
 
     if (m_ConfigHelper.m_bDCEOnly) {
-        //Exit here to prevent outputting project files
+        // Exit here to prevent outputting project files
         return true;
     }
 
-    //Generate the exports file
+    // Generate the exports file
     if (!outputProjectExports(vIncludeDirs)) {
         return false;
     }
 
-    //We now have complete list of all the files that we need
+    // We now have complete list of all the files that we need
     outputLine("  Generating project file (" + m_sProjectName + ")...");
 
-    //Open the input temp project file
+    // Open the input temp project file
     string sProjectFile;
     if (!loadFromResourceFile(TEMPLATE_VCXPROJ_ID, sProjectFile)) {
         return false;
     }
 
-    //Open the input temp project file filters
+    // Open the input temp project file filters
     string sFiltersFile;
     if (!loadFromResourceFile(TEMPLATE_FILTERS_ID, sFiltersFile)) {
         return false;
     }
 
-    //Add all project source files
+    // Add all project source files
     outputSourceFiles(sProjectFile, sFiltersFile);
 
-    //Add the build events
+    // Add the build events
     outputBuildEvents(sProjectFile);
 
-    //Add ASM requirements
+    // Add ASM requirements
     outputASMTools(sProjectFile);
 
-    //Add the dependency libraries
+    // Add the dependency libraries
     if (!outputDependencyLibs(sProjectFile)) {
         return false;
     }
 
-    //Add additional includes to include list
+    // Add additional includes to include list
     outputIncludeDirs(vIncludeDirs, sProjectFile);
 
-    //Add additional lib includes to include list
+    // Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProjectFile);
 
-    //Add additional defines
+    // Add additional defines
     outputDefines(vDefines, sProjectFile);
 
-    //Replace all template tag arguments
+    // Replace all template tag arguments
     outputTemplateTags(sProjectFile, sFiltersFile);
 
-    //Write output project
+    // Write output project
     string sOutProjectFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + ".vcxproj";
     if (!writeToFile(sOutProjectFile, sProjectFile, true)) {
         return false;
     }
 
-    //Write output filters
+    // Write output filters
     string sOutFiltersFile = m_ConfigHelper.m_sSolutionDirectory + m_sProjectName + ".vcxproj.filters";
     if (!writeToFile(sOutFiltersFile, sFiltersFile, true)) {
         return false;
@@ -262,80 +262,80 @@ bool ProjectGenerator::outputProject()
 
 bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, const string& sDestinationFilterFile)
 {
-    //Pass makefile for program
+    // Pass makefile for program
     if (!passProgramMake()) {
         return false;
     }
 
-    //Check all files are correctly located
+    // Check all files are correctly located
     if (!checkProjectFiles()) {
         return false;
     }
 
-    //Get dependency directories
+    // Get dependency directories
     StaticList vIncludeDirs;
     StaticList vLib32Dirs;
     StaticList vLib64Dirs;
     StaticList vDefines;
     buildDependencyValues(vIncludeDirs, vLib32Dirs, vLib64Dirs, vDefines);
 
-    //Create missing definitions of functions removed by DCE
+    // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(vIncludeDirs)) {
         return false;
     }
 
     if (m_ConfigHelper.m_bDCEOnly) {
-        //Exit here to prevent outputting project files
+        // Exit here to prevent outputting project files
         return true;
     }
 
-    //We now have complete list of all the files that we need
+    // We now have complete list of all the files that we need
     outputLine("  Generating project file (" + m_sProjectName + ")...");
 
-    //Open the template program
+    // Open the template program
     string sProgramFile;
     if (!loadFromResourceFile(TEMPLATE_PROG_VCXPROJ_ID, sProgramFile)) {
         return false;
     }
 
-    //Open the template program filters
+    // Open the template program filters
     string sProgramFiltersFile;
     if (!loadFromResourceFile(TEMPLATE_PROG_FILTERS_ID, sProgramFiltersFile)) {
         return false;
     }
 
-    //Add all project source files
+    // Add all project source files
     outputSourceFiles(sProgramFile, sProgramFiltersFile);
 
-    //Add the build events
+    // Add the build events
     outputBuildEvents(sProgramFile);
 
-    //Add ASM requirements
+    // Add ASM requirements
     outputASMTools(sProgramFile);
 
-    //Add the dependency libraries
+    // Add the dependency libraries
     if (!outputDependencyLibs(sProgramFile, true)) {
         return false;
     }
 
-    //Add additional includes to include list
+    // Add additional includes to include list
     outputIncludeDirs(vIncludeDirs, sProgramFile);
 
-    //Add additional lib includes to include list
+    // Add additional lib includes to include list
     outputLibDirs(vLib32Dirs, vLib64Dirs, sProgramFile);
 
-    //Add additional defines
+    // Add additional defines
     outputDefines(vDefines, sProgramFile);
 
-    //Replace all template tag arguments
+    // Replace all template tag arguments
     outputTemplateTags(sProgramFile, sProgramFiltersFile);
 
-    //Write program file
+    // Write program file
     if (!writeToFile(sDestinationFile, sProgramFile, true)) {
         return false;
     }
 
-    //Write output filters
+    // Write output filters
     if (!writeToFile(sDestinationFilterFile, sProgramFiltersFile, true)) {
         return false;
     }
@@ -362,7 +362,7 @@ void ProjectGenerator::outputProjectCleanup()
 
 bool ProjectGenerator::outputSolution()
 {
-    //Create program list
+    // Create program list
     map<string, string> mProgramList;
     if (!m_ConfigHelper.m_bLibav) {
         mProgramList["ffmpeg"] = "CONFIG_FFMPEG";
@@ -374,31 +374,32 @@ bool ProjectGenerator::outputSolution()
         mProgramList["avprobe"] = "CONFIG_AVPROBE";
     }
 
-    //Next add the projects
+    // Next add the projects
     map<string, string>::iterator mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
-        //Check if program is enabled
+        // Check if program is enabled
         if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_sValue.compare("1") == 0) {
             m_sProjectDir = m_ConfigHelper.m_sRootDirectory;
-            //Create project files for program
+            // Create project files for program
             m_sProjectName = mitPrograms->first;
             const string sDestinationFile = m_ConfigHelper.m_sSolutionDirectory + mitPrograms->first + ".vcxproj";
-            const string sDestinationFilterFile = m_ConfigHelper.m_sSolutionDirectory + mitPrograms->first + ".vcxproj.filters";
+            const string sDestinationFilterFile =
+                m_ConfigHelper.m_sSolutionDirectory + mitPrograms->first + ".vcxproj.filters";
             if (!outputProgramProject(sDestinationFile, sDestinationFilterFile)) {
                 return false;
             }
         }
-        //next
+        // next
         ++mitPrograms;
     }
 
     if (m_ConfigHelper.m_bDCEOnly) {
-        //Don't output solution and just exit early
+        // Don't output solution and just exit early
         return true;
     }
 
     outputLine("  Generating solution file...");
-    //Open the input temp project file
+    // Open the input temp project file
     string sSolutionFile;
     if (!loadFromResourceFile(TEMPLATE_SLN_ID, sSolutionFile)) {
         return false;
@@ -423,20 +424,20 @@ bool ProjectGenerator::outputSolution()
     const string sSubDepend2 = "} = {";
     const string sSubDependEnd = "}";
 
-    //Find the start of the file
+    // Find the start of the file
     const string sFileStart = "Project";
     uint uiPos = sSolutionFile.find(sFileStart) - 2;
 
     map<string, StaticList>::iterator mitLibraries = m_mProjectLibs.begin();
     while (mitLibraries != m_mProjectLibs.end()) {
-        //Check if this is a library or a program
+        // Check if this is a library or a program
         if (mProgramList.find(mitLibraries->first) == mProgramList.end()) {
-            //Check if this library has a known key (to lazy to auto generate at this time)
+            // Check if this library has a known key (to lazy to auto generate at this time)
             if (mKeys.find(mitLibraries->first) == mKeys.end()) {
                 outputError("Unknown library. Could not determine solution key (" + mitLibraries->first + ")");
                 return false;
             }
-            //Add the library to the solution
+            // Add the library to the solution
             string sProjectAdd = sProject;
             sProjectAdd += sSolutionKey;
             sProjectAdd += sProject2;
@@ -447,14 +448,15 @@ bool ProjectGenerator::outputSolution()
             sProjectAdd += mKeys[mitLibraries->first];
             sProjectAdd += sProjectEnd;
 
-            //Add the key to the used key list
+            // Add the key to the used key list
             vAddedKeys.push_back(mKeys[mitLibraries->first]);
 
-            //Add the dependencies
+            // Add the dependencies
             if (mitLibraries->second.size() > 0) {
                 sProjectAdd += sDepend;
-                for (StaticList::iterator vitIt = mitLibraries->second.begin(); vitIt < mitLibraries->second.end(); vitIt++) {
-                    //Check if this library has a known key
+                for (StaticList::iterator vitIt = mitLibraries->second.begin(); vitIt < mitLibraries->second.end();
+                     vitIt++) {
+                    // Check if this library has a known key
                     if (mKeys.find(*vitIt) == mKeys.end()) {
                         outputError("Unknown library dependency. Could not determine solution key (" + *vitIt + ")");
                         return false;
@@ -469,23 +471,23 @@ bool ProjectGenerator::outputSolution()
             }
             sProjectAdd += sProjectClose;
 
-            //Insert into solution string
+            // Insert into solution string
             sSolutionFile.insert(uiPos, sProjectAdd);
             uiPos += sProjectAdd.length();
         }
 
-        //next
+        // next
         ++mitLibraries;
     }
 
-    //Next add the projects
+    // Next add the projects
     string sProjectAdd;
     vector<string> vAddedPrograms;
     mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
-        //Check if program is enabled
+        // Check if program is enabled
         if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_sValue.compare("1") == 0) {
-            //Add the program to the solution
+            // Add the program to the solution
             sProjectAdd += sProject;
             sProjectAdd += sSolutionKey;
             sProjectAdd += sProject2;
@@ -496,14 +498,14 @@ bool ProjectGenerator::outputSolution()
             sProjectAdd += mKeys[mitPrograms->first];
             sProjectAdd += sProjectEnd;
 
-            //Add the key to the used key list
+            // Add the key to the used key list
             vAddedPrograms.push_back(mKeys[mitPrograms->first]);
 
-            //Add the dependencies
+            // Add the dependencies
             sProjectAdd += sDepend;
             StaticList::iterator mitLibs = m_mProjectLibs[mitPrograms->first].begin();
             while (mitLibs != m_mProjectLibs[mitPrograms->first].end()) {
-                //Add all project libraries as dependencies
+                // Add all project libraries as dependencies
                 if (!m_ConfigHelper.m_bLibav) {
                     sProjectAdd += sSubDepend;
                     sProjectAdd += mKeys[*mitLibs];
@@ -511,49 +513,49 @@ bool ProjectGenerator::outputSolution()
                     sProjectAdd += mKeys[*mitLibs];
                     sProjectAdd += sSubDependEnd;
                 }
-                //next
+                // next
                 ++mitLibs;
             }
             sProjectAdd += sDependClose;
             sProjectAdd += sProjectClose;
         }
-        //next
+        // next
         ++mitPrograms;
     }
 
-    //Check if there were actually any programs added
+    // Check if there were actually any programs added
     string sProgramKey = "8A736DDA-6840-4E65-9DA4-BF65A2A70428";
     if (sProjectAdd.length() > 0) {
-        //Add program key
+        // Add program key
         sProjectAdd += "\r\nProject(\"{2150E333-8FDC-42A3-9474-1A3956D46DE8}\") = \"Programs\", \"Programs\", \"{";
         sProjectAdd += sProgramKey;
         sProjectAdd += "}\"";
         sProjectAdd += "\r\nEndProject";
 
-        //Insert into solution string
+        // Insert into solution string
         sSolutionFile.insert(uiPos, sProjectAdd);
         uiPos += sProjectAdd.length();
     }
 
-    //Next Add the solution configurations
+    // Next Add the solution configurations
     string sConfigStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
     uiPos = sSolutionFile.find(sConfigStart) + sConfigStart.length();
     string sConfigPlatform = "\r\n		{";
     string sConfigPlatform2 = "}.";
     string sConfigPlatform3 = "|";
-    string aBuildConfigs[10] = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps",
-        "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
+    string aBuildConfigs[10] = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL",
+        "ReleaseDLLStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
     string aBuildArchsSol[2] = {"x86", "x64"};
     string aBuildArchs[2] = {"Win32", "x64"};
     string aBuildTypes[2] = {".ActiveCfg = ", ".Build.0 = "};
     string sAddPlatform;
-    //Add the lib keys
+    // Add the lib keys
     for (vector<string>::iterator vitIt = vAddedKeys.begin(); vitIt < vAddedKeys.end(); vitIt++) {
-        //loop over build configs
+        // loop over build configs
         for (uint uiI = 0; uiI < 7; uiI++) {
-            //loop over build archs
+            // loop over build archs
             for (uint uiJ = 0; uiJ < 2; uiJ++) {
-                //loop over build types
+                // loop over build types
                 for (uint uiK = 0; uiK < 2; uiK++) {
                     sAddPlatform += sConfigPlatform;
                     sAddPlatform += *vitIt;
@@ -569,16 +571,16 @@ bool ProjectGenerator::outputSolution()
             }
         }
     }
-    //Add the program keys
+    // Add the program keys
     for (vector<string>::iterator vitIt = vAddedPrograms.begin(); vitIt < vAddedPrograms.end(); vitIt++) {
-        //loop over build configs
+        // loop over build configs
         for (uint uiI = 0; uiI < sizeof(aBuildConfigs) / sizeof(aBuildConfigs[0]); uiI++) {
-            //loop over build archs
+            // loop over build archs
             for (uint uiJ = 0; uiJ < sizeof(aBuildArchsSol) / sizeof(aBuildArchsSol[0]); uiJ++) {
-                //loop over build types
+                // loop over build types
                 for (uint uiK = 0; uiK < sizeof(aBuildTypes) / sizeof(aBuildTypes[0]); uiK++) {
                     if ((uiK == 1) && (uiI != 4)) {
-                        //We dont build programs by default except for Release config
+                        // We dont build programs by default except for Release config
                         continue;
                     }
                     sAddPlatform += sConfigPlatform;
@@ -609,11 +611,11 @@ bool ProjectGenerator::outputSolution()
             }
         }
     }
-    //Insert into solution string
+    // Insert into solution string
     sSolutionFile.insert(uiPos, sAddPlatform);
     uiPos += sAddPlatform.length();
 
-    //Add any programs to the nested projects
+    // Add any programs to the nested projects
     if (vAddedPrograms.size() > 0) {
         string sNestedStart = "GlobalSection(NestedProjects) = preSolution";
         uint uiPos = sSolutionFile.find(sNestedStart) + sNestedStart.length();
@@ -628,12 +630,12 @@ bool ProjectGenerator::outputSolution()
             sNestProg += sProgramKey;
             sNestProg += sNestEnd;
         }
-        //Insert into solution string
+        // Insert into solution string
         sSolutionFile.insert(uiPos, sNestProg);
         uiPos += sNestProg.length();
     }
 
-    //Write output solution
+    // Write output solution
     string sProjectName = m_ConfigHelper.m_sProjectName;
     transform(sProjectName.begin(), sProjectName.end(), sProjectName.begin(), ::tolower);
     const string sOutSolutionFile = m_ConfigHelper.m_sSolutionDirectory + sProjectName + ".sln";
@@ -658,7 +660,7 @@ bool ProjectGenerator::outputSolution()
         uiFindPos = sBatFile.find(sFFSearchTag, uiFindPos + 1);
     }
 
-    //Write to output
+    // Write to output
     const string sOutBatFile = m_ConfigHelper.m_sSolutionDirectory + sProjectName + "_with_latest_sdk.bat";
     if (!writeToFile(sOutBatFile, sBatFile, true)) {
         return false;
@@ -667,49 +669,50 @@ bool ProjectGenerator::outputSolution()
     return true;
 }
 
-void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFiltersTemplate)
+void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFiltersTemplate)
 {
-    //Change all occurrences of template_in with project name
+    // Change all occurrences of template_in with project name
     const string sFFSearchTag = "template_in";
     uint uiFindPos = sProjectTemplate.find(sFFSearchTag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sFFSearchTag.length(), m_sProjectName);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sFFSearchTag, uiFindPos + 1);
     }
     uint uiFindPosFilt = sFiltersTemplate.find(sFFSearchTag);
     while (uiFindPosFilt != string::npos) {
-        //Replace
+        // Replace
         sFiltersTemplate.replace(uiFindPosFilt, sFFSearchTag.length(), m_sProjectName);
-        //Get next
+        // Get next
         uiFindPosFilt = sFiltersTemplate.find(sFFSearchTag, uiFindPosFilt + 1);
     }
 
-    //Change all occurrences of template_shin with short project name
+    // Change all occurrences of template_shin with short project name
     const string sFFShortSearchTag = "template_shin";
     uiFindPos = sProjectTemplate.find(sFFShortSearchTag);
-    string sProjectNameShort = m_sProjectName.substr(3); //The full name minus the lib prefix
+    string sProjectNameShort = m_sProjectName.substr(3);    // The full name minus the lib prefix
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sFFShortSearchTag.length(), sProjectNameShort);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sFFShortSearchTag, uiFindPos + 1);
     }
     uiFindPosFilt = sFiltersTemplate.find(sFFShortSearchTag);
     while (uiFindPosFilt != string::npos) {
-        //Replace
+        // Replace
         sFiltersTemplate.replace(uiFindPosFilt, sFFShortSearchTag.length(), sProjectNameShort);
-        //Get next
+        // Get next
         uiFindPosFilt = sFiltersTemplate.find(sFFShortSearchTag, uiFindPosFilt + 1);
     }
 
-    //Change all occurrences of template_platform with specified project toolchain
+    // Change all occurrences of template_platform with specified project toolchain
     string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>";
     if (m_ConfigHelper.m_sToolchain.compare("msvc") != 0) {
-        sToolchain += "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
+        sToolchain +=
+            "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER14)'!=''\">Intel C++ Compiler XE 14.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER15)'!=''\">Intel C++ Compiler XE 15.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER16)'!=''\">Intel C++ Compiler 16.0</PlatformToolset>\r\n\
@@ -720,13 +723,13 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
     const string sPlatformSearch = "<PlatformToolset>template_platform</PlatformToolset>";
     uiFindPos = sProjectTemplate.find(sPlatformSearch);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sPlatformSearch.length(), sToolchain);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sPlatformSearch, uiFindPos + sPlatformSearch.length());
     }
 
-    //Set the project key
+    // Set the project key
     string sGUID = "<ProjectGuid>{";
     uiFindPos = sProjectTemplate.find(sGUID);
     if (uiFindPos != string::npos) {
@@ -736,35 +739,35 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
         sProjectTemplate.replace(uiFindPos, mKeys[m_sProjectName].length(), mKeys[m_sProjectName]);
     }
 
-    //Change all occurrences of template_outdir with configured output directory
+    // Change all occurrences of template_outdir with configured output directory
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     replace(sOutDir.begin(), sOutDir.end(), '/', '\\');
     if (sOutDir.at(0) == '.') {
-        sOutDir = "$(ProjectDir)" + sOutDir; //Make any relative paths based on project dir
+        sOutDir = "$(ProjectDir)" + sOutDir;    // Make any relative paths based on project dir
     }
     const string sFFOutSearchTag = "template_outdir";
     uiFindPos = sProjectTemplate.find(sFFOutSearchTag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sFFOutSearchTag.length(), sOutDir);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sFFOutSearchTag, uiFindPos + 1);
     }
 
-    //Change all occurrences of template_rootdir with configured output directory
+    // Change all occurrences of template_rootdir with configured output directory
     string sRootDir = m_ConfigHelper.m_sRootDirectory;
     m_ConfigHelper.makeFileProjectRelative(sRootDir, sRootDir);
     replace(sRootDir.begin(), sRootDir.end(), '/', '\\');
     const string sFFRootSearchTag = "template_rootdir";
     uiFindPos = sProjectTemplate.find(sFFRootSearchTag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sFFRootSearchTag.length(), sRootDir);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sFFRootSearchTag, uiFindPos + 1);
     }
 
-    //Change all occurrences of template_winver
+    // Change all occurrences of template_winver
     uint uiMajor, uiMinor;
     if (!m_ConfigHelper.getMinWindowsVersion(uiMajor, uiMinor)) {
         outputWarning("Could not detect a supported Windows version. Defaults of WinXP will be used instead.");
@@ -780,7 +783,7 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
     ss >> sSubsystemVerMin;
     sSubsystemVer32 += ".";
     sSubsystemVer32 += sSubsystemVerMin;
-    //Create 64bit version which must have min of Vista 6.0
+    // Create 64bit version which must have min of Vista 6.0
     string sSubsystemVer64;
     if (uiMajor < 6) {
         sSubsystemVer64 = "6.0";
@@ -790,21 +793,21 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
     const string sWinver32Tag = "template_winver32";
     uiFindPos = sProjectTemplate.find(sWinver32Tag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sWinver32Tag.length(), sSubsystemVer32);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sWinver32Tag, uiFindPos + 1);
     }
     const string sWinver64Tag = "template_winver64";
     uiFindPos = sProjectTemplate.find(sWinver64Tag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sWinver64Tag.length(), sSubsystemVer64);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sWinver64Tag, uiFindPos + 1);
     }
 
-    //Change all occurrences of template_winnt
+    // Change all occurrences of template_winnt
     string sWinNTVer, sWinNTVer32 = "0x";
     ss.clear();
     ss << std::setfill('0') << std::setw(sizeof(char) * 2) << std::hex << uiMajor;
@@ -824,24 +827,26 @@ void ProjectGenerator::outputTemplateTags(string & sProjectTemplate, string& sFi
     const string sWinnt32Tag = "template_winnt32";
     uiFindPos = sProjectTemplate.find(sWinnt32Tag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sWinnt32Tag.length(), sWinNTVer32);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sWinnt32Tag, uiFindPos + 1);
     }
     const string sWinnt64Tag = "template_winnt64";
     uiFindPos = sProjectTemplate.find(sWinnt64Tag);
     while (uiFindPos != string::npos) {
-        //Replace
+        // Replace
         sProjectTemplate.replace(uiFindPos, sWinnt64Tag.length(), sWinNTVer64);
-        //Get next
+        // Get next
         uiFindPos = sProjectTemplate.find(sWinnt64Tag, uiFindPos + 1);
     }
 }
 
-void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)
+void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType,
+    string& sProjectTemplate, string& sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters,
+    bool bCheckExisting, bool bStaticOnly, bool bSharedOnly)
 {
-    //Declare constant strings used in output files
+    // Declare constant strings used in output files
     const string sItemGroup = "\r\n  <ItemGroup>";
     const string sItemGroupEnd = "\r\n  </ItemGroup>";
     const string sIncludeClose = "\">";
@@ -865,23 +870,23 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
         vector<pair<string, string>> vTempObjects;
 
         for (StaticList::iterator vitInclude = vFileList.begin(); vitInclude < vFileList.end(); vitInclude++) {
-            //Output objects
+            // Output objects
             sTypeFilesTemp = sTypeInclude;
             sTypeFilesFiltTemp = sTypeInclude;
 
-            //Add the fileName
+            // Add the fileName
             string sFile = *vitInclude;
             replace(sFile.begin(), sFile.end(), '/', '\\');
             sTypeFilesTemp += sFile;
             sTypeFilesFiltTemp += sFile;
 
-            //Get object name without path or extension
+            // Get object name without path or extension
             uint uiPos = vitInclude->rfind('/') + 1;
             string sObjectName = vitInclude->substr(uiPos);
             uint uiPos2 = sObjectName.rfind('.');
             sObjectName.resize(uiPos2);
 
-            //Add the filters Filter
+            // Add the filters Filter
             string sSourceDir;
             m_ConfigHelper.makeFileProjectRelative(this->m_ConfigHelper.m_sRootDirectory, sSourceDir);
             uiPos = vitInclude->rfind(sSourceDir);
@@ -898,7 +903,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
             sTypeFilesFiltTemp += sFilterEnd;
             sTypeFilesFiltTemp += sTypeIncludeEnd;
 
-            //Check if this file should be disabled under certain configurations
+            // Check if this file should be disabled under certain configurations
             bool bClosed = false;
             if (bStaticOnly || bSharedOnly) {
                 sTypeFilesTemp += sIncludeClose;
@@ -919,11 +924,13 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                 }
             }
 
-            //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
-            if (bCheckExisting && (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end())) {
+            // Several input source files have the same name so we need to explicitly specify an output object file
+            // otherwise they will clash
+            if (bCheckExisting &&
+                (find(vFoundObjects.begin(), vFoundObjects.end(), sObjectName) != vFoundObjects.end())) {
                 sObjectName = vitInclude->substr(uiPos);
                 replace(sObjectName.begin(), sObjectName.end(), '/', '_');
-                //Replace the extension with obj
+                // Replace the extension with obj
                 uiPos2 = sObjectName.rfind('.');
                 sObjectName.resize(uiPos2);
                 if (!bClosed) {
@@ -933,25 +940,27 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                 sTypeFilesTemp += sObjectName;
                 sTypeFilesTemp += sIncludeObjectClose;
                 sTypeFilesTemp += sTypeIncludeEnd;
-                //Add to temp list of stored objects
+                // Add to temp list of stored objects
                 vTempObjects.push_back(pair<string, string>(sTypeFilesTemp, sTypeFilesFiltTemp));
             } else {
                 vFoundObjects.push_back(sObjectName);
-                //Close the current item
+                // Close the current item
                 if (!bClosed) {
                     sTypeFilesTemp += sIncludeEnd;
                 } else {
                     sTypeFilesTemp += sTypeIncludeEnd;
                 }
-                //Add to output
+                // Add to output
                 sTypeFiles += sTypeFilesTemp;
                 sTypeFilesFilt += sTypeFilesFiltTemp;
             }
         }
 
-        //Add any temporary stored objects (This improves compile performance by grouping objects with different compile options - in this case output name)
-        for (vector<pair<string, string>>::iterator vitObject = vTempObjects.begin(); vitObject < vTempObjects.end(); vitObject++) {
-            //Add to output
+        // Add any temporary stored objects (This improves compile performance by grouping objects with different
+        // compile options - in this case output name)
+        for (vector<pair<string, string>>::iterator vitObject = vTempObjects.begin(); vitObject < vTempObjects.end();
+             vitObject++) {
+            // Add to output
             sTypeFiles += vitObject->first;
             sTypeFilesFilt += vitObject->second;
         }
@@ -959,48 +968,54 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
         sTypeFiles += sItemGroupEnd;
         sTypeFilesFilt += sItemGroupEnd;
 
-        //After </ItemGroup> add the item groups for each of the include types
-        string sEndTag = "</ItemGroup>"; //Uses independent string to sItemGroupEnd to avoid line ending errors due to \r\n
+        // After </ItemGroup> add the item groups for each of the include types
+        string sEndTag =
+            "</ItemGroup>";    // Uses independent string to sItemGroupEnd to avoid line ending errors due to \r\n
         uint uiFindPos = sProjectTemplate.rfind(sEndTag);
         uiFindPos += sEndTag.length();
         uint uiFindPosFilt = sFilterTemplate.rfind(sEndTag);
         uiFindPosFilt += sEndTag.length();
 
-        //Insert into output file
+        // Insert into output file
         sProjectTemplate.insert(uiFindPos, sTypeFiles);
         sFilterTemplate.insert(uiFindPosFilt, sTypeFilesFilt);
     }
 }
 
-void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFilterTemplate)
+void ProjectGenerator::outputSourceFiles(string& sProjectTemplate, string& sFilterTemplate)
 {
     set<string> vFoundFilters;
     StaticList vFoundObjects;
 
-    //Check if there is a resource file
+    // Check if there is a resource file
     string sResourceFile;
     if (findSourceFile(m_sProjectName.substr(3) + "res", ".rc", sResourceFile)) {
         m_ConfigHelper.makeFileProjectRelative(sResourceFile, sResourceFile);
         StaticList vResources;
         vResources.push_back(sResourceFile);
-        outputSourceFileType(vResources, "ResourceCompile", "Resource", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false, false, true);
+        outputSourceFileType(vResources, "ResourceCompile", "Resource", sProjectTemplate, sFilterTemplate,
+            vFoundObjects, vFoundFilters, false, false, true);
     }
 
-    //Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
+    // Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (m_ConfigHelper.isASMEnabled()) {
-        outputSourceFileType(m_vASMIncludes, (m_ConfigHelper.m_bUseNASM) ? "NASM" : "YASM", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+        outputSourceFileType(m_vASMIncludes, (m_ConfigHelper.m_bUseNASM) ? "NASM" : "YASM", "Source", sProjectTemplate,
+            sFilterTemplate, vFoundObjects, vFoundFilters, false);
     }
 
-    //Output C files
-    outputSourceFileType(m_vCIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
+    // Output C files
+    outputSourceFileType(
+        m_vCIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
 
-    //Output C++ files
-    outputSourceFileType(m_vCPPIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
+    // Output C++ files
+    outputSourceFileType(
+        m_vCPPIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
 
-    //Output header files in new item group
-    outputSourceFileType(m_vHIncludes, "ClInclude", "Header", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+    // Output header files in new item group
+    outputSourceFileType(
+        m_vHIncludes, "ClInclude", "Header", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
 
-    //Add any additional Filters to filters file
+    // Add any additional Filters to filters file
     const string sItemGroupEnd = "\r\n  </ItemGroup>";
     const string sFilterAdd = "\r\n    <Filter Include=\"";
     const string sFilterAdd2 = "\">\r\n\
@@ -1008,13 +1023,15 @@ void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFi
     const string sFilterAddClose = "}</UniqueIdentifier>\r\n\
     </Filter>";
     const string asFilterKeys[] = {"cac6df1e-4a60-495c-8daa-5707dc1216ff", "9fee14b2-1b77-463a-bd6b-60efdcf8850f",
-        "bf017c32-250d-47da-b7e6-d5a5091cb1e6", "fd9e10e9-18f6-437d-b5d7-17290540c8b8", "f026e68e-ff14-4bf4-8758-6384ac7bcfaf",
-        "a2d068fe-f5d5-4b6f-95d4-f15631533341", "8a4a673d-2aba-4d8d-a18e-dab035e5c446", "0dcfb38d-54ca-4ceb-b383-4662f006eca9",
+        "bf017c32-250d-47da-b7e6-d5a5091cb1e6", "fd9e10e9-18f6-437d-b5d7-17290540c8b8",
+        "f026e68e-ff14-4bf4-8758-6384ac7bcfaf", "a2d068fe-f5d5-4b6f-95d4-f15631533341",
+        "8a4a673d-2aba-4d8d-a18e-dab035e5c446", "0dcfb38d-54ca-4ceb-b383-4662f006eca9",
         "57bf1423-fb68-441f-b5c1-f41e6ae5fa9c"};
 
-    //get start position in file
+    // get start position in file
     uint uiFindPosFilt = sFilterTemplate.find("</ItemGroup>");
-    uiFindPosFilt = sFilterTemplate.find_last_not_of(sWhiteSpace, uiFindPosFilt - 1) + 1; //handle potential differences in line endings
+    uiFindPosFilt = sFilterTemplate.find_last_not_of(sWhiteSpace, uiFindPosFilt - 1) +
+        1;    // handle potential differences in line endings
     set<string>::iterator sitIt = vFoundFilters.begin();
     uint uiCurrentKey = 0;
     string sAddFilters;
@@ -1025,10 +1042,10 @@ void ProjectGenerator::outputSourceFiles(string & sProjectTemplate, string & sFi
         sAddFilters += asFilterKeys[uiCurrentKey];
         uiCurrentKey++;
         sAddFilters += sFilterAddClose;
-        //next
+        // next
         sitIt++;
     }
-    //Add to string
+    // Add to string
     sFilterTemplate.insert(uiFindPosFilt, sAddFilters);
 }
 
@@ -1041,33 +1058,33 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         return false;
     }
 
-    //Open the input export file
+    // Open the input export file
     string sExportsFile;
     loadFromFile(this->m_sProjectDir + sExportList, sExportsFile);
 
-    //Search for start of global tag
+    // Search for start of global tag
     string sGlobal = "global:";
     StaticList vExportStrings;
     uint uiFindPos = sExportsFile.find(sGlobal);
     if (uiFindPos != string::npos) {
-        //Remove everything outside the global section
+        // Remove everything outside the global section
         uiFindPos += sGlobal.length();
         uint uiFindPos2 = sExportsFile.find("local:", uiFindPos);
         sExportsFile = sExportsFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
 
-        //Remove any comments
+        // Remove any comments
         uiFindPos = sExportsFile.find('#');
         while (uiFindPos != string::npos) {
-            //find end of line
-            uiFindPos2 = sExportsFile.find(10, uiFindPos + 1); //10 is line feed
+            // find end of line
+            uiFindPos2 = sExportsFile.find(10, uiFindPos + 1);    // 10 is line feed
             sExportsFile.erase(uiFindPos, uiFindPos2 - uiFindPos + 1);
             uiFindPos = sExportsFile.find('#', uiFindPos + 1);
         }
 
-        //Clean any remaining white space out
+        // Clean any remaining white space out
         sExportsFile.erase(remove_if(sExportsFile.begin(), sExportsFile.end(), ::isspace), sExportsFile.end());
 
-        //Get any export strings
+        // Get any export strings
         uiFindPos = 0;
         uiFindPos2 = sExportsFile.find(';');
         while (uiFindPos2 != string::npos) {
@@ -1080,10 +1097,11 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         return false;
     }
 
-    //Split each source file into different directories to avoid name clashes
+    // Split each source file into different directories to avoid name clashes
     map<string, StaticList> mDirectoryObjects;
     for (StaticList::iterator itI = m_vCIncludes.begin(); itI < m_vCIncludes.end(); itI++) {
-        //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
+        // Several input source files have the same name so we need to explicitly specify an output object file
+        // otherwise they will clash
         uint uiPos = itI->rfind("../");
         uiPos = (uiPos == string::npos) ? 0 : uiPos + 3;
         uint uiPos2 = itI->rfind('/');
@@ -1092,7 +1110,8 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         mDirectoryObjects[sFolderName].push_back(*itI);
     }
     for (StaticList::iterator itI = m_vCPPIncludes.begin(); itI < m_vCPPIncludes.end(); itI++) {
-        //Several input source files have the same name so we need to explicitly specify an output object file otherwise they will clash
+        // Several input source files have the same name so we need to explicitly specify an output object file
+        // otherwise they will clash
         uint uiPos = itI->rfind("../");
         uiPos = (uiPos == string::npos) ? 0 : uiPos + 3;
         uint uiPos2 = itI->rfind('/');
@@ -1104,7 +1123,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
     if (!runCompiler(vIncludeDirs, mDirectoryObjects, 0))
         return false;
 
-    //Loaded in the compiler passed files
+    // Loaded in the compiler passed files
     StaticList vSBRFiles;
     StaticList vModuleExports;
     StaticList vModuleDataExports;
@@ -1114,9 +1133,9 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         string sSBRFile;
         loadFromFile(*itSBR, sSBRFile, true);
 
-        //Search through file for module exports
+        // Search through file for module exports
         for (StaticList::iterator itI = vExportStrings.begin(); itI < vExportStrings.end(); itI++) {
-            //SBR files contain data in specif formats
+            // SBR files contain data in specif formats
             // NULL SizeOfID Type Imp NULL ID Name NULL
             // where:
             // SizeOfID specifies how many characters are in the ID
@@ -1134,65 +1153,67 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
             //  NULL=pre-processor
             // ID is a 2 or 3 character sequence used to uniquely identify the object
 
-            //Check if it is a wild card search
+            // Check if it is a wild card search
             uiFindPos = itI->find('*');
             if (uiFindPos != string::npos) {
-                //Strip the wild card (Note: assumes wild card is at the end!)
+                // Strip the wild card (Note: assumes wild card is at the end!)
                 string sSearch = itI->substr(0, uiFindPos);
 
-                //Search for all occurrences
+                // Search for all occurrences
                 uiFindPos = sSBRFile.find(sSearch);
                 while (uiFindPos != string::npos) {
-                    //Find end of name signalled by NULL character
+                    // Find end of name signalled by NULL character
                     uint uiFindPos2 = sSBRFile.find((char)0x00, uiFindPos + 1);
                     if (uiFindPos2 == string::npos) {
                         uiFindPos = uiFindPos2;
                         break;
                     }
 
-                    //Check if this is a define
+                    // Check if this is a define
                     uint uiFindPos3 = sSBRFile.rfind((char)0x00, uiFindPos - 3);
                     while (sSBRFile.at(uiFindPos3 - 1) == (char)0x00) {
-                        //Skip if there was a NULL in ID
+                        // Skip if there was a NULL in ID
                         --uiFindPos3;
                     }
                     uint uiFindPosDiff = uiFindPos - uiFindPos3;
                     if ((sSBRFile.at(uiFindPos3 - 1) == '@') &&
                         (((uiFindPosDiff == 3) && (sSBRFile.at(uiFindPos3 - 3) == (char)0x03)) ||
-                        ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
-                        //Check if this is a data or function name
+                            ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
+                        // Check if this is a data or function name
                         string sFoundName = sSBRFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
                         if ((sSBRFile.at(uiFindPos3 - 2) == (char)0x01)) {
-                            //This is a function
-                            if (find(vModuleExports.begin(), vModuleExports.end(), sFoundName) == vModuleExports.end()) {
+                            // This is a function
+                            if (find(vModuleExports.begin(), vModuleExports.end(), sFoundName) ==
+                                vModuleExports.end()) {
                                 vModuleExports.push_back(sFoundName);
                             }
                         } else if ((sSBRFile.at(uiFindPos3 - 2) == (char)0x04)) {
-                            //This is data
-                            if (find(vModuleDataExports.begin(), vModuleDataExports.end(), sFoundName) == vModuleDataExports.end()) {
+                            // This is data
+                            if (find(vModuleDataExports.begin(), vModuleDataExports.end(), sFoundName) ==
+                                vModuleDataExports.end()) {
                                 vModuleDataExports.push_back(sFoundName);
                             }
                         }
                     }
 
-                    //Get next
+                    // Get next
                     uiFindPos = sSBRFile.find(sSearch, uiFindPos2 + 1);
                 }
             } else {
                 uiFindPos = sSBRFile.find(*itI);
-                //Make sure the match is an exact one
+                // Make sure the match is an exact one
                 uint uiFindPos3;
                 while ((uiFindPos != string::npos)) {
                     if (sSBRFile.at(uiFindPos + itI->length()) == (char)0x00) {
                         uiFindPos3 = sSBRFile.rfind((char)0x00, uiFindPos - 3);
                         while (sSBRFile.at(uiFindPos3 - 1) == (char)0x00) {
-                            //Skip if there was a NULL in ID
+                            // Skip if there was a NULL in ID
                             --uiFindPos3;
                         }
                         uint uiFindPosDiff = uiFindPos - uiFindPos3;
                         if ((sSBRFile.at(uiFindPos3 - 1) == '@') &&
                             (((uiFindPosDiff == 3) && (sSBRFile.at(uiFindPos3 - 3) == (char)0x03)) ||
-                            ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
+                                ((uiFindPosDiff == 4) && (sSBRFile.at(uiFindPos3 - 3) == 'C')))) {
                             break;
                         }
                     }
@@ -1201,14 +1222,14 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
                 if (uiFindPos == string::npos) {
                     continue;
                 }
-                //Check if this is a data or function name
+                // Check if this is a data or function name
                 if ((sSBRFile.at(uiFindPos3 - 2) == (char)0x01)) {
-                    //This is a function
+                    // This is a function
                     if (find(vModuleExports.begin(), vModuleExports.end(), *itI) == vModuleExports.end()) {
                         vModuleExports.push_back(*itI);
                     }
                 } else if ((sSBRFile.at(uiFindPos3 - 2) == (char)0x04)) {
-                    //This is data
+                    // This is data
                     if (find(vModuleDataExports.begin(), vModuleDataExports.end(), *itI) == vModuleDataExports.end()) {
                         vModuleDataExports.push_back(*itI);
                     }
@@ -1216,44 +1237,46 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
             }
         }
     }
-    //Remove the test sbr files
+    // Remove the test sbr files
     deleteFolder(sTempFolder);
 
-    //Check for any exported functions in asm files
+    // Check for any exported functions in asm files
     for (StaticList::iterator itASM = m_vASMIncludes.begin(); itASM < m_vASMIncludes.end(); itASM++) {
         string sASMFile;
         loadFromFile(m_ConfigHelper.m_sSolutionDirectory + *itASM, sASMFile);
 
-        //Search through file for module exports
+        // Search through file for module exports
         for (StaticList::iterator itI = vExportStrings.begin(); itI < vExportStrings.end(); itI++) {
-            //Check if it is a wild card search
+            // Check if it is a wild card search
             uiFindPos = itI->find('*');
             const string sInvalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \r\n\t\0";
             if (uiFindPos != string::npos) {
-                //Strip the wild card (Note: assumes wild card is at the end!)
+                // Strip the wild card (Note: assumes wild card is at the end!)
                 string sSearch = ' ' + itI->substr(0, uiFindPos);
-                //Search for all occurrences
+                // Search for all occurrences
                 uiFindPos = sASMFile.find(sSearch);
                 while ((uiFindPos != string::npos) && (uiFindPos > 0)) {
-                    //Find end of name signaled by first non valid character
+                    // Find end of name signaled by first non valid character
                     uint uiFindPos2 = sASMFile.find_first_of(sInvalidChars, uiFindPos + 1);
-                    //Check this is valid function definition
-                    if ((sASMFile.at(uiFindPos2) == '(') && (sInvalidChars.find(sASMFile.at(uiFindPos - 1)) == string::npos)) {
+                    // Check this is valid function definition
+                    if ((sASMFile.at(uiFindPos2) == '(') &&
+                        (sInvalidChars.find(sASMFile.at(uiFindPos - 1)) == string::npos)) {
                         string sFoundName = sASMFile.substr(uiFindPos, uiFindPos2 - uiFindPos);
                         if (find(vModuleExports.begin(), vModuleExports.end(), sFoundName) == vModuleExports.end()) {
                             vModuleExports.push_back(sFoundName.substr(1));
                         }
                     }
 
-                    //Get next
+                    // Get next
                     uiFindPos = sASMFile.find(sSearch, uiFindPos2 + 1);
                 }
             } else {
                 string sSearch = ' ' + *itI + '(';
                 uiFindPos = sASMFile.find(*itI);
-                //Make sure the match is an exact one
-                if ((uiFindPos != string::npos) && (uiFindPos > 0) && (sInvalidChars.find(sASMFile.at(uiFindPos - 1)) == string::npos)) {
-                    //Check this is valid function definition
+                // Make sure the match is an exact one
+                if ((uiFindPos != string::npos) && (uiFindPos > 0) &&
+                    (sInvalidChars.find(sASMFile.at(uiFindPos - 1)) == string::npos)) {
+                    // Check this is valid function definition
                     if (find(vModuleExports.begin(), vModuleExports.end(), *itI) == vModuleExports.end()) {
                         vModuleExports.push_back(*itI);
                     }
@@ -1262,11 +1285,11 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         }
     }
 
-    //Sort the exports
+    // Sort the exports
     sort(vModuleExports.begin(), vModuleExports.end());
     sort(vModuleDataExports.begin(), vModuleDataExports.end());
 
-    //Create the export module string
+    // Create the export module string
     string sModuleFile = "EXPORTS\r\n";
     for (StaticList::iterator itI = vModuleExports.begin(); itI < vModuleExports.end(); itI++) {
         sModuleFile += "    " + *itI + "\r\n";
@@ -1282,9 +1305,9 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
     return true;
 }
 
-void ProjectGenerator::outputBuildEvents(string & sProjectTemplate)
+void ProjectGenerator::outputBuildEvents(string& sProjectTemplate)
 {
-    //After </Lib> and </Link> and the post and then pre build events
+    // After </Lib> and </Link> and the post and then pre build events
     const string asLibLink[2] = {"</Lib>", "</Link>"};
     const string sPostbuild = "\r\n    <PostBuildEvent>\r\n\
       <Command>";
@@ -1315,15 +1338,17 @@ if exist template_rootdirlibavutil\\ffversion.h (\r\n\
 del template_rootdirlibavutil\\ffversion.h\r\n\
 )";
     const string sPrebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_sProjectName + " (\r\n\
-rd /s /q \"$(OutDir)\"\\include\\" + m_sProjectName + "\r\n\
+rd /s /q \"$(OutDir)\"\\include\\" +
+        m_sProjectName + "\r\n\
 cd ../\r\n\
 cd $(ProjectDir)\r\n\
 )";
     const string sPrebuildClose = "</Command>\r\n    </PreBuildEvent>";
-    //Get the correct license file
+    // Get the correct license file
     string sLicenseFile;
     if (m_ConfigHelper.getConfigOption("nonfree")->m_sValue.compare("1") == 0) {
-        sLicenseFile = "template_rootdirCOPYING.GPLv3"; //Technically this has no license as it is unredistributable but we get the closest thing for now
+        sLicenseFile = "template_rootdirCOPYING.GPLv3";    // Technically this has no license as it is unredistributable
+                                                           // but we get the closest thing for now
     } else if (m_ConfigHelper.getConfigOption("gplv3")->m_sValue.compare("1") == 0) {
         sLicenseFile = "template_rootdirCOPYING.GPLv3";
     } else if (m_ConfigHelper.getConfigOption("lgplv3")->m_sValue.compare("1") == 0) {
@@ -1333,9 +1358,9 @@ cd $(ProjectDir)\r\n\
     } else {
         sLicenseFile = "template_rootdirCOPYING.LGPLv2.1";
     }
-    //Generate the pre build and post build string
+    // Generate the pre build and post build string
     string sAdditional;
-    //Add the post build event
+    // Add the post build event
     sAdditional += sPostbuild;
     if (m_vHIncludes.size() > 0) {
         sAdditional += sInclude;
@@ -1349,13 +1374,13 @@ cd $(ProjectDir)\r\n\
             sAdditional += m_sProjectName;
         }
     }
-    //Output license
+    // Output license
     sAdditional += sLicense;
     sAdditional += sCopy;
     sAdditional += sLicenseFile;
     sAdditional += sLicenseEnd;
     sAdditional += sPostbuildClose;
-    //Add the pre build event
+    // Add the pre build event
     sAdditional += sPrebuild;
     if (m_vHIncludes.size() > 0) {
         sAdditional += sPrebuildDir;
@@ -1366,16 +1391,16 @@ cd $(ProjectDir)\r\n\
         uint uiFindPos = sProjectTemplate.find(asLibLink[uiI]);
         while (uiFindPos != string::npos) {
             uiFindPos += asLibLink[uiI].length();
-            //Add to output
+            // Add to output
             sProjectTemplate.insert(uiFindPos, sAdditional);
             uiFindPos += sAdditional.length();
-            //Get next
+            // Get next
             uiFindPos = sProjectTemplate.find(asLibLink[uiI], uiFindPos + 1);
         }
     }
 }
 
-void ProjectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string & sProjectTemplate)
+void ProjectGenerator::outputIncludeDirs(const StaticList& vIncludeDirs, string& sProjectTemplate)
 {
     if (!vIncludeDirs.empty()) {
         string sAddInclude;
@@ -1386,20 +1411,22 @@ void ProjectGenerator::outputIncludeDirs(const StaticList & vIncludeDirs, string
         const string sAddIncludeDir = "<AdditionalIncludeDirectories>";
         uint uiFindPos = sProjectTemplate.find(sAddIncludeDir);
         while (uiFindPos != string::npos) {
-            //Add to output
-            uiFindPos += sAddIncludeDir.length(); //Must be added first so that it is before $(IncludePath) as otherwise there are errors
+            // Add to output
+            uiFindPos += sAddIncludeDir.length();    // Must be added first so that it is before $(IncludePath) as
+                                                     // otherwise there are errors
             sProjectTemplate.insert(uiFindPos, sAddInclude);
             uiFindPos += sAddInclude.length();
-            //Get next
+            // Get next
             uiFindPos = sProjectTemplate.find(sAddIncludeDir, uiFindPos + 1);
         }
     }
 }
 
-void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const StaticList & vLib64Dirs, string & sProjectTemplate)
+void ProjectGenerator::outputLibDirs(
+    const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string& sProjectTemplate)
 {
     if ((!vLib32Dirs.empty()) || (!vLib64Dirs.empty())) {
-        //Add additional lib includes to include list based on current config
+        // Add additional lib includes to include list based on current config
         string sAddLibs[2];
         for (StaticList::const_iterator vitIt = vLib32Dirs.cbegin(); vitIt < vLib32Dirs.cend(); vitIt++) {
             sAddLibs[0] += *vitIt + ";";
@@ -1410,14 +1437,14 @@ void ProjectGenerator::outputLibDirs(const StaticList & vLib32Dirs, const Static
         replace(sAddLibs[0].begin(), sAddLibs[0].end(), '/', '\\');
         replace(sAddLibs[1].begin(), sAddLibs[1].end(), '/', '\\');
         const string sAddLibDir = "<AdditionalLibraryDirectories>";
-        uint ui32Or64 = 0; //start with 32 (assumes projects are ordered 32 then 64 recursive)
+        uint ui32Or64 = 0;    // start with 32 (assumes projects are ordered 32 then 64 recursive)
         uint uiFindPos = sProjectTemplate.find(sAddLibDir);
         while (uiFindPos != string::npos) {
-            //Add to output
+            // Add to output
             uiFindPos += sAddLibDir.length();
             sProjectTemplate.insert(uiFindPos, sAddLibs[ui32Or64]);
             uiFindPos += sAddLibs[ui32Or64].length();
-            //Get next
+            // Get next
             uiFindPos = sProjectTemplate.find(sAddLibDir, uiFindPos + 1);
             ui32Or64 = !ui32Or64;
         }
@@ -1444,7 +1471,7 @@ void ProjectGenerator::outputDefines(const StaticList& defines, string& projectT
     }
 }
 
-void ProjectGenerator::outputASMTools(string & sProjectTemplate)
+void ProjectGenerator::outputASMTools(string& sProjectTemplate)
 {
     if (m_ConfigHelper.isASMEnabled() && (m_vASMIncludes.size() > 0)) {
         string sASMDefines = "\r\n\
@@ -1462,7 +1489,7 @@ void ProjectGenerator::outputASMTools(string & sProjectTemplate)
     <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.targets\" />\r\n\
   </ImportGroup>";
         if (!m_ConfigHelper.m_bUseNASM) {
-            //Replace nasm with yasm
+            // Replace nasm with yasm
             size_t n = 0;
             while ((n = sASMDefines.find("NASM", n)) != string::npos) {
                 sASMDefines.replace(n, 4, "YASM");
@@ -1474,31 +1501,31 @@ void ProjectGenerator::outputASMTools(string & sProjectTemplate)
         const string sFindProps = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />";
         const string sFindTargets = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />";
 
-        //Add NASM defines
+        // Add NASM defines
         const string sEndPreBuild = "</PreBuildEvent>";
         uint uiFindPos = sProjectTemplate.find(sEndPreBuild);
         while (uiFindPos != string::npos) {
             uiFindPos += sEndPreBuild.length();
-            //Add to output
+            // Add to output
             sProjectTemplate.insert(uiFindPos, sASMDefines);
             uiFindPos += sASMDefines.length();
-            //Get next
+            // Get next
             uiFindPos = sProjectTemplate.find(sEndPreBuild, uiFindPos + 1);
         }
 
-        //Add NASM build customisation
+        // Add NASM build customisation
         uiFindPos = sProjectTemplate.find(sFindProps) + sFindProps.length();
-        //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add asm props
+        // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add asm props
         sProjectTemplate.insert(uiFindPos, sASMProps);
         uiFindPos += sASMProps.length();
         uiFindPos = sProjectTemplate.find(sFindTargets) + sFindTargets.length();
-        //After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
+        // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
         sProjectTemplate.insert(uiFindPos, sASMTargets);
         uiFindPos += sASMTargets.length();
     }
 }
 
-bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bProgram)
+bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProgram)
 {
     // Check current libs list for valid lib names
     for (StaticList::iterator vitLib = m_vLibs.begin(); vitLib < m_vLibs.end(); ++vitLib) {
@@ -1535,14 +1562,14 @@ bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bPro
             buildInterDependencies(extraDeps);
             m_sProjectName = backup;
         }
-        //Add new dependencies to list
+        // Add new dependencies to list
         uint pos = i - staticLibs.begin();
         for (StaticList::iterator j = extraDeps.begin(); j < extraDeps.end(); ++j) {
             if (find(staticLibs.begin(), staticLibs.end(), *j) == staticLibs.end()) {
                 staticLibs.push_back(*j);
             }
         }
-        //Update iterator in case of memory changes
+        // Update iterator in case of memory changes
         i = staticLibs.begin() + pos;
     }
 
@@ -1640,7 +1667,8 @@ bool ProjectGenerator::outputDependencyLibs(string & sProjectTemplate, bool bPro
                 // link:
                 //  DebugDLL|Win32, DebugDLLWinRT|Win32, DebugDLL|x64, DebugDLLWinRT|x64,
                 //  ReleaseDLL|Win32, ReleaseDLLWinRT|Win32, ReleaseDLL|x64, ReleaseDLLWinRT|x64,
-                //  ReleaseDLLStaticDeps|Win32, ReleaseDLLWinRTStaticDeps|Win32, ReleaseDLLStaticDeps|x64, ReleaseDLLWinRTStaticDeps|x64
+                //  ReleaseDLLStaticDeps|Win32, ReleaseDLLWinRTStaticDeps|Win32, ReleaseDLLStaticDeps|x64,
+                //  ReleaseDLLWinRTStaticDeps|x64
                 // lib:
                 //  Debug32, DebugWinRT|Win32, Debug|x64, DebugWinRT|x64,
                 //  Release|Win32, ReleaseWinRT|Win32, Release|x64, ReleaseWinRT|x64,

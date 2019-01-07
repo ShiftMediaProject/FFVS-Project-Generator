@@ -20,16 +20,17 @@
 
 #include "helperFunctions.h"
 
-#include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <direct.h>
+#include <fstream>
+#include <iostream>
 
 #ifdef _WIN32
-#include <Windows.h>
-#include "Shlwapi.h"
+#    include "Shlwapi.h"
+
+#    include <Windows.h>
 #else
-#include <dirent.h>
+#    include <dirent.h>
 extern char _binary_compat_h_start[];
 extern char _binary_compat_h_end[];
 extern char _binary_math_h_start[];
@@ -48,12 +49,13 @@ extern char _binary_templateprogram_in_vcxproj_filters_start[];
 extern char _binary_templateprogram_in_vcxproj_filters_end[];
 extern char _binary_stdatomic_h_start[];
 extern char _binary_stdatomic_h_end[];
-const char *pp_cStartArray[] = {_binary_compat_h_start, _binary_math_h_start, _binary_unistd_h_start, _binary_template_in_sln_start,
-_binary_template_in_vcxproj_start, _binary_template_in_vcxproj_filters_start, _binary_templateprogram_in_vcxproj_start,
-_binary_templateprogram_in_vcxproj_filters_start, _binary_stdatomic_h_start};
-const char *pp_cEndArray[] = {_binary_compat_h_end, _binary_math_h_end, _binary_unistd_h_end, _binary_template_in_sln_end,
-_binary_template_in_vcxproj_end, _binary_template_in_vcxproj_filters_end, _binary_templateprogram_in_vcxproj_end,
-_binary_templateprogram_in_vcxproj_filters_end, _binary_stdatomic_h_end};
+const char* pp_cStartArray[] = {_binary_compat_h_start, _binary_math_h_start, _binary_unistd_h_start,
+    _binary_template_in_sln_start, _binary_template_in_vcxproj_start, _binary_template_in_vcxproj_filters_start,
+    _binary_templateprogram_in_vcxproj_start, _binary_templateprogram_in_vcxproj_filters_start,
+    _binary_stdatomic_h_start};
+const char* pp_cEndArray[] = {_binary_compat_h_end, _binary_math_h_end, _binary_unistd_h_end,
+    _binary_template_in_sln_end, _binary_template_in_vcxproj_end, _binary_template_in_vcxproj_filters_end,
+    _binary_templateprogram_in_vcxproj_end, _binary_templateprogram_in_vcxproj_filters_end, _binary_stdatomic_h_end};
 #endif
 
 #if _DEBUG
@@ -62,11 +64,10 @@ static Verbosity g_OutputVerbosity = VERBOSITY_INFO;
 static Verbosity g_OutputVerbosity = VERBOSITY_WARNING;
 #endif
 
-namespace project_generate
+namespace project_generate {
+bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary, bool bOutError)
 {
-bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bool bOutError)
-{
-    //Open the input file
+    // Open the input file
     ifstream ifInputFile(sFileName, (bBinary) ? ios_base::in | ios_base::binary : ios_base::in);
     if (!ifInputFile.is_open()) {
         if (bOutError) {
@@ -75,7 +76,7 @@ bool loadFromFile(const string& sFileName, string & sRetString, bool bBinary, bo
         return false;
     }
 
-    //Load whole file into internal string
+    // Load whole file into internal string
     ifInputFile.seekg(0, ifInputFile.end);
     uint uiBufferSize = (uint)ifInputFile.tellg();
     ifInputFile.seekg(0, ifInputFile.beg);
@@ -98,16 +99,16 @@ bool loadFromResourceFile(int iResourceID, string& sRetString)
     DWORD size = SizeofResource(hInst, hRes);
     char* resText = (char*)LockResource(hMem);
 
-    //Copy across the file
+    // Copy across the file
     sRetString.reserve(size);
     sRetString.resize(size);
     memcpy(const_cast<char*>(sRetString.data()), resText, size);
 
-    //Close Resource
+    // Close Resource
     FreeResource(hMem);
     return true;
 #else
-    //Requires text file to be converted into a binary using either:
+    // Requires text file to be converted into a binary using either:
     // ld -r -b binary -o resource.file.o resource.file (creates _binary_resource_file_start)
     // objcopy -B i386 -I binary -O elf32-i386 resource.file resource.file.o
     uint iSize = (uint)(&pp_cEndArray[iResourceID - 100] - &pp_cStartArray[iResourceID - 100]);
@@ -118,9 +119,9 @@ bool loadFromResourceFile(int iResourceID, string& sRetString)
 #endif
 }
 
-bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
+bool writeToFile(const string& sFileName, const string& sString, bool bBinary)
 {
-    //Check for subdirectories
+    // Check for subdirectories
     uint uiDirPos = sFileName.rfind('/');
     if (uiDirPos != string::npos) {
         string sDir = sFileName.substr(0, uiDirPos);
@@ -129,20 +130,20 @@ bool writeToFile(const string & sFileName, const string & sString, bool bBinary)
             return false;
         }
     }
-    //Open output file
+    // Open output file
     ofstream ofOutputFile(sFileName, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofOutputFile.is_open()) {
         outputError("Failed opening output file (" + sFileName + ")");
         return false;
     }
 
-    //Output string to file and close
+    // Output string to file and close
     ofOutputFile << sString;
     ofOutputFile.close();
     return true;
 }
 
-bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBinary)
+bool copyResourceFile(int iResourceID, const string& sDestinationFile, bool bBinary)
 {
 #ifdef _WIN32
     // Can load directly from windows resource file
@@ -152,7 +153,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBi
     DWORD size = SizeofResource(hInst, hRes);
     char* resText = (char*)LockResource(hMem);
 
-    //Copy across the file
+    // Copy across the file
     ofstream ofDest(sDestinationFile, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofDest.is_open()) {
         FreeResource(hMem);
@@ -165,12 +166,12 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBi
     }
     ofDest.close();
 
-    //Close Resource
+    // Close Resource
     FreeResource(hMem);
     return true;
 #else
     uint iSize = (uint)(&pp_cEndArray[iResourceID - 100] - &pp_cStartArray[iResourceID - 100]);
-    //Copy across the file
+    // Copy across the file
     ofstream ofDest(sDestinationFile, (bBinary) ? ios_base::out | ios_base::binary : ios_base::out);
     if (!ofDest.is_open()) {
         return false;
@@ -184,7 +185,7 @@ bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBi
 #endif
 }
 
-void deleteFile(const string & sDestinationFile)
+void deleteFile(const string& sDestinationFile)
 {
 #ifdef _WIN32
     DeleteFile(sDestinationFile.c_str());
@@ -193,7 +194,7 @@ void deleteFile(const string & sDestinationFile)
 #endif
 }
 
-void deleteFolder(const string & sDestinationFolder)
+void deleteFolder(const string& sDestinationFolder)
 {
 #ifdef _WIN32
     string delFolder = sDestinationFolder + '\0';
@@ -235,18 +236,18 @@ void deleteFolder(const string & sDestinationFolder)
 #endif
 }
 
-bool isFolderEmpty(const string & sFolder)
+bool isFolderEmpty(const string& sFolder)
 {
 #ifdef _WIN32
     return PathIsDirectoryEmpty(sFolder.c_str());
 #else
-    DIR *dir = opendir(sFolder.c_str());
+    DIR* dir = opendir(sFolder.c_str());
     if (dir == NULL) {
-        //Not a directory or doesn't exist
+        // Not a directory or doesn't exist
         return false;
     }
     int n = 0;
-    struct dirent *d;
+    struct dirent* d;
     while ((d = readdir(dir)) != NULL) {
         if (++n > 2) {
             break;
@@ -257,13 +258,14 @@ bool isFolderEmpty(const string & sFolder)
 #endif
 }
 
-bool copyFile(const string & sSourceFolder, const string & sDestinationFolder)
+bool copyFile(const string& sSourceFolder, const string& sDestinationFolder)
 {
 #ifdef _WIN32
     return (CopyFile(sSourceFolder.c_str(), sDestinationFolder.c_str(), false) != 0);
 #else
     FILE* p_Source = fopen(sSourceFolder.c_str(), "rb");
-    if (p_Source == NULL) return false;
+    if (p_Source == NULL)
+        return false;
     FILE* p_Dest = fopen(sDestinationFolder.c_str(), "wb");
     if (p_Dest == NULL) {
         fclose(p_Source);
@@ -307,7 +309,7 @@ string getCopywriteHeader(const string& sDecription)
  */";
 }
 
-bool makeDirectory(const string & sDirectory)
+bool makeDirectory(const string& sDirectory)
 {
 #ifdef _WIN32
     int iRet = _mkdir(sDirectory.c_str());
@@ -318,7 +320,7 @@ bool makeDirectory(const string & sDirectory)
         return true;
     }
     if (errno == ENOENT) {
-        //The parent directory doesnt exist
+        // The parent directory doesnt exist
         uint uiPos = sDirectory.find_last_of('/');
 #if defined(_WIN32)
         if (uiPos == string::npos) {
@@ -331,19 +333,19 @@ bool makeDirectory(const string & sDirectory)
         if (!makeDirectory(sDirectory.substr(0, uiPos))) {
             return false;
         }
-        //Try again
+        // Try again
         return makeDirectory(sDirectory);
     }
     return false;
 }
 
-bool findFile(const string & sFileName, string & sRetFileName)
+bool findFile(const string& sFileName, string& sRetFileName)
 {
 #ifdef _WIN32
     WIN32_FIND_DATA SearchFile;
     HANDLE SearchHandle = FindFirstFile(sFileName.c_str(), &SearchFile);
     if (SearchHandle != INVALID_HANDLE_VALUE) {
-        //Update the return filename
+        // Update the return filename
         sRetFileName = SearchFile.cFileName;
         FindClose(SearchHandle);
         replace(sRetFileName.begin(), sRetFileName.end(), '\\', '/');
@@ -361,7 +363,7 @@ bool findFile(const string & sFileName, string & sRetFileName)
 #endif
 }
 
-bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRecursive)
+bool findFiles(const string& sFileSearch, vector<string>& vRetFiles, bool bRecursive)
 {
 #ifdef _WIN32
     WIN32_FIND_DATA SearchFile;
@@ -376,7 +378,7 @@ bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRec
     }
     HANDLE SearchHandle = FindFirstFile(sFileSearch.c_str(), &SearchFile);
     if (SearchHandle != INVALID_HANDLE_VALUE) {
-        //Update the return filename list
+        // Update the return filename list
         vRetFiles.push_back(sPath + SearchFile.cFileName);
         while (FindNextFile(SearchHandle, &SearchFile) != 0) {
             vRetFiles.push_back(sPath + SearchFile.cFileName);
@@ -384,7 +386,7 @@ bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRec
         }
         FindClose(SearchHandle);
     }
-    //Search all sub directories as well
+    // Search all sub directories as well
     if (bRecursive) {
         string sSearch = sPath + "*";
         SearchHandle = FindFirstFile(sSearch.c_str(), &SearchFile);
@@ -417,7 +419,7 @@ bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRec
 #endif
 }
 
-bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool bRecursive)
+bool findFolders(const string& sFolderSearch, vector<string>& vRetFolders, bool bRecursive)
 {
 #ifdef _WIN32
     WIN32_FIND_DATA SearchFile;
@@ -436,7 +438,7 @@ bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool
     }
     HANDLE SearchHandle = FindFirstFile(sFolderSearch.c_str(), &SearchFile);
     if (SearchHandle != INVALID_HANDLE_VALUE) {
-        //Update the return filename list
+        // Update the return filename list
         vRetFolders.push_back(sPath + SearchFile.cFileName);
         while (FindNextFile(SearchHandle, &SearchFile) != 0) {
             if (SearchFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -446,7 +448,7 @@ bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool
         }
         FindClose(SearchHandle);
     }
-    //Search all sub directories as well
+    // Search all sub directories as well
     if (bRecursive) {
         string sSearch = sPath + "*";
         SearchHandle = FindFirstFile(sSearch.c_str(), &SearchFile);
@@ -497,7 +499,8 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
     } else {
         GetFullPathName("./", MAX_PATH, const_cast<char*>(sToT.data()), NULL);
     }
-    PathRelativePathTo(const_cast<char*>(sRetPath.data()), sToT.c_str(), FILE_ATTRIBUTE_DIRECTORY, sFromT.c_str(), FILE_ATTRIBUTE_NORMAL);
+    PathRelativePathTo(const_cast<char*>(sRetPath.data()), sToT.c_str(), FILE_ATTRIBUTE_DIRECTORY, sFromT.c_str(),
+        FILE_ATTRIBUTE_NORMAL);
     sRetPath.resize(strlen(sRetPath.c_str()));
     replace(sRetPath.begin(), sRetPath.end(), '\\', '/');
 #else
@@ -515,20 +518,25 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
     for (iPos = 0; iPos < iSizeA && iPos < iSizeR; iPos += strlen(sPath.c_str() + iPos) + 1) {
         const char* p_PosA = strchr(sPath.c_str() + iPos, '/');
         const char* p_PosR = strchr(sMakeRelativeTo.c_str() + iPos, '/');
-        if (p_PosA) const_cast<char*>(p_PosA)[0] = '\0';
-        if (p_PosR) const_cast<char*>(p_PosR)[0] = '\0';
-        if (strcmp(sPath.c_str() + iPos, sMakeRelativeTo.c_str() + iPos) != 0) break;
+        if (p_PosA)
+            const_cast<char*>(p_PosA)[0] = '\0';
+        if (p_PosR)
+            const_cast<char*>(p_PosR)[0] = '\0';
+        if (strcmp(sPath.c_str() + iPos, sMakeRelativeTo.c_str() + iPos) != 0)
+            break;
     }
     for (int iPos2 = iPos; iPos2 < iSizeR; iPos2 += strlen(sMakeRelativeTo.c_str() + iPos2) + 1) {
         strcat(const_cast<char*>(sRetPath.data()), "../");
-        if (!strchr(sRetPath.c_str() + iPos2, '/')) break;
+        if (!strchr(sRetPath.c_str() + iPos2, '/'))
+            break;
     }
-    if (iPos < iSizeA) strcat(const_cast<char*>(sRetPath.data()), sPath.c_str() + iPos);
+    if (iPos < iSizeA)
+        strcat(const_cast<char*>(sRetPath.data()), sPath.c_str() + iPos);
     sRetPath.resize(strlen(sRetPath.c_str()));
 #endif
 }
 
-void removeWhiteSpace(string & sString)
+void removeWhiteSpace(string& sString)
 {
     struct RemoveDelimiter
     {
@@ -541,7 +549,7 @@ void removeWhiteSpace(string & sString)
     sString.erase(remove_if(sString.begin(), sString.end(), RemoveDelimiter()), sString.end());
 }
 
-void findAndReplace(string & sString, const string & sSearch, const string & sReplace)
+void findAndReplace(string& sString, const string& sSearch, const string& sReplace)
 {
     uint uiPos = 0;
     while ((uiPos = sString.find(sSearch, uiPos)) != std::string::npos) {
@@ -550,7 +558,7 @@ void findAndReplace(string & sString, const string & sSearch, const string & sRe
     }
 }
 
-bool findEnvironmentVariable(const string & sEnvVar)
+bool findEnvironmentVariable(const string& sEnvVar)
 {
 #ifdef _WIN32
     return (GetEnvironmentVariable(sEnvVar.c_str(), NULL, 0) > 0);
@@ -568,12 +576,12 @@ void pressKeyToContinue()
 #endif
 }
 
-void outputLine(const string & sMessage)
+void outputLine(const string& sMessage)
 {
     cout << sMessage << endl;
 }
 
-void outputInfo(const string & sMessage, bool bHeader)
+void outputInfo(const string& sMessage, bool bHeader)
 {
 #if _WIN32
     HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -594,7 +602,7 @@ void outputInfo(const string & sMessage, bool bHeader)
 #endif
 }
 
-void outputWarning(const string & sMessage, bool bHeader)
+void outputWarning(const string& sMessage, bool bHeader)
 {
 #if _WIN32
     HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -615,7 +623,7 @@ void outputWarning(const string & sMessage, bool bHeader)
 #endif
 }
 
-void outputError(const string & sMessage, bool bHeader)
+void outputError(const string& sMessage, bool bHeader)
 {
 #if _WIN32
     HANDLE hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -638,4 +646,4 @@ void setOutputVerbosity(Verbosity verbose)
 {
     g_OutputVerbosity = verbose;
 }
-};
+};    // namespace project_generate

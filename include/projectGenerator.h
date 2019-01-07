@@ -31,23 +31,22 @@ class ProjectGenerator
 private:
     typedef vector<string> StaticList;
     typedef map<string, StaticList> UnknownList;
-    ifstream        m_ifInputFile;
-    string          m_sInLine;
-    StaticList      m_vIncludes;
-    StaticList      m_vCPPIncludes;
-    StaticList      m_vCIncludes;
-    StaticList      m_vASMIncludes;
-    StaticList      m_vHIncludes;
-    UnknownList     m_mReplaceIncludes;
-    StaticList      m_vLibs;
-    UnknownList     m_mUnknowns;
-    string          m_sProjectName;
-    string          m_sProjectDir;
+    ifstream m_ifInputFile;
+    string m_sInLine;
+    StaticList m_vIncludes;
+    StaticList m_vCPPIncludes;
+    StaticList m_vCIncludes;
+    StaticList m_vASMIncludes;
+    StaticList m_vHIncludes;
+    UnknownList m_mReplaceIncludes;
+    StaticList m_vLibs;
+    UnknownList m_mUnknowns;
+    string m_sProjectName;
+    string m_sProjectDir;
 
     map<string, StaticList> m_mProjectLibs;
 
 public:
-
     ConfigGenerator m_ConfigHelper;
 
     /**
@@ -90,17 +89,17 @@ private:
      */
     bool outputSolution();
 
-    bool passStaticIncludeObject(uint & uiStartPos, uint & uiEndPos, StaticList & vStaticIncludes);
+    bool passStaticIncludeObject(uint& uiStartPos, uint& uiEndPos, StaticList& vStaticIncludes);
 
-    bool passStaticIncludeLine(uint uiStartPos, StaticList & vStaticIncludes);
+    bool passStaticIncludeLine(uint uiStartPos, StaticList& vStaticIncludes);
 
-    bool passStaticInclude(uint uiILength, StaticList & vStaticIncludes);
+    bool passStaticInclude(uint uiILength, StaticList& vStaticIncludes);
 
-    bool passDynamicIncludeObject(uint & uiStartPos, uint & uiEndPos, string & sIdent, StaticList & vIncludes);
+    bool passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos, string& sIdent, StaticList& vIncludes);
 
-    bool passDynamicIncludeLine(uint uiStartPos, string & sIdent, StaticList & vIncludes);
+    bool passDynamicIncludeLine(uint uiStartPos, string& sIdent, StaticList& vIncludes);
 
-    bool passDynamicInclude(uint uiILength, StaticList & vIncludes);
+    bool passDynamicInclude(uint uiILength, StaticList& vIncludes);
 
     /**
      * Pass a static source include line from current makefile.
@@ -195,7 +194,7 @@ private:
      * @param [out] sRetFileName Filename of the found file.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFile(const string & sFile, const string & sExtension, string & sRetFileName);
+    bool findSourceFile(const string& sFile, const string& sExtension, string& sRetFileName);
 
     /**
      * Searches for matching source files.
@@ -204,33 +203,37 @@ private:
      * @param [in,out] vRetFiles  The returned list of matching files.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFiles(const string & sFile, const string & sExtension, vector<string> & vRetFiles);
+    bool findSourceFiles(const string& sFile, const string& sExtension, vector<string>& vRetFiles);
 
-    void buildInterDependenciesHelper(const StaticList & vConfigOptions, const StaticList & vAddDeps, StaticList & vLibs);
+    void buildInterDependenciesHelper(const StaticList& vConfigOptions, const StaticList& vAddDeps, StaticList& vLibs);
 
-    void buildInterDependencies(StaticList & vLibs);
+    void buildInterDependencies(StaticList& vLibs);
 
-    void buildDependencies(StaticList & vLibs, StaticList & vAddLibs);
+    void buildDependencies(StaticList& vLibs, StaticList& vAddLibs);
 
     /**
      * Updates existing library dependency lists by adding/removing those required/unavailable by WinRT.
      * @param [in,out] vLibs    The project dependency libs.
      * @param [in,out] vAddLibs The windows dependency libs.
      */
-    void buildDependenciesWinRT(StaticList & vLibs, StaticList & vAddLibs);
+    void buildDependenciesWinRT(StaticList& vLibs, StaticList& vAddLibs);
 
-    void buildDependencyValues(StaticList & vIncludeDirs, StaticList & vLib32Dirs, StaticList & vLib64Dirs, StaticList & vDefines);
+    void buildDependencyValues(
+        StaticList& vIncludeDirs, StaticList& vLib32Dirs, StaticList& vLib64Dirs, StaticList& vDefines);
 
-    void buildProjectDependencies(map<string, bool> & mProjectDeps);
+    void buildProjectDependencies(map<string, bool>& mProjectDeps);
 
-    void buildProjectGUIDs(map<string, string> & mKeys);
+    void buildProjectGUIDs(map<string, string>& mKeys);
 
     struct DCEParams
     {
         string sDefine;
         string sFile;
 
-        bool operator==(const string & sCompare) { return (sFile.compare(sCompare) == 0); }
+        bool operator==(const string& sCompare)
+        {
+            return (sFile.compare(sCompare) == 0);
+        }
     };
 
     /**
@@ -238,17 +241,20 @@ private:
      * @param [out] mDCEDefinitions The return list of built DCE functions.
      * @param [out] mDCEVariables   The return list of built DCE variables.
      */
-    void buildProjectDCEs(map<string, DCEParams> & mDCEDefinitions, map<string, DCEParams> & mDCEVariables);
+    void buildProjectDCEs(map<string, DCEParams>& mDCEDefinitions, map<string, DCEParams>& mDCEVariables);
 
     bool checkProjectFiles();
 
     bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes);
 
-    bool findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes, StaticList& vASMIncludes, StaticList& vHIncludes);
+    bool findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes,
+        StaticList& vASMIncludes, StaticList& vHIncludes);
 
     void outputTemplateTags(string& sProjectTemplate, string& sFilterTemplate);
 
-    void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType, string & sProjectTemplate, string & sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters, bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false);
+    void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType,
+        string& sProjectTemplate, string& sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters,
+        bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false);
 
     void outputSourceFiles(string& sProjectTemplate, string& sFilterTemplate);
 
@@ -259,22 +265,22 @@ private:
      * @param          vIncludeDirs      The list of current directories to look for included files.
      * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
      *                                   within it.
-     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
-     *                                   to .i file).
+     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file,
+     * 1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runCompiler(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runCompiler(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
 
     /**
      * Executes a batch script to perform operations using the msvc compiler.
      * @param          vIncludeDirs      The list of current directories to look for included files.
      * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
      *                                   within it.
-     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file, 1=pre-process
-     *                                   to .i file).
+     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file,
+     * 1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runMSVC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runMSVC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
 
     /**
      * Executes a bash script to perform operations using the gcc compiler.
@@ -284,20 +290,20 @@ private:
      * @param          iRunType          The type of operation to run on input files (1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runGCC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType);
+    bool runGCC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
 
     /**
      * Output additional build events to the project.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputBuildEvents(string & sProjectTemplate);
+    void outputBuildEvents(string& sProjectTemplate);
 
     /**
      * Output additional include search directories to project.
      * @param          vIncludeDirs     The include dirs.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputIncludeDirs(const StaticList& vIncludeDirs, string & sProjectTemplate);
+    void outputIncludeDirs(const StaticList& vIncludeDirs, string& sProjectTemplate);
 
     /**
      * Output additional library search directories to project.
@@ -305,7 +311,7 @@ private:
      * @param          vLib64Dirs       The library 64b dirs.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string & sProjectTemplate);
+    void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string& sProjectTemplate);
 
     /**
      * Output additional defines to the project.
@@ -319,9 +325,9 @@ private:
      * @remark Either yasm or nasm tools will be used based on current configuration.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputASMTools(string & sProjectTemplate);
+    void outputASMTools(string& sProjectTemplate);
 
-    bool outputDependencyLibs(string & sProjectTemplate, bool bProgram = false);
+    bool outputDependencyLibs(string& sProjectTemplate, bool bProgram = false);
 
     /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
@@ -339,14 +345,15 @@ private:
      * @param [out]    bRequiresPreProcess The file requires pre processing.
      * @param [in,out] vUsedFunctions      The return list of found functions not in DCE.
      */
-    void outputProjectDCEFindFunctions(const string & sFile, const string & sFileName, map<string, DCEParams> & mFoundDCEUsage, bool & bRequiresPreProcess, set<string> & vNonDCEUsage);
+    void outputProjectDCEFindFunctions(const string& sFile, const string& sFileName,
+        map<string, DCEParams>& mFoundDCEUsage, bool& bRequiresPreProcess, set<string>& vNonDCEUsage);
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.
      * @param [in,out] sDefine   The pre-processor define string.
      * @param          mReserved Pre-generated list of reserved configure values.
      */
-    void outputProgramDCEsResolveDefine(string & sDefine);
+    void outputProgramDCEsResolveDefine(string& sDefine);
 
     /**
      * Find any declaration of a specified function. Can also find a definition of the function if no declaration as
@@ -359,13 +366,14 @@ private:
      *                              identified table/array declaration.
      * @return True if it succeeds finding the function, false if it fails.
      */
-    bool outputProjectDCEsFindDeclarations(const string & sFile, const string & sFunction, const string & sFileName, string & sRetDeclaration, bool & bIsFunction);
+    bool outputProjectDCEsFindDeclarations(const string& sFile, const string& sFunction, const string& sFileName,
+        string& sRetDeclaration, bool& bIsFunction);
 
     /**
      * Cleans a pre-processor define conditional string to remove any invalid values.
      * @param [in,out] sDefine The pre-processor define string to clean.
      */
-    void outputProjectDCECleanDefine(string & sDefine);
+    void outputProjectDCECleanDefine(string& sDefine);
 
     /**
      * Combines 2 pre-processor define conditional strings.
@@ -373,7 +381,7 @@ private:
      * @param       sDefine2   The second define.
      * @param [out] sRetDefine The returned combined define.
      */
-    void outputProgramDCEsCombineDefine(const string & sDefine, const string & sDefine2, string & sRetDefine);
+    void outputProgramDCEsCombineDefine(const string& sDefine, const string& sDefine2, string& sRetDefine);
 
     const string sTempDirectory = "FFVSTemp/";
 };

@@ -24,22 +24,22 @@
 int main(int argc, char** argv)
 {
     outputLine("Project generator (this may take several minutes, please wait)...");
-    //Pass the input configuration
+    // Pass the input configuration
     ProjectGenerator ProjectHelper;
     if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
         ProjectHelper.errorFunc(false);
     }
 
-    //Delete any previously generated files
+    // Delete any previously generated files
     ProjectHelper.m_ConfigHelper.deleteCreatedFiles();
     ProjectHelper.deleteCreatedFiles();
 
-    //Output config.h and avutil.h
+    // Output config.h and avutil.h
     if (!ProjectHelper.m_ConfigHelper.outputConfig()) {
         ProjectHelper.errorFunc();
     }
 
-    //Generate desired configuration files
+    // Generate desired configuration files
     if (!ProjectHelper.passAllMake()) {
         ProjectHelper.errorFunc();
     }

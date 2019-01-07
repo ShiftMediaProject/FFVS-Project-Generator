@@ -24,7 +24,7 @@
 
 bool ConfigGenerator::buildDefaultValues()
 {
-    //Set any unset project values
+    // Set any unset project values
     if (m_sSolutionDirectory.length() == 0) {
         if (!m_bDCEOnly) {
             m_sSolutionDirectory = m_sRootDirectory + "SMP/";
@@ -41,12 +41,12 @@ bool ConfigGenerator::buildDefaultValues()
     if (!getConfigList("PROGRAM_LIST", vList)) {
         return false;
     }
-    //Enable all programs
+    // Enable all programs
     vector<string>::iterator vitValues = vList.begin();
     for (vitValues; vitValues < vList.end(); vitValues++) {
         toggleConfigValue(*vitValues, true);
     }
-    //Enable all libraries
+    // Enable all libraries
     vList.resize(0);
     if (!getConfigList("LIBRARY_LIST", vList)) {
         return false;
@@ -57,7 +57,7 @@ bool ConfigGenerator::buildDefaultValues()
             toggleConfigValue(*vitValues, true);
         }
     }
-    //Enable all components
+    // Enable all components
     vList.resize(0);
     vector<string> vList2;
     if (!getConfigList("COMPONENT_LIST", vList)) {
@@ -66,10 +66,10 @@ bool ConfigGenerator::buildDefaultValues()
     vitValues = vList.begin();
     for (vitValues; vitValues < vList.end(); vitValues++) {
         toggleConfigValue(*vitValues, true);
-        //Get the corresponding list and enable all member elements as well
-        vitValues->resize(vitValues->length() - 1); //Need to remove the s from end
+        // Get the corresponding list and enable all member elements as well
+        vitValues->resize(vitValues->length() - 1);    // Need to remove the s from end
         transform(vitValues->begin(), vitValues->end(), vitValues->begin(), ::toupper);
-        //Get the specific list
+        // Get the specific list
         vList2.resize(0);
         getConfigList(*vitValues + "_LIST", vList2);
         for (vector<string>::iterator vitComponent = vList2.begin(); vitComponent < vList2.end(); vitComponent++) {
@@ -83,13 +83,13 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("shared", true);
     fastToggleConfigValue("swscale_alpha", true);
 
-    //Enable x86 hardware architectures
+    // Enable x86 hardware architectures
     fastToggleConfigValue("x86", true);
     fastToggleConfigValue("i686", true);
     fastToggleConfigValue("fast_cmov", true);
     fastToggleConfigValue("x86_32", true);
     fastToggleConfigValue("x86_64", true);
-    //Enable x86 extensions
+    // Enable x86 extensions
     vList.resize(0);
     if (!getConfigList("ARCH_EXT_LIST_X86", vList)) {
         return false;
@@ -97,31 +97,31 @@ bool ConfigGenerator::buildDefaultValues()
     vitValues = vList.begin();
     for (vitValues; vitValues < vList.end(); vitValues++) {
         fastToggleConfigValue(*vitValues, true);
-        //Also enable _EXTERNAL and _INLINE
+        // Also enable _EXTERNAL and _INLINE
         fastToggleConfigValue(*vitValues + "_EXTERNAL", true);
         fastToggleConfigValue(*vitValues + "_INLINE", true);
     }
 
-    //Default we enable asm
+    // Default we enable asm
     fastToggleConfigValue("yasm", true);
     fastToggleConfigValue("x86asm", true);
     if (m_bUseNASM) {
-        //NASM doesn't support cpunop
+        // NASM doesn't support cpunop
         fastToggleConfigValue("cpunop", false);
         fastToggleConfigValue("cpunop_external", false);
     } else {
-        //Yasm doesn't support avx512
+        // Yasm doesn't support avx512
         fastToggleConfigValue("avx512", false);
         fastToggleConfigValue("avx512_external", false);
-        //Yasm does have cpunop
+        // Yasm does have cpunop
         fastToggleConfigValue("cpunop", true);
     }
 
-    //msvc specific options
+    // msvc specific options
     fastToggleConfigValue("w32threads", true);
     fastToggleConfigValue("atomics_win32", true);
 
-    //math functions
+    // math functions
     vList.resize(0);
     if (!getConfigList("MATH_FUNCS", vList)) {
         return false;
@@ -201,7 +201,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("frame_thread_encoder", true);
     fastToggleConfigValue("xmm_clobbers", true);
 
-    //Additional (must be explicitly disabled)
+    // Additional (must be explicitly disabled)
     fastToggleConfigValue("dct", true);
     fastToggleConfigValue("dwt", true);
     fastToggleConfigValue("error_resilience", true);
@@ -217,7 +217,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("fft", true);
     fastToggleConfigValue("pixelutils", true);
 
-    //Disable all external libs until explicitly enabled
+    // Disable all external libs until explicitly enabled
     vList.resize(0);
     if (getConfigList("EXTERNAL_LIBRARY_LIST", vList)) {
         vector<string>::iterator vitValues = vList.begin();
@@ -226,7 +226,7 @@ bool ConfigGenerator::buildDefaultValues()
         }
     }
 
-    //Disable all hwaccels until explicitly enabled
+    // Disable all hwaccels until explicitly enabled
     vList.resize(0);
     if (getConfigList("HWACCEL_LIBRARY_LIST", vList)) {
         vector<string>::iterator vitValues = vList.begin();
@@ -235,17 +235,17 @@ bool ConfigGenerator::buildDefaultValues()
         }
     }
 
-    //Check if auto detection is enabled
+    // Check if auto detection is enabled
     ValuesList::iterator itAutoDet = ConfigGenerator::getConfigOption("autodetect");
     if ((itAutoDet == m_vConfigValues.end()) || (itAutoDet->m_sValue.compare("0") != 0)) {
-        //Enable all the auto detected libs
+        // Enable all the auto detected libs
         vList.resize(0);
         if (getConfigList("AUTODETECT_LIBS", vList)) {
             string sFileName;
             vector<string>::iterator vitValues = vList.begin();
             for (vitValues; vitValues < vList.end(); vitValues++) {
                 bool bEnable;
-                //Handle detection of various libs
+                // Handle detection of various libs
                 if (vitValues->compare("alsa") == 0) {
                     bEnable = false;
                 } else if (vitValues->compare("amf") == 0) {
@@ -314,7 +314,7 @@ bool ConfigGenerator::buildDefaultValues()
                     bEnable = findFile(sFileName, sFileName);
                 } else if (vitValues->compare("nvdec") == 0) {
                     bEnable = (findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
-                               findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
+                        findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
                     if (!bEnable) {
                         makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_loader.h", sFileName);
                         bEnable = findFile(sFileName, sFileName);
@@ -353,16 +353,16 @@ bool ConfigGenerator::buildDefaultValues()
                 } else if (vitValues->compare("videotoolbox") == 0) {
                     bEnable = false;
                 } else {
-                    //This is an unknown option
+                    // This is an unknown option
                     outputInfo("Found unknown auto detected option " + *vitValues);
-                    //Just disable
+                    // Just disable
                     bEnable = false;
                 }
                 toggleConfigValue(*vitValues, bEnable);
             }
             fastToggleConfigValue("autodetect", true);
         } else {
-            //If no auto list then just use hard enables
+            // If no auto list then just use hard enables
             fastToggleConfigValue("bzlib", true);
             fastToggleConfigValue("iconv", true);
             fastToggleConfigValue("lzma", true);
@@ -371,7 +371,7 @@ bool ConfigGenerator::buildDefaultValues()
             fastToggleConfigValue("sdl2", true);
             fastToggleConfigValue("zlib", true);
 
-            //Enable hwaccels by default.
+            // Enable hwaccels by default.
             fastToggleConfigValue("d3d11va", true);
             fastToggleConfigValue("dxva2", true);
 
@@ -391,26 +391,26 @@ bool ConfigGenerator::buildDefaultValues()
 
 bool ConfigGenerator::buildForcedValues()
 {
-    //Additional options set for Intel compiler specific inline asm
+    // Additional options set for Intel compiler specific inline asm
     fastToggleConfigValue("inline_asm_nonlocal_labels", false);
     fastToggleConfigValue("inline_asm_direct_symbol_refs", false);
     fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
 
-    fastToggleConfigValue("xlib", false); //enabled by default but is linux only so we force disable
+    fastToggleConfigValue("xlib", false);    // enabled by default but is linux only so we force disable
     fastToggleConfigValue("qtkit", false);
     fastToggleConfigValue("avfoundation", false);
     fastToggleConfigValue("mmal", false);
     fastToggleConfigValue("libdrm", false);
     fastToggleConfigValue("libv4l2", false);
 
-    //values that are not correctly handled by configure
+    // values that are not correctly handled by configure
     fastToggleConfigValue("coreimage_filter", false);
     fastToggleConfigValue("coreimagesrc_filter", false);
 
     return true;
 }
 
-void ConfigGenerator::buildFixedValues(DefaultValuesList & mFixedValues)
+void ConfigGenerator::buildFixedValues(DefaultValuesList& mFixedValues)
 {
     mFixedValues.clear();
     mFixedValues["$(c_escape $FFMPEG_CONFIGURATION)"] = "";
@@ -434,7 +434,7 @@ void ConfigGenerator::buildReplaceValues(
 #   include <winapifamily.h>\n\
 #endif";
     mReplaceValues.clear();
-    //Add to config.h only list
+    // Add to config.h only list
     mReplaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
 #   define CC_IDENT \"icl\"\n\
 #else\n\
@@ -527,13 +527,15 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_OPENCL_D3D11 0\n\
 #endif";
 
-    //Build values specific for WinRT builds
-    mReplaceValues["HAVE_UWP"] = "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+    // Build values specific for WinRT builds
+    mReplaceValues["HAVE_UWP"] =
+        "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
 #   define HAVE_UWP 1\n\
 #else\n\
 #   define HAVE_UWP 0\n\
 #endif";
-    mReplaceValues["HAVE_WINRT"] = "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+    mReplaceValues["HAVE_WINRT"] =
+        "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
 #   define HAVE_WINRT 1\n\
 #else\n\
 #   define HAVE_WINRT 0\n\
@@ -632,7 +634,7 @@ void ConfigGenerator::buildReplaceValues(
 #   define CONFIG_OPENAL 0\n\
 #endif";
 
-    //Build replace values for all x86 inline asm
+    // Build replace values for all x86 inline asm
     vector<string> vInlineList;
     getConfigList("ARCH_EXT_LIST_X86", vInlineList);
     for (vector<string>::iterator vitIt = vInlineList.begin(); vitIt < vInlineList.end(); vitIt++) {
@@ -641,7 +643,7 @@ void ConfigGenerator::buildReplaceValues(
         mReplaceValues[sName] = "#define " + sName + " ARCH_X86 && HAVE_INLINE_ASM";
     }
 
-    //Sanity checks for inline asm (Needed as some code only checks availability and not inline_asm)
+    // Sanity checks for inline asm (Needed as some code only checks availability and not inline_asm)
     mReplaceValues["HAVE_EBP_AVAILABLE"] = "#if HAVE_INLINE_ASM && !defined(_DEBUG)\n\
 #   define HAVE_EBP_AVAILABLE 1\n\
 #else\n\
@@ -653,19 +655,19 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_EBX_AVAILABLE 0\n\
 #endif";
 
-    //Add any values that may depend on a replace value from above^
+    // Add any values that may depend on a replace value from above^
     DefaultValuesList mNewReplaceValues;
     ValuesList::iterator vitOption = m_vConfigValues.begin();
     string sSearchSuffix[] = {"_deps", "_select", "_deps_any"};
     for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
         string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
-        //Check for forced replacement (only if attribute is not disabled)
+        // Check for forced replacement (only if attribute is not disabled)
         if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceValues.find(sTagName) != mReplaceValues.end())) {
-            //Already exists in list so can skip
+            // Already exists in list so can skip
             continue;
         } else {
             if (vitOption->m_sValue.compare("1") == 0) {
-                //Check if it depends on a replace value
+                // Check if it depends on a replace value
                 string sOptionLower = vitOption->m_sOption;
                 transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
                 for (int iSuff = 0; iSuff < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff++) {
@@ -676,7 +678,7 @@ void ConfigGenerator::buildReplaceValues(
                         bool bReservedDeps = false;
                         vector<string>::iterator vitCheckItem = vCheckList.begin();
                         for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                            //Check if this is a not !
+                            // Check if this is a not !
                             bool bToggle = false;
                             if (vitCheckItem->at(0) == '!') {
                                 vitCheckItem->erase(0, 1);
@@ -699,18 +701,20 @@ void ConfigGenerator::buildReplaceValues(
                                     }
                                     bReservedDeps = true;
                                 } else if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
-                                    //Check recursively if dep has any deps that are reserved types
+                                    // Check recursively if dep has any deps that are reserved types
                                     string sOptionLower2 = vitTemp->m_sOption;
-                                    transform(sOptionLower2.begin(), sOptionLower2.end(), sOptionLower2.begin(), ::tolower);
-                                    for (int iSuff2 = 0; iSuff2 < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff2++) {
+                                    transform(
+                                        sOptionLower2.begin(), sOptionLower2.end(), sOptionLower2.begin(), ::tolower);
+                                    for (int iSuff2 = 0; iSuff2 < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0]));
+                                         iSuff2++) {
                                         sCheckFunc = sOptionLower2 + sSearchSuffix[iSuff2];
                                         vector<string> vCheckList2;
                                         if (getConfigList(sCheckFunc, vCheckList2, false)) {
                                             uint uiCPos = vitCheckItem - vCheckList.begin();
-                                            //Check if not already in list
+                                            // Check if not already in list
                                             vector<string>::iterator vitCheckItem2 = vCheckList2.begin();
                                             for (vitCheckItem2; vitCheckItem2 < vCheckList2.end(); vitCheckItem2++) {
-                                                //Check if this is a not !
+                                                // Check if this is a not !
                                                 bool bToggle2 = bToggle;
                                                 if (vitCheckItem2->at(0) == '!') {
                                                     vitCheckItem2->erase(0, 1);
@@ -719,11 +723,12 @@ void ConfigGenerator::buildReplaceValues(
                                                 string sCheckVal = *vitCheckItem2;
                                                 if (bToggle2)
                                                     sCheckVal = '!' + sCheckVal;
-                                                if (find(vCheckList.begin(), vCheckList.end(), sCheckVal) == vCheckList.end()) {
+                                                if (find(vCheckList.begin(), vCheckList.end(), sCheckVal) ==
+                                                    vCheckList.end()) {
                                                     vCheckList.push_back(sCheckVal);
                                                 }
                                             }
-                                            //update iterator position
+                                            // update iterator position
                                             vitCheckItem = vCheckList.begin() + uiCPos;
                                         }
                                     }
@@ -732,7 +737,7 @@ void ConfigGenerator::buildReplaceValues(
                         }
 
                         if (bReservedDeps) {
-                            //Add to list
+                            // Add to list
                             mNewReplaceValues[sTagName] = "#if " + sAddConfig + "\n\
 #   define " + sTagName + " 1\n\
 #else\n\
@@ -745,11 +750,12 @@ void ConfigGenerator::buildReplaceValues(
         }
     }
     for (DefaultValuesList::iterator mitI = mNewReplaceValues.begin(); mitI != mNewReplaceValues.end(); mitI++) {
-        //Add them to the returned list (done here so that any checks above that test if it is reserved only operate on the unmodified original list)
+        // Add them to the returned list (done here so that any checks above that test if it is reserved only operate on
+        // the unmodified original list)
         mReplaceValues[mitI->first] = mitI->second;
     }
 
-    //Add to config.asm only list
+    // Add to config.asm only list
     if (m_bUseNASM) {
         mASMReplaceValues["ARCH_X86_32"] = "%if __BITS__ = 64\n\
 %define ARCH_X86_32 0\n\
@@ -805,10 +811,10 @@ void ConfigGenerator::buildReplaceValues(
     }
 }
 
-void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
+void ConfigGenerator::buildReservedValues(vector<string>& vReservedItems)
 {
     vReservedItems.resize(0);
-    //The following are reserved values that are automatically handled and can not be set explicitly
+    // The following are reserved values that are automatically handled and can not be set explicitly
     vReservedItems.push_back("x86_32");
     vReservedItems.push_back("x86_64");
     vReservedItems.push_back("xmm_clobbers");
@@ -820,7 +826,7 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("ebp_available");
     vReservedItems.push_back("ebx_available");
     vReservedItems.push_back("debug");
-    vReservedItems.push_back("hardcoded_tables"); //Not supported
+    vReservedItems.push_back("hardcoded_tables");    // Not supported
     vReservedItems.push_back("small");
     vReservedItems.push_back("lto");
     vReservedItems.push_back("pic");
@@ -828,7 +834,7 @@ void ConfigGenerator::buildReservedValues(vector<string> & vReservedItems)
     vReservedItems.push_back("winrt");
 }
 
-void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDependencies)
+void ConfigGenerator::buildAdditionalDependencies(DependencyList& mAdditionalDependencies)
 {
     mAdditionalDependencies.clear();
     mAdditionalDependencies["android"] = false;
@@ -893,25 +899,26 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList & mAdditionalDe
     }
 }
 
-void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables)
+void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& mOptimisedDisables)
 {
-    //This used is to return prioritised version of different config options
+    // This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
     //  then simply disable the inbuilt so as to avoid unnecessary compilation
 
     mOptimisedDisables.clear();
-    //From trac.ffmpeg.org/wiki/GuidelinesHighQualityAudio
-    //Dolby Digital: ac3
-    //Dolby Digital Plus: eac3
-    //MP2: libtwolame, mp2
-    //Windows Media Audio 1: wmav1
-    //Windows Media Audio 2: wmav2
-    //LC-AAC: libfdk_aac, libfaac, aac, libvo_aacenc
-    //HE-AAC: libfdk_aac, libaacplus
-    //Vorbis: libvorbis, vorbis
-    //MP3: libmp3lame, libshine
-    //Opus: libopus
-    //libopus >= libvorbis >= libfdk_aac > libmp3lame > libfaac >= eac3/ac3 > aac > libtwolame > vorbis > mp2 > wmav2/wmav1 > libvo_aacenc
+    // From trac.ffmpeg.org/wiki/GuidelinesHighQualityAudio
+    // Dolby Digital: ac3
+    // Dolby Digital Plus: eac3
+    // MP2: libtwolame, mp2
+    // Windows Media Audio 1: wmav1
+    // Windows Media Audio 2: wmav2
+    // LC-AAC: libfdk_aac, libfaac, aac, libvo_aacenc
+    // HE-AAC: libfdk_aac, libaacplus
+    // Vorbis: libvorbis, vorbis
+    // MP3: libmp3lame, libshine
+    // Opus: libopus
+    // libopus >= libvorbis >= libfdk_aac > libmp3lame > libfaac >= eac3/ac3 > aac > libtwolame > vorbis > mp2 >
+    // wmav2/wmav1 > libvo_aacenc
 
 #ifdef OPTIMISE_ENCODERS
     mOptimisedDisables["LIBTWOLAME_ENCODER"].push_back("MP2_ENCODER");
@@ -924,30 +931,35 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList & mOptimisedDis
     mOptimisedDisables["AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
     mOptimisedDisables["LIBVORBIS_ENCODER"].push_back("VORBIS_ENCODER");
     mOptimisedDisables["LIBMP3LAME_ENCODER"].push_back("LIBSHINE_ENCODER");
-    mOptimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER");//???
-    mOptimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");//???
-    mOptimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");//???
+    mOptimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER");    //???
+    mOptimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");      //???
+    mOptimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");      //???
 #endif
 
 #ifdef OPTIMISE_DECODERS
-    mOptimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");//???
-    mOptimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");//???
+    mOptimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");          //???
+    mOptimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");    //???
     mOptimisedDisables["LIBNUT_MUXER"].push_back("NUT_MUXER");
     mOptimisedDisables["LIBNUT_DEMUXER"].push_back("NUT_DEMUXER");
-    mOptimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");//???
-    mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");//???
-    mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");//???
+    mOptimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");    //???
+    mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");    //???
+    mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");       //???
     mOptimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
-    mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");//???
-    mOptimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");//Inbuilt native decoder is apparently faster
+    mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");    //???
+    mOptimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");    // Inbuilt native decoder is apparently faster
     mOptimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");
-    mOptimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");//??? Not sure which is better
+    mOptimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");    //??? Not sure which is better
 #endif
 }
 
-#define CHECKFORCEDENABLES( Opt ) { if( getConfigOption( Opt ) != m_vConfigValues.end( ) ){ vForceEnable.push_back( Opt ); } }
+#define CHECKFORCEDENABLES(Opt)                              \
+    {                                                        \
+        if (getConfigOption(Opt) != m_vConfigValues.end()) { \
+            vForceEnable.push_back(Opt);                     \
+        }                                                    \
+    }
 
-void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & vForceEnable)
+void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string>& vForceEnable)
 {
     if (sOptionLower.compare("fontconfig") == 0) {
         CHECKFORCEDENABLES("libfontconfig");
@@ -960,9 +972,9 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
     } else if (sOptionLower.compare("dcadec") == 0) {
         CHECKFORCEDENABLES("struct_dcadec_exss_info_matrix_encoding");
     } else if (sOptionLower.compare("sdl") == 0) {
-        fastToggleConfigValue("sdl2", true); //must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl2", true);    // must use fastToggle to prevent infinite cycle
     } else if (sOptionLower.compare("sdl2") == 0) {
-        fastToggleConfigValue("sdl", true); //must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl", true);    // must use fastToggle to prevent infinite cycle
     } else if (sOptionLower.compare("libvorbis") == 0) {
         CHECKFORCEDENABLES("libvorbisenc");
     } else if (sOptionLower.compare("opencl") == 0) {
@@ -975,19 +987,19 @@ void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string> & v
     }
 }
 
-void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string> & vForceDisable)
+void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string>& vForceDisable)
 {
     if (sOptionLower.compare("sdl") == 0) {
-        fastToggleConfigValue("sdl2", false); //must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl2", false);    // must use fastToggle to prevent infinite cycle
     } else if (sOptionLower.compare("sdl2") == 0) {
-        fastToggleConfigValue("sdl", false); //must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl", false);    // must use fastToggle to prevent infinite cycle
     } else {
         // Currently disable values are exact opposite of the corresponding enable ones
         buildForcedEnables(sOptionLower, vForceDisable);
     }
 }
 
-void ConfigGenerator::buildEarlyConfigArgs(vector<string> & vEarlyArgs)
+void ConfigGenerator::buildEarlyConfigArgs(vector<string>& vEarlyArgs)
 {
     vEarlyArgs.resize(0);
     vEarlyArgs.push_back("--rootdir");
@@ -999,15 +1011,16 @@ void ConfigGenerator::buildEarlyConfigArgs(vector<string> & vEarlyArgs)
     vEarlyArgs.push_back("--use-yasm");
 }
 
-void ConfigGenerator::buildObjects(const string & sTag, vector<string> & vObjects)
+void ConfigGenerator::buildObjects(const string& sTag, vector<string>& vObjects)
 {
     if (sTag.compare("COMPAT_OBJS") == 0) {
-        vObjects.push_back("msvcrt/snprintf"); //msvc only provides _snprintf which does not conform to snprintf standard
-        vObjects.push_back("strtod"); //msvc contains a strtod but it does not handle NaN's correctly
+        vObjects.push_back(
+            "msvcrt/snprintf");          // msvc only provides _snprintf which does not conform to snprintf standard
+        vObjects.push_back("strtod");    // msvc contains a strtod but it does not handle NaN's correctly
         vObjects.push_back("getopt");
     } else if (sTag.compare("EMMS_OBJS__yes_") == 0) {
         if (this->getConfigOption("MMX_EXTERNAL")->m_sValue.compare("1") == 0) {
-            vObjects.push_back("x86/emms"); //asm emms is not required in 32b but is for 64bit unless with icl
+            vObjects.push_back("x86/emms");    // asm emms is not required in 32b but is for 64bit unless with icl
         }
     }
 }

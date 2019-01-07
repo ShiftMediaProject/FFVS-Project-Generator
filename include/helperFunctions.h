@@ -69,26 +69,26 @@ bool writeToFile(const string& sFileName, const string& sString, bool bBinary = 
  *                         OS specific).
  * @return True if it succeeds, false if it fails.
  */
-bool copyResourceFile(int iResourceID, const string & sDestinationFile, bool bBinary = false);
+bool copyResourceFile(int iResourceID, const string& sDestinationFile, bool bBinary = false);
 
 /**
  * Deletes s file.
  * @param sDestinationFile Pathname of the file to delete.
  */
-void deleteFile(const string & sDestinationFile);
+void deleteFile(const string& sDestinationFile);
 
 /**
  * Deletes a folder.
  * @param sDestinationFolder Pathname of the folder to delete.
  */
-void deleteFolder(const string & sDestinationFolder);
+void deleteFolder(const string& sDestinationFolder);
 
 /**
  * Queries if a folder is empty.
  * @param sFolder Pathname of the folder.
  * @return True if the folder is empty, false if not.
  */
-bool isFolderEmpty(const string & sFolder);
+bool isFolderEmpty(const string& sFolder);
 
 /**
  * Copies a file.
@@ -96,7 +96,7 @@ bool isFolderEmpty(const string & sFolder);
  * @param sDestinationFolder Pathname of the destination folder.
  * @return True if it succeeds, false if it fails.
  */
-bool copyFile(const string & sSourceFolder, const string & sDestinationFolder);
+bool copyFile(const string& sSourceFolder, const string& sDestinationFolder);
 
 /**
  * Gets default copywrite header.
@@ -118,7 +118,7 @@ bool makeDirectory(const string& sDirectory);
  * @param [out] sRetFileName Filename of the found file.
  * @return True if it succeeds, false if it fails.
  */
-bool findFile(const string & sFileName, string & sRetFileName);
+bool findFile(const string& sFileName, string& sRetFileName);
 
 /**
  * Searches for files by name (supports wildcards).
@@ -127,7 +127,7 @@ bool findFile(const string & sFileName, string & sRetFileName);
  * @param          bRecursive    (Optional) True to process any sub-directories.
  * @return True if it succeeds, false if it fails.
  */
-bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRecursive = true);
+bool findFiles(const string& sFileSearch, vector<string>& vRetFiles, bool bRecursive = true);
 
 /**
  * Searches for folders by name (supports wildcards).
@@ -136,7 +136,7 @@ bool findFiles(const string & sFileSearch, vector<string> & vRetFiles, bool bRec
  * @param          bRecursive    (Optional) True to process any sub-directories.
  * @return True if it succeeds, false if it fails.
  */
-bool findFolders(const string & sFolderSearch, vector<string>& vRetFolders, bool bRecursive = true);
+bool findFolders(const string& sFolderSearch, vector<string>& vRetFolders, bool bRecursive = true);
 
 /**
  * Makes a file path relative to another.
@@ -150,7 +150,7 @@ void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, strin
  * Removes all whitespace from a string in place.
  * @param [in,out] sString The string to operate on.
  */
-void removeWhiteSpace(string & sString);
+void removeWhiteSpace(string& sString);
 
 /**
  * Searches through a string and replaces all occurrences of the search tag in place.
@@ -158,14 +158,14 @@ void removeWhiteSpace(string & sString);
  * @param          sSearch  The search string.
  * @param          sReplace The string used for replacement.
  */
-void findAndReplace(string & sString, const string & sSearch, const string & sReplace);
+void findAndReplace(string& sString, const string& sSearch, const string& sReplace);
 
 /**
  * Searches for the existence of an environment variable.
  * @param sEnvVar The environment variable.
  * @return True if it succeeds, false if it fails.
  */
-bool findEnvironmentVariable(const string & sEnvVar);
+bool findEnvironmentVariable(const string& sEnvVar);
 
 /** Press key to continue terminal prompt. */
 void pressKeyToContinue();
@@ -174,7 +174,7 @@ void pressKeyToContinue();
  * Output a single line of text.
  * @param sMessage The message.
  */
-void outputLine(const string & sMessage);
+void outputLine(const string& sMessage);
 
 /**
  * Output information message.
@@ -182,7 +182,7 @@ void outputLine(const string & sMessage);
  * @param sMessage The message.
  * @param bHeader  (Optional) True to add the info starting header.
  */
-void outputInfo(const string & sMessage, bool bHeader = true);
+void outputInfo(const string& sMessage, bool bHeader = true);
 
 /**
  * Output warning message.
@@ -190,7 +190,7 @@ void outputInfo(const string & sMessage, bool bHeader = true);
  * @param sMessage The message.
  * @param bHeader  (Optional) True to add the warning starting header.
  */
-void outputWarning(const string & sMessage, bool bHeader = true);
+void outputWarning(const string& sMessage, bool bHeader = true);
 
 /**
  * Output error message.
@@ -198,13 +198,13 @@ void outputWarning(const string & sMessage, bool bHeader = true);
  * @param sMessage The message.
  * @param bHeader  (Optional) True to add the error starting header.
  */
-void outputError(const string & sMessage, bool bHeader = true);
+void outputError(const string& sMessage, bool bHeader = true);
 
 enum Verbosity
 {
-    VERBOSITY_INFO,     //Info+Warning+Error
-    VERBOSITY_WARNING,  //Warning+Error
-    VERBOSITY_ERROR,    //Error
+    VERBOSITY_INFO,       // Info+Warning+Error
+    VERBOSITY_WARNING,    // Warning+Error
+    VERBOSITY_ERROR,      // Error
 };
 
 /**
@@ -218,7 +218,7 @@ const string sWhiteSpace = " \t" + sEndLine;
 const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
 const string sNonName = sOperators + sWhiteSpace;
 const string sPreProcessor = "&|()!=";
-};
+};    // namespace project_generate
 
 using namespace project_generate;
 

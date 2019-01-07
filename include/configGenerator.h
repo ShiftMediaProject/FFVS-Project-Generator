@@ -22,30 +22,32 @@
 #define _CONFIGGENERATOR_H_
 
 #include "helperFunctions.h"
+
 #include <map>
 #include <vector>
 
 class ConfigGenerator
 {
     friend class ProjectGenerator;
+
 private:
     class ConfigPair
     {
         friend class ConfigGenerator;
         friend class ProjectGenerator;
+
     private:
         string m_sOption;
         string m_sPrefix;
         string m_sValue;
         bool m_bLock;
 
-        ConfigPair(const string & sOption, const string & sPrefix, const string & sValue) :
-            m_sOption(sOption),
-            m_sPrefix(sPrefix),
-            m_sValue(sValue),
-            m_bLock(false)
-        {
-        }
+        ConfigPair(const string& sOption, const string& sPrefix, const string& sValue)
+            : m_sOption(sOption)
+            , m_sPrefix(sPrefix)
+            , m_sValue(sValue)
+            , m_bLock(false)
+        {}
     };
     typedef vector<ConfigPair> ValuesList;
     typedef map<string, string> DefaultValuesList;
@@ -107,7 +109,7 @@ private:
      * @param stOption The option to change.
      * @return True if it succeeds, false if it fails.
      */
-    bool changeConfig(const string & stOption);
+    bool changeConfig(const string& stOption);
 
     /**
      * Checks current config values and performs validation of requirements.
@@ -121,7 +123,7 @@ private:
      * @param       sFileName    Filename of the file.
      * @param [out] sRetFileName Filename with the path modified.
      */
-    void makeFileProjectRelative(const string & sFileName, string & sRetFileName);
+    void makeFileProjectRelative(const string& sFileName, string& sRetFileName);
 
     /**
      * Makes a files path relative to the generator directory.
@@ -129,9 +131,9 @@ private:
      * @param       sFileName    Filename of the file.
      * @param [out] sRetFileName Filename with the path modified.
      */
-    void makeFileGeneratorRelative(const string & sFileName, string & sRetFileName);
+    void makeFileGeneratorRelative(const string& sFileName, string& sRetFileName);
 
-    void buildFixedValues(DefaultValuesList & mFixedValues);
+    void buildFixedValues(DefaultValuesList& mFixedValues);
 
     /**
      * Builds a list of configuration options that need to be replaced with the returned values.
@@ -144,44 +146,45 @@ private:
      * Creates a list of config items that are automatically set and should be be set by the user.
      * @param [out] vReservedItems The reserved items.
      */
-    void buildReservedValues(vector<string> & vReservedItems);
+    void buildReservedValues(vector<string>& vReservedItems);
 
     /**
      * Creates a list of additional config option dependencies that are not available as actual config options.
      * @param [out] mAdditionalDependencies The additional dependencies.
      */
-    void buildAdditionalDependencies(DependencyList & mAdditionalDependencies);
+    void buildAdditionalDependencies(DependencyList& mAdditionalDependencies);
 
     /**
      * Creates a list of components that can be disabled based on the current configuration as better alternatives are
      * enabled.
      * @param [in,out] mOptimisedDisables The optimised disables.
      */
-    void buildOptimisedDisables(OptimisedConfigList & mOptimisedDisables);
+    void buildOptimisedDisables(OptimisedConfigList& mOptimisedDisables);
 
     /**
      * Creates a list of config options that must be forced to be enabled if the specified option is enabled.
      * @param          sOptionLower The enabled option (in lower case).
      * @param [in,out] vForceEnable The forced enable options.
      */
-    void buildForcedEnables(string sOptionLower, vector<string> & vForceEnable);
+    void buildForcedEnables(string sOptionLower, vector<string>& vForceEnable);
 
     /**
-    * Creates a list of config options that must be forced to be disabled if the specified option is disabled.
-    * @param          sOptionLower The disabled option (in lower case).
-    * @param [in,out] vForceEnable The forced enable options.
-    */
-    void buildForcedDisables(string sOptionLower, vector<string> & vForceDisable);
+     * Creates a list of config options that must be forced to be disabled if the specified option is disabled.
+     * @param          sOptionLower The disabled option (in lower case).
+     * @param [in,out] vForceEnable The forced enable options.
+     */
+    void buildForcedDisables(string sOptionLower, vector<string>& vForceDisable);
 
     /**
      * Creates a list of command line arguments that must be handled before all others.
      * @param [out] vEarlyArgs The early arguments.
      */
-    void buildEarlyConfigArgs(vector<string> & vEarlyArgs);
+    void buildEarlyConfigArgs(vector<string>& vEarlyArgs);
 
-    void buildObjects(const string & sTag, vector<string> & vObjects);
+    void buildObjects(const string& sTag, vector<string>& vObjects);
 
-    bool getConfigList(const string & sList, vector<string> & vReturn, bool bForce = true, uint uiCurrentFilePos = string::npos);
+    bool getConfigList(
+        const string& sList, vector<string>& vReturn, bool bForce = true, uint uiCurrentFilePos = string::npos);
 
     /**
      * Perform the equivalent of configures find_things function.
@@ -192,7 +195,8 @@ private:
      * @param [in,out] vReturnExterns (Optional) If non-null, returns any detected extern variables.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindThings(const string & sParam1, const string & sParam2, const string & sParam3, vector<string> & vReturn, vector<string> * vReturnExterns = NULL);
+    bool passFindThings(const string& sParam1, const string& sParam2, const string& sParam3, vector<string>& vReturn,
+        vector<string>* vReturnExterns = NULL);
 
     /**
      * Perform the equivalent of configures find_things_extern function.
@@ -203,7 +207,8 @@ private:
      * @param [in,out] vReturn Returns any detected configure defines.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindThingsExtern(const string & sParam1, const string & sParam2, const string & sParam3, const string & sParam4, vector<string> & vReturn);
+    bool passFindThingsExtern(const string& sParam1, const string& sParam2, const string& sParam3,
+        const string& sParam4, vector<string>& vReturn);
 
     /**
      * Perform the equivalent of configures find_filters_extern function.
@@ -211,11 +216,12 @@ private:
      * @param [in,out] vReturn      Returns any detected configure defines.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindFiltersExtern(const string & sParam1, vector<string> & vReturn);
+    bool passFindFiltersExtern(const string& sParam1, vector<string>& vReturn);
 
-    bool passAddSuffix(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos = string::npos);
+    bool passAddSuffix(
+        const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos = string::npos);
 
-    bool passFilterOut(const string & sParam1, const string & sParam2, vector<string> & vReturn, uint uiCurrentFilePos);
+    bool passFilterOut(const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos);
 
     /**
      * Perform the equivalent of configures full_filter_name function.
@@ -223,11 +229,11 @@ private:
      * @param [in,out] sReturn The return.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFullFilterName(const string & sParam1, string & sReturn);
+    bool passFullFilterName(const string& sParam1, string& sReturn);
 
-    bool passConfigList(const string & sPrefix, const string & sSuffix, const string & sList);
+    bool passConfigList(const string& sPrefix, const string& sSuffix, const string& sList);
 
-    bool passEnabledComponents(const string & sFile, const string & sStruct, const string & sName, const string & sList);
+    bool passEnabledComponents(const string& sFile, const string& sStruct, const string& sName, const string& sList);
 
     /**
      * Sets up all default starting config values.
@@ -247,7 +253,7 @@ private:
      * @param bEnable True to enable, false to disable.
      * @return True if it succeeds, false if it fails.
      */
-    bool fastToggleConfigValue(const string & sOption, bool bEnable);
+    bool fastToggleConfigValue(const string& sOption, bool bEnable);
 
     /**
      * Update configuration option and perform any dependency option updates as well.
@@ -255,28 +261,28 @@ private:
      * @param bEnable True to enable, false to disable.
      * @return True if it succeeds, false if it fails.
      */
-    bool toggleConfigValue(const string & sOption, bool bEnable, bool bRecursive = false);
+    bool toggleConfigValue(const string& sOption, bool bEnable, bool bRecursive = false);
 
     /**
      * Gets configuration option.
      * @param sOption The options name.
      * @return The configuration option, m_vConfigValues.end() if option not found.
      */
-    ValuesList::iterator getConfigOption(const string & sOption);
+    ValuesList::iterator getConfigOption(const string& sOption);
 
     /**
      * Gets configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) included.
      * @param sOption The options name.
      * @return The configuration option, m_vConfigValues.end() if option not found.
      */
-    ValuesList::iterator getConfigOptionPrefixed(const string & sOption);
+    ValuesList::iterator getConfigOptionPrefixed(const string& sOption);
 
     /**
      * Queries if a configuration option is enabled.
      * @param sOption The option.
      * @return True if the configuration option is enabled, false if not.
      */
-    bool isConfigOptionEnabled(const string & sOption);
+    bool isConfigOptionEnabled(const string& sOption);
 
     /**
      * Queries if a configuration option exists.
@@ -304,7 +310,7 @@ private:
      * @param [out] uiMinor The version number minor.
      * @return True if it succeeds, false if it fails.
      */
-    bool getMinWindowsVersion(uint & uiMajor, uint & uiMinor);
+    bool getMinWindowsVersion(uint& uiMajor, uint& uiMinor);
 
     bool passDependencyCheck(const ValuesList::iterator vitOption);
 };

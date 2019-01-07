@@ -23,20 +23,22 @@
 #include <algorithm>
 #include <utility>
 
-bool ProjectGenerator::runCompiler(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runCompiler(
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
 {
 #ifdef _MSC_VER
-    //If compiled by msvc then only msvc builds are supported
+    // If compiled by msvc then only msvc builds are supported
     return runMSVC(vIncludeDirs, mDirectoryObjects, iRunType);
 #else
-    //Otherwise only gcc and mingw are supported
+    // Otherwise only gcc and mingw are supported
     return runGCC(vIncludeDirs, mDirectoryObjects, iRunType);
 #endif
 }
 
-bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runMSVC(
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
 {
-    //Create a test file to read in definitions
+    // Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
@@ -67,7 +69,7 @@ bool ProjectGenerator::runMSVC(const vector<string> & vIncludeDirs, map<string, 
     }
     string sTempFolder = sTempDirectory + m_sProjectName;
 
-    //Use Microsoft compiler to pass the test file and retrieve declarations
+    // Use Microsoft compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "@echo off\nsetlocal enabledelayedexpansion\nset CALLDIR=%CD%\n";
     sCLLaunchBat += "if \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" (\n\
     set SYSARCH=64\n\
@@ -135,21 +137,23 @@ popd\n";
         uint uiTotalPos = 0;
         string sDirName = sTempFolder + "/" + itI->first;
         if (itI->first.length() > 0) {
-            //Need to make output directory so compile doesn't fail outputting
+            // Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
         }
         string sRuntype;
-        //Check type of compiler call
+        // Check type of compiler call
         if (iRunType == 0) {
             sRuntype = "/FR\"" + sDirName + "/\"" + " /Fo\"" + sDirName + "/\"";
         } else if (iRunType == 1) {
             sRuntype = "/EP /P";
         }
 
-        //Split calls into groups of 50 to prevent batch file length limit
+        // Split calls into groups of 50 to prevent batch file length limit
         for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
             sCLLaunchBat += "cl.exe ";
-            sCLLaunchBat += sCLExtra + " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /FI\"compat.h\" " + sRuntype + " /c /MP /w /nologo";
+            sCLLaunchBat += sCLExtra +
+                " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /FI\"compat.h\" " + sRuntype +
+                " /c /MP /w /nologo";
             uint uiStartPos = uiTotalPos;
             for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
@@ -180,18 +184,18 @@ popd\n";
         outputError("Errors detected during compilation :-");
         string sTestOutput;
         if (loadFromFile("ffvs_log.txt", sTestOutput)) {
-            //Output errors from ffvs_log.txt
+            // Output errors from ffvs_log.txt
             bool bError = false;
             bool bMissingVS = false;
             bool bMissingDeps = false;
             uint uiFindPos = sTestOutput.find(" error ");
             while (uiFindPos != string::npos) {
-                //find end of line
+                // find end of line
                 uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
                 string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
                 outputError(sTemp, false);
                 uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
-                //Check what type of error was found
+                // Check what type of error was found
                 if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
                     bMissingDeps = true;
                 } else if (!bMissingVS && (sTemp.find("Visual Studio could not be detected") != string::npos)) {
@@ -209,34 +213,43 @@ popd\n";
                 bMissingVS = true;
             }
             if (bMissingVS) {
-                outputError("Based on the above error(s) Visual Studio is not installed correctly on the host system.", false);
+                outputError(
+                    "Based on the above error(s) Visual Studio is not installed correctly on the host system.", false);
                 outputError("Install a compatible version of Visual Studio before trying again.", false);
                 deleteFile("ffvs_log.txt");
             } else if (bMissingDeps) {
-                outputError("Based on the above error(s) there are files required for dependency libraries that are not available", false);
-                outputError("Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again.", false);
+                outputError(
+                    "Based on the above error(s) there are files required for dependency libraries that are not available",
+                    false);
+                outputError(
+                    "Ensure that any required dependencies are available in 'OutDir' based on the supplied configuration options before trying again.",
+                    false);
                 outputError("Consult the supplied readme for instructions for installing varying dependencies.", false);
-                outputError("If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again.", false);
-                outputError("  Removing the offending configuration option can also be used to remove the error.", false);
+                outputError(
+                    "If a dependency has been cloned from a ShiftMediaProject repository then ensure it has been successfully built before trying again.",
+                    false);
+                outputError(
+                    "  Removing the offending configuration option can also be used to remove the error.", false);
                 deleteFile("ffvs_log.txt");
             } else if (bError) {
                 outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
             }
         }
-        //Remove the compile files
+        // Remove the compile files
         deleteFile("ffvs_compile.bat");
         deleteFolder(sTempDirectory);
         return false;
     }
 
-    //Remove the compilation objects
+    // Remove the compilation objects
     deleteFile("ffvs_compile.bat");
     return true;
 }
 
-bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, vector<string>> &mDirectoryObjects, int iRunType)
+bool ProjectGenerator::runGCC(
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
 {
-    //Create a test file to read in definitions
+    // Create a test file to read in definitions
     string sOutDir = m_ConfigHelper.m_sOutDirectory;
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
@@ -267,7 +280,7 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
     }
     string sTempFolder = sTempDirectory + m_sProjectName;
 
-    //Use GNU compiler to pass the test file and retrieve declarations
+    // Use GNU compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "#!/bin/bash\n";
     sCLLaunchBat += "exitFail() {\n";
     if (iRunType == 1) {
@@ -279,23 +292,23 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
     for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
         string sDirName = sTempFolder + "/" + itI->first;
         if (itI->first.length() > 0) {
-            //Need to make output directory so compile doesn't fail outputting
+            // Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > /dev/null 2>&1\n";
         }
         string sRuntype;
-        //Check type of compiler call
+        // Check type of compiler call
         if (iRunType == 0) {
             outputError("Generation of definitions is not supported using gcc.");
             return false;
         } else if (iRunType == 1) {
             sRuntype = "-E -P";
         }
-        //Check if gcc or mingw
+        // Check if gcc or mingw
         if (m_ConfigHelper.m_sToolchain.find("mingw") != string::npos) {
             sCLExtra += "-D\"WIN32\" -D\"_WINDOWS\"";
         }
 
-        //Split calls as gcc outputs a single file at a time
+        // Split calls as gcc outputs a single file at a time
         for (StaticList::iterator vitJ = itI->second.begin(); vitJ < itI->second.end(); vitJ++) {
             sCLLaunchBat += "gcc ";
             sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
@@ -322,13 +335,13 @@ bool ProjectGenerator::runGCC(const vector<string> & vIncludeDirs, map<string, v
     if (0 != system("ffvs_compile.sh")) {
         outputError("Errors detected during compilation :-");
         outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
-        //Remove the compilation files
+        // Remove the compilation files
         deleteFile("ffvs_compile.sh");
         deleteFolder(sTempDirectory);
         return false;
     }
 
-    //Remove the compilation objects
+    // Remove the compilation objects
     deleteFile("ffvs_compile.sh");
     return true;
 }
