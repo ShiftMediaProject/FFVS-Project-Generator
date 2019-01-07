@@ -21,27 +21,27 @@
 #include "configGenerator.h"
 #include "projectGenerator.h"
 
-int main(int argc, char** argv)
+int main(const int argc, char** argv)
 {
     outputLine("Project generator (this may take several minutes, please wait)...");
     // Pass the input configuration
-    ProjectGenerator ProjectHelper;
-    if (!ProjectHelper.m_ConfigHelper.passConfig(argc, argv)) {
-        ProjectHelper.errorFunc(false);
+    ProjectGenerator projectGenerator;
+    if (!projectGenerator.m_ConfigHelper.passConfig(argc, argv)) {
+        projectGenerator.errorFunc(false);
     }
 
     // Delete any previously generated files
-    ProjectHelper.m_ConfigHelper.deleteCreatedFiles();
-    ProjectHelper.deleteCreatedFiles();
+    projectGenerator.m_ConfigHelper.deleteCreatedFiles();
+    projectGenerator.deleteCreatedFiles();
 
     // Output config.h and avutil.h
-    if (!ProjectHelper.m_ConfigHelper.outputConfig()) {
-        ProjectHelper.errorFunc();
+    if (!projectGenerator.m_ConfigHelper.outputConfig()) {
+        projectGenerator.errorFunc();
     }
 
     // Generate desired configuration files
-    if (!ProjectHelper.passAllMake()) {
-        ProjectHelper.errorFunc();
+    if (!projectGenerator.passAllMake()) {
+        projectGenerator.errorFunc();
     }
     outputLine("Completed Successfully");
 #if _DEBUG

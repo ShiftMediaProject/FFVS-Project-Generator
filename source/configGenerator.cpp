@@ -17,7 +17,6 @@
  * License along with ShiftMediaProject; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
 #include "configGenerator.h"
 
 #include <algorithm>
@@ -27,36 +26,29 @@
 ConfigGenerator::ConfigGenerator()
     :
 #ifdef _MSC_VER
-    m_sToolchain("msvc")
-    ,
+    m_toolchain("msvc")
 #elif defined(_WIN32)
-    m_sToolchain("mingw")
-    ,
+    m_toolchain("mingw")
 #else
-    m_sToolchain("gcc")
-    ,
+    m_toolchain("gcc")
 #endif
-    m_bLibav(false)
-    , m_sProjectName("FFMPEG")
-    , m_bDCEOnly(false)
-    , m_bUsingExistingConfig(false)
-    , m_bUseNASM(true)
+    , m_projectName("FFMPEG")
 {}
 
-bool ConfigGenerator::passConfig(int argc, char** argv)
+bool ConfigGenerator::passConfig(const int argc, char** argv)
 {
     // Check for initial input arguments
-    vector<string> vEarlyArgs;
-    buildEarlyConfigArgs(vEarlyArgs);
+    vector<string> earlyArgs;
+    buildEarlyConfigArgs(earlyArgs);
     for (int i = 1; i < argc; i++) {
-        string stOption = string(argv[i]);
-        string stCommand = stOption;
-        const uint uiPos = stOption.find('=');
-        if (uiPos != string::npos) {
-            stCommand = stOption.substr(0, uiPos);
+        string option = string(argv[i]);
+        string command = option;
+        const uint pos = option.find('=');
+        if (pos != string::npos) {
+            command = option.substr(0, pos);
         }
-        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stCommand) != vEarlyArgs.end()) {
-            if (!changeConfig(stOption)) {
+        if (find(earlyArgs.begin(), earlyArgs.end(), command) != earlyArgs.end()) {
+            if (!changeConfig(option)) {
                 return false;
             }
         }
@@ -71,9 +63,9 @@ bool ConfigGenerator::passConfig(int argc, char** argv)
     // Pass input arguments
     for (int i = 1; i < argc; i++) {
         // Check that option hasn't already been processed
-        string stOption = string(argv[i]);
-        if (find(vEarlyArgs.begin(), vEarlyArgs.end(), stOption) == vEarlyArgs.end()) {
-            if (!changeConfig(stOption)) {
+        string option = string(argv[i]);
+        if (find(earlyArgs.begin(), earlyArgs.end(), option) == earlyArgs.end()) {
+            if (!changeConfig(option)) {
                 return false;
             }
         }
@@ -95,164 +87,163 @@ bool ConfigGenerator::passConfigureFile()
     outputLine("  Passing configure file...");
 
     // Setup initial directories
-    if (m_sRootDirectory.length() == 0) {
+    if (m_rootDirectory.length() == 0) {
         // Search paths starting in current directory then checking parents
-        string sPathList[] = {"./", "../", "./ffmpeg/", "../ffmpeg/", "../../ffmpeg/", "../../../", "../../",
-            "./libav/", "../libav/", "../../libav/"};
-        uint uiPathCount = 0;
-        uint uiNumPaths = sizeof(sPathList) / sizeof(string);
-        for (uiPathCount; uiPathCount < uiNumPaths; uiPathCount++) {
-            m_sRootDirectory = sPathList[uiPathCount];
-            string sConfigFile = m_sRootDirectory + "configure";
-            if (loadFromFile(sConfigFile, m_sConfigureFile, false, false)) {
+        string pathList[] = {"./", "../", "./ffmpeg/", "../ffmpeg/", "../../ffmpeg/", "../../../", "../../", "./libav/",
+            "../libav/", "../../libav/"};
+        uint pathCount = 0;
+        const uint numPaths = sizeof(pathList) / sizeof(string);
+        for (; pathCount < numPaths; pathCount++) {
+            m_rootDirectory = pathList[pathCount];
+            string configFile = m_rootDirectory + "configure";
+            if (loadFromFile(configFile, m_configureFile, false, false)) {
                 break;
             }
         }
-        if (uiPathCount == uiNumPaths) {
+        if (pathCount == numPaths) {
             outputError("Failed to find a 'configure' file");
             return false;
         }
     } else {
         // Open configure file
-        string sConfigFile = m_sRootDirectory + "configure";
-        if (!loadFromFile(sConfigFile, m_sConfigureFile, false, false)) {
+        const string configFile = m_rootDirectory + "configure";
+        if (!loadFromFile(configFile, m_configureFile, false, false)) {
             outputError("Failed to find a 'configure' file in specified root directory");
             return false;
         }
     }
 
     // Search for start of config.h file parameters
-    uint uiStartPos = m_sConfigureFile.find("#define FFMPEG_CONFIG_H");
-    if (uiStartPos == string::npos) {
+    uint startPos = m_configureFile.find("#define FFMPEG_CONFIG_H");
+    if (startPos == string::npos) {
         // Check if this is instead a libav configure
-        uiStartPos = m_sConfigureFile.find("#define LIBAV_CONFIG_H");
-        if (uiStartPos == string::npos) {
+        startPos = m_configureFile.find("#define LIBAV_CONFIG_H");
+        if (startPos == string::npos) {
             outputError("Failed finding config.h start parameters");
             return false;
         }
-        m_bLibav = true;
-        m_sProjectName = "LIBAV";
+        m_isLibav = true;
+        m_projectName = "LIBAV";
     }
     // Move to end of header guard (+1 for new line)
-    uiStartPos += 24;
+    startPos += 24;
 
     // Build default value list
-    DefaultValuesList mDefaultValues;
-    buildFixedValues(mDefaultValues);
+    DefaultValuesList defaultValues;
+    buildFixedValues(defaultValues);
 
     // Get each defined option till EOF
-    uiStartPos = m_sConfigureFile.find("#define", uiStartPos);
-    uint uiConfigEnd = m_sConfigureFile.find("EOF", uiStartPos);
-    if (uiConfigEnd == string::npos) {
+    startPos = m_configureFile.find("#define", startPos);
+    uint configEnd = m_configureFile.find("EOF", startPos);
+    if (configEnd == string::npos) {
         outputError("Failed finding config.h parameters end");
         return false;
     }
-    uint uiEndPos = uiConfigEnd;
-    while ((uiStartPos != string::npos) && (uiStartPos < uiConfigEnd)) {
+    uint endPos = configEnd;
+    while ((startPos != string::npos) && (startPos < configEnd)) {
         // Skip white space
-        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStartPos + 7);
+        startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 7);
         // Get first string
-        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
-        string sConfigName = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
+        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+        const string configName = m_configureFile.substr(startPos, endPos - startPos);
         // Get second string
-        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
-        string sConfigValue = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
+        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+        string configValue = m_configureFile.substr(startPos, endPos - startPos);
         // Check if the value is a variable
-        uint uiStartPos2 = sConfigValue.find('$');
-        if (uiStartPos2 != string::npos) {
+        const uint startPos2 = configValue.find('$');
+        if (startPos2 != string::npos) {
             // Check if it is a function call
-            if (sConfigValue.at(uiStartPos2 + 1) == '(') {
-                uiEndPos = m_sConfigureFile.find(')', uiStartPos);
-                sConfigValue = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos + 1);
+            if (configValue.at(startPos2 + 1) == '(') {
+                endPos = m_configureFile.find(')', startPos);
+                configValue = m_configureFile.substr(startPos, endPos - startPos + 1);
             }
             // Remove any quotes from the tag if there are any
-            uint uiEndPos2 =
-                (sConfigValue.at(sConfigValue.length() - 1) == '"') ? sConfigValue.length() - 1 : sConfigValue.length();
+            const uint endPos2 =
+                (configValue.at(configValue.length() - 1) == '"') ? configValue.length() - 1 : configValue.length();
             // Find and replace the value
-            DefaultValuesList::iterator mitVal =
-                mDefaultValues.find(sConfigValue.substr(uiStartPos2, uiEndPos2 - uiStartPos2));
-            if (mitVal == mDefaultValues.end()) {
+            auto val = defaultValues.find(configValue.substr(startPos2, endPos2 - startPos2));
+            if (val == defaultValues.end()) {
                 outputError("Unknown configuration operation found (" +
-                    sConfigValue.substr(uiStartPos2, uiEndPos2 - uiStartPos2) + ")");
+                    configValue.substr(startPos2, endPos2 - startPos2) + ")");
                 return false;
             }
             // Check if we need to add the quotes back
-            if (sConfigValue.at(0) == '"') {
+            if (configValue.at(0) == '"') {
                 // Replace the value with the default option in quotations
-                sConfigValue = '"' + mitVal->second + '"';
+                configValue = '"' + val->second + '"';
             } else {
                 // Replace the value with the default option
-                sConfigValue = mitVal->second;
+                configValue = val->second;
             }
         }
 
         // Add to the list
-        m_vFixedConfigValues.push_back(ConfigPair(sConfigName, "", sConfigValue));
+        m_fixedConfigValues.push_back(ConfigPair(configName, "", configValue));
 
         // Find next
-        uiStartPos = m_sConfigureFile.find("#define", uiEndPos + 1);
+        startPos = m_configureFile.find("#define", endPos + 1);
     }
 
     // Find the end of this section
-    uiConfigEnd = m_sConfigureFile.find("#endif", uiConfigEnd + 1);
-    if (uiConfigEnd == string::npos) {
+    configEnd = m_configureFile.find("#endif", configEnd + 1);
+    if (configEnd == string::npos) {
         outputError("Failed finding config.h header end");
         return false;
     }
 
     // Get the additional config values
-    uiStartPos = m_sConfigureFile.find("print_config", uiEndPos + 3);
-    while ((uiStartPos != string::npos) && (uiStartPos < uiConfigEnd)) {
+    startPos = m_configureFile.find("print_config", endPos + 3);
+    while ((startPos != string::npos) && (startPos < configEnd)) {
         // Add these to the config list
         // Find prefix
-        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStartPos + 12);
-        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
-        string sPrefix = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
+        startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 12);
+        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+        string prefix = m_configureFile.substr(startPos, endPos - startPos);
         // Skip unneeded var
-        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
+        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
 
         // Find option list
-        uiStartPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
-        uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
-        string sList = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
+        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+        string sList = m_configureFile.substr(startPos, endPos - startPos);
         // Strip the variable prefix from start
         sList.erase(0, 1);
 
         // Create option list
-        if (!passConfigList(sPrefix, "", sList)) {
+        if (!passConfigList(prefix, "", sList)) {
             return false;
         }
 
         // Check if multiple lines
-        uiEndPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
-        while (m_sConfigureFile.at(uiEndPos) == '\\') {
+        endPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+        while (m_configureFile.at(endPos) == '\\') {
             // Skip newline
-            ++uiEndPos;
-            uiStartPos = m_sConfigureFile.find_first_not_of(" \t", uiEndPos + 1);
+            ++endPos;
+            startPos = m_configureFile.find_first_not_of(" \t", endPos + 1);
             // Check for blank line
-            if (m_sConfigureFile.at(uiStartPos) == '\n') {
+            if (m_configureFile.at(startPos) == '\n') {
                 break;
             }
-            uiEndPos = m_sConfigureFile.find_first_of(sWhiteSpace, uiStartPos + 1);
-            string sList = m_sConfigureFile.substr(uiStartPos, uiEndPos - uiStartPos);
+            endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+            string list = m_configureFile.substr(startPos, endPos - startPos);
             // Strip the variable prefix from start
-            sList.erase(0, 1);
+            list.erase(0, 1);
 
             // Create option list
-            if (!passConfigList(sPrefix, "", sList)) {
+            if (!passConfigList(prefix, "", list)) {
                 return false;
             }
-            uiEndPos = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEndPos + 1);
+            endPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
         }
 
         // Get next
-        uiStartPos = m_sConfigureFile.find("print_config", uiStartPos + 1);
+        startPos = m_configureFile.find("print_config", startPos + 1);
     }
     // Mark the end of the config list. Any elements added after this are considered temporary and should not be
     // exported
-    m_uiConfigValuesEnd = m_vConfigValues.size();    // must be uint in case of realloc
+    m_configValuesEnd = m_configValues.size();    // must be uint in case of realloc
     return true;
 }
 
@@ -260,97 +251,96 @@ bool ConfigGenerator::passExistingConfig()
 {
     outputLine("  Passing in existing config.h file...");
     // load in config.h from root dir
-    string sConfigH;
-    string sConfigFile = m_sRootDirectory + "config.h";
-    if (!loadFromFile(sConfigFile, sConfigH, false, false)) {
+    string configH;
+    const string configFile = m_rootDirectory + "config.h";
+    if (!loadFromFile(configFile, configH, false, false)) {
         outputError("Failed opening existing config.h file.");
         outputError("Ensure the requested config.h file is found in the source codes root directory.", false);
-        outputError("Or omit the --use-existing-config option." + sConfigFile, false);
+        outputError("Or omit the --use-existing-config option." + configFile, false);
         return false;
     }
 
     // Find the first valid configuration option
-    uint uiPos = -1;
-    const string asConfigTags[] = {"ARCH_", "HAVE_", "CONFIG_"};
-    for (unsigned uiTag = 0; uiTag < sizeof(asConfigTags) / sizeof(string); uiTag++) {
-        string sSearch = "#define " + asConfigTags[uiTag];
-        uint uiPos2 = sConfigH.find(sSearch);
-        uiPos = (uiPos2 < uiPos) ? uiPos2 : uiPos;
+    uint pos = -1;
+    const string configTags[] = {"ARCH_", "HAVE_", "CONFIG_"};
+    for (const auto& configTag : configTags) {
+        string search = "#define " + configTag;
+        uint pos2 = configH.find(search);
+        pos = (pos2 < pos) ? pos2 : pos;
     }
 
     // Loop through each #define tag val and set internal option to val
-    while (uiPos != string::npos) {
-        uiPos = sConfigH.find_first_not_of(sWhiteSpace, uiPos + 7);
+    while (pos != string::npos) {
+        pos = configH.find_first_not_of(g_whiteSpace, pos + 7);
         // Get the tag
-        uint uiPos2 = sConfigH.find_first_of(sWhiteSpace, uiPos + 1);
-        string sOption = sConfigH.substr(uiPos, uiPos2 - uiPos);
+        uint pos2 = configH.find_first_of(g_whiteSpace, pos + 1);
+        string option = configH.substr(pos, pos2 - pos);
 
         // Check if the options is valid
-        if (!isConfigOptionValidPrefixed(sOption)) {
+        if (!isConfigOptionValidPrefixed(option)) {
             // Check if it is a fixed value and skip
-            bool bFound = false;
-            for (ValuesList::iterator vitOption = m_vFixedConfigValues.begin(); vitOption < m_vFixedConfigValues.end();
-                 vitOption++) {
-                if (vitOption->m_sOption.compare(sOption) == 0) {
-                    bFound = true;
+            bool found = false;
+            for (const auto& i : m_fixedConfigValues) {
+                if (i.m_option == option) {
+                    found = true;
                     break;
                 }
             }
-            if (bFound) {
+            if (found) {
                 // Get next
-                uiPos = sConfigH.find("#define ", uiPos2 + 1);
+                pos = configH.find("#define ", pos2 + 1);
                 continue;
             }
-            outputInfo("Unknown config option (" + sOption + ") found in config.h file.");
+            outputInfo("Unknown config option (" + option + ") found in config.h file.");
             return false;
         }
 
         // Get the value
-        uiPos = sConfigH.find_first_not_of(sWhiteSpace, uiPos2 + 1);
-        uiPos2 = sConfigH.find_first_of(sWhiteSpace, uiPos + 1);
-        string sValue = sConfigH.substr(uiPos, uiPos2 - uiPos);
-        bool bEnable = (sValue.compare("1") == 0);
-        if (!bEnable && (sValue.compare("0") != 0)) {
-            outputError("Invalid config value (" + sValue + ") for option (" + sOption + ") found in config.h file.");
+        pos = configH.find_first_not_of(g_whiteSpace, pos2 + 1);
+        pos2 = configH.find_first_of(g_whiteSpace, pos + 1);
+        string sValue = configH.substr(pos, pos2 - pos);
+        const bool enable = (sValue == "1");
+        if (!enable && (sValue != "0")) {
+            outputError("Invalid config value (" + sValue + ") for option (" + option + ") found in config.h file.");
             return false;
         }
 
         // Update intern value
-        fastToggleConfigValue(sOption, bEnable);
+        fastToggleConfigValue(option, enable);
 
         // Get next
-        uiPos = sConfigH.find("#define ", uiPos2 + 1);
+        pos = configH.find("#define ", pos2 + 1);
     }
     return true;
 }
 
-bool ConfigGenerator::changeConfig(const string& stOption)
+bool ConfigGenerator::changeConfig(const string& option)
 {
-    if (stOption.compare("--help") == 0) {
-        uint uiStart = m_sConfigureFile.find("show_help(){");
-        if (uiStart == string::npos) {
+    if (option == "--help") {
+        uint start = m_configureFile.find("show_help(){");
+        if (start == string::npos) {
             outputError("Failed finding help list in config file");
             return false;
         }
         // Find first 'EOF'
-        uiStart = m_sConfigureFile.find("EOF", uiStart) + 2;
-        if (uiStart == string::npos) {
+        start = m_configureFile.find("EOF", start) + 2;
+        if (start == string::npos) {
             outputError("Incompatible help list in config file");
             return false;
         }
-        uint uiEnd = m_sConfigureFile.find("EOF", uiStart);
-        string sHelpOptions = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        uint end = m_configureFile.find("EOF", start);
+        string helpOptions = m_configureFile.substr(start, end - start);
         // Search through help options and remove any values not supported
-        string sRemoveSections[] = {"Standard options:", "Documentation options:", "Toolchain options:",
+        string removeSections[] = {"Standard options:", "Documentation options:", "Toolchain options:",
             "Advanced options (experts only):", "Developer options (useful when working on FFmpeg itself):", "NOTE:"};
-        for (string sSection : sRemoveSections) {
-            uiStart = sHelpOptions.find(sSection);
-            if (uiStart != string::npos) {
-                uiEnd = sHelpOptions.find("\n\n", uiStart + sSection.length() + 1);
-                sHelpOptions = sHelpOptions.erase(uiStart, uiEnd - uiStart + 2);
+        for (const string& section : removeSections) {
+            start = helpOptions.find(section);
+            if (start != string::npos) {
+                end = helpOptions.find("\n\n", start + section.length() + 1);
+                helpOptions = helpOptions.erase(start, end - start + 2);
             }
         }
-        outputLine(sHelpOptions);
+        outputLine(helpOptions);
         // Add in custom standard string
         outputLine("Standard options:");
         outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
@@ -368,344 +358,333 @@ bool ConfigGenerator::changeConfig(const string& stOption)
         outputLine(
             "  --use-yasm               use YASM instead of the default NASM (this is not advised as it does not support newer instructions)");
         // Add in reserved values
-        vector<string> vReservedItems;
-        buildReservedValues(vReservedItems);
+        vector<string> reservedItems;
+        buildReservedValues(reservedItems);
         outputLine("\nReserved options (auto handled and cannot be set explicitly):");
-        for (string sResVal : vReservedItems) {
-            outputLine("  " + sResVal);
+        for (const string& resVal : reservedItems) {
+            outputLine("  " + resVal);
         }
         return false;
-    } else if (stOption.find("--toolchain") == 0) {
+    }
+    if (option.find("--toolchain") == 0) {
         // Check for correct command syntax
-        if (stOption.at(11) != '=') {
-            outputError("Incorrect toolchain syntax (" + stOption + ")");
+        if (option.at(11) != '=') {
+            outputError("Incorrect toolchain syntax (" + option + ")");
             outputError("Excepted syntax (--toolchain=NAME)", false);
             return false;
         }
         // A tool chain has been specified
-        string sToolChain = stOption.substr(12);
-        if (sToolChain.compare("msvc") == 0) {
+        string toolChain = option.substr(12);
+        if (toolChain == "msvc") {
             // Don't disable inline as the configure header will auto header guard it out anyway. This allows for
             // changing on the fly afterwards
-        } else if (sToolChain.compare("icl") == 0) {
+        } else if (toolChain == "icl") {
             // Inline asm by default is turned on if icl is detected
         } else {
 #ifdef _MSC_VER
             // Only support msvc when built with msvc
-            outputError("Unknown toolchain option (" + sToolChain + ")");
+            outputError("Unknown toolchain option (" + toolChain + ")");
             outputError("Excepted toolchains (msvc, icl)", false);
             return false;
 #else
             // Only support other toolchains if DCE only
-            if (!m_bDCEOnly) {
+            if (!m_onlyDCE) {
                 outputError("Unknown toolchain option (" + sToolChain + ")");
                 outputError("Other toolchains are only supported if --dce-only has already been specified.", false);
                 return false;
             } else {
-                if ((sToolChain.find("mingw") == string::npos) && (sToolChain.find("gcc") == string::npos)) {
-                    outputError("Unknown toolchain option (" + sToolChain + ")");
+                if ((toolChain.find("mingw") == string::npos) && (toolChain.find("gcc") == string::npos)) {
+                    outputError("Unknown toolchain option (" + toolChain + ")");
                     outputError("Excepted toolchains (mingw*, gcc*)", false);
                     return false;
                 }
             }
 #endif
         }
-        m_sToolchain = sToolChain;
-    } else if (stOption.find("--prefix") == 0) {
+        m_toolchain = toolChain;
+    } else if (option.find("--prefix") == 0) {
         // Check for correct command syntax
-        if (stOption.at(8) != '=') {
-            outputError("Incorrect prefix syntax (" + stOption + ")");
+        if (option.at(8) != '=') {
+            outputError("Incorrect prefix syntax (" + option + ")");
             outputError("Excepted syntax (--prefix=PREFIX)", false);
             return false;
         }
         // A output dir has been specified
-        string sValue = stOption.substr(9);
-        m_sOutDirectory = sValue;
+        string value = option.substr(9);
+        m_outDirectory = value;
         // Convert '\' to '/'
-        replace(m_sOutDirectory.begin(), m_sOutDirectory.end(), '\\', '/');
+        replace(m_outDirectory.begin(), m_outDirectory.end(), '\\', '/');
         // Check if a directory has been passed
-        if (m_sOutDirectory.length() == 0) {
-            m_sOutDirectory = "./";
+        if (m_outDirectory.length() == 0) {
+            m_outDirectory = "./";
         }
         // Check if directory has trailing '/'
-        if (m_sOutDirectory.back() != '/') {
-            m_sOutDirectory += '/';
+        if (m_outDirectory.back() != '/') {
+            m_outDirectory += '/';
         }
-    } else if (stOption.find("--rootdir") == 0) {
+    } else if (option.find("--rootdir") == 0) {
         // Check for correct command syntax
-        if (stOption.at(9) != '=') {
-            outputError("Incorrect rootdir syntax (" + stOption + ")");
+        if (option.at(9) != '=') {
+            outputError("Incorrect rootdir syntax (" + option + ")");
             outputError("Excepted syntax (--rootdir=DIR)", false);
             return false;
         }
         // A source dir has been specified
-        string sValue = stOption.substr(10);
-        m_sRootDirectory = sValue;
+        string value = option.substr(10);
+        m_rootDirectory = value;
         // Convert '\' to '/'
-        replace(m_sRootDirectory.begin(), m_sRootDirectory.end(), '\\', '/');
+        replace(m_rootDirectory.begin(), m_rootDirectory.end(), '\\', '/');
         // Check if a directory has been passed
-        if (m_sRootDirectory.length() == 0) {
-            m_sRootDirectory = "./";
+        if (m_rootDirectory.length() == 0) {
+            m_rootDirectory = "./";
         }
         // Check if directory has trailing '/'
-        if (m_sRootDirectory.back() != '/') {
-            m_sRootDirectory += '/';
+        if (m_rootDirectory.back() != '/') {
+            m_rootDirectory += '/';
         }
         // rootdir is passed before all other options are set up so must skip any other remaining steps
         return true;
-    } else if (stOption.find("--projdir") == 0) {
+    } else if (option.find("--projdir") == 0) {
         // Check for correct command syntax
-        if (stOption.at(9) != '=') {
-            outputError("Incorrect projdir syntax (" + stOption + ")");
+        if (option.at(9) != '=') {
+            outputError("Incorrect projdir syntax (" + option + ")");
             outputError("Excepted syntax (--projdir=DIR)", false);
             return false;
         }
         // A project dir has been specified
-        string sValue = stOption.substr(10);
-        m_sSolutionDirectory = sValue;
+        string value = option.substr(10);
+        m_solutionDirectory = value;
         // Convert '\' to '/'
-        replace(m_sSolutionDirectory.begin(), m_sSolutionDirectory.end(), '\\', '/');
+        replace(m_solutionDirectory.begin(), m_solutionDirectory.end(), '\\', '/');
         // Check if a directory has been passed
-        if (m_sSolutionDirectory.length() == 0) {
-            m_sSolutionDirectory = "./";
+        if (m_solutionDirectory.length() == 0) {
+            m_solutionDirectory = "./";
         }
         // Check if directory has trailing '/'
-        if (m_sSolutionDirectory.back() != '/') {
-            m_sSolutionDirectory += '/';
+        if (m_solutionDirectory.back() != '/') {
+            m_solutionDirectory += '/';
         }
-    } else if (stOption.compare("--dce-only") == 0) {
+    } else if (option == "--dce-only") {
         // This has no parameters and just sets internal value
-        m_bDCEOnly = true;
-    } else if (stOption.compare("--use-yasm") == 0) {
+        m_onlyDCE = true;
+    } else if (option == "--use-yasm") {
         // This has no parameters and just sets internal value
-        m_bUseNASM = false;
-    } else if (stOption.find("--use-existing-config") == 0) {
+        m_useNASM = false;
+    } else if (option.find("--use-existing-config") == 0) {
         // A input config file has been specified
-        m_bUsingExistingConfig = true;
-    } else if (stOption.find("--list-") == 0) {
-        string sOption = stOption.substr(7);
-        string sOptionList = sOption;
-        if (sOptionList.back() == 's') {
-            sOptionList = sOptionList.substr(0, sOptionList.length() - 1);    // Remove the trailing s
+        m_usingExistingConfig = true;
+    } else if (option.find("--list-") == 0) {
+        string option2 = option.substr(7);
+        string optionList = option2;
+        if (optionList.back() == 's') {
+            optionList = optionList.substr(0, optionList.length() - 1);    // Remove the trailing s
         }
-        transform(sOptionList.begin(), sOptionList.end(), sOptionList.begin(), ::toupper);
-        sOptionList += "_LIST";
-        vector<string> vList;
-        if (!getConfigList(sOptionList, vList)) {
-            outputError("Unknown list option (" + sOption + ")");
+        transform(optionList.begin(), optionList.end(), optionList.begin(), ::toupper);
+        optionList += "_LIST";
+        vector<string> list;
+        if (!getConfigList(optionList, list)) {
+            outputError("Unknown list option (" + option2 + ")");
             outputError("Use --help to get available options", false);
             return false;
         }
-        outputLine(sOption + ": ");
-        for (vector<string>::iterator itIt = vList.begin(); itIt < vList.end(); itIt++) {
+        outputLine(option2 + ": ");
+        for (auto& i : list) {
             // cut off any trailing type
-            uint uiPos = itIt->rfind('_');
-            if (uiPos != string::npos) {
-                *itIt = itIt->substr(0, uiPos);
+            uint pos = i.rfind('_');
+            if (pos != string::npos) {
+                i = i.substr(0, pos);
             }
-            transform(itIt->begin(), itIt->end(), itIt->begin(), ::tolower);
-            outputLine("  " + *itIt);
+            transform(i.begin(), i.end(), i.begin(), ::tolower);
+            outputLine("  " + i);
         }
         return false;
-    } else if (stOption.find("--quiet") == 0) {
+    } else if (option.find("--quiet") == 0) {
         setOutputVerbosity(VERBOSITY_ERROR);
-    } else if (stOption.find("--loud") == 0) {
+    } else if (option.find("--loud") == 0) {
         setOutputVerbosity(VERBOSITY_INFO);
     } else {
-        bool bEnable;
-        string sOption;
-        if (stOption.find("--enable-") == 0) {
-            bEnable = true;
+        bool enable;
+        string option2;
+        if (option.find("--enable-") == 0) {
+            enable = true;
             // Find remainder of option
-            sOption = stOption.substr(9);
-        } else if (stOption.find("--disable-") == 0) {
-            bEnable = false;
+            option2 = option.substr(9);
+        } else if (option.find("--disable-") == 0) {
+            enable = false;
             // Find remainder of option
-            sOption = stOption.substr(10);
+            option2 = option.substr(10);
         } else {
-            outputError("Unknown command line option (" + stOption + ")");
+            outputError("Unknown command line option (" + option2 + ")");
             outputError("Use --help to get available options", false);
             return false;
         }
 
         // Replace any '-'s with '_'
-        replace(sOption.begin(), sOption.end(), '-', '_');
+        replace(option2.begin(), option2.end(), '-', '_');
         // Check and make sure that a reserved item is not being changed
-        vector<string> vReservedItems;
-        buildReservedValues(vReservedItems);
-        vector<string>::iterator vitTemp = vReservedItems.begin();
-        for (vitTemp; vitTemp < vReservedItems.end(); vitTemp++) {
-            if (vitTemp->compare(sOption) == 0) {
-                outputWarning("Reserved option (" + sOption + ") was passed in command line option (" + stOption + ")");
+        vector<string> reservedItems;
+        buildReservedValues(reservedItems);
+        for (auto& i : reservedItems) {
+            if (i == option2) {
+                outputWarning("Reserved option (" + option2 + ") was passed in command line option (" + option2 + ")");
                 outputWarning("This option is reserved and will be ignored", false);
                 return true;
             }
         }
-
-        uint uiStartPos = sOption.find('=');
-        if (uiStartPos != string::npos) {
+        uint startPos = option2.find('=');
+        if (startPos != string::npos) {
             // Find before the =
-            string sList = sOption.substr(0, uiStartPos);
+            string list = option2.substr(0, startPos);
             // The actual element name is suffixed by list name (all after the =)
-            sOption = sOption.substr(uiStartPos + 1) + "_" + sList;
+            option2 = option2.substr(startPos + 1) + "_" + list;
             // Get the config element
-            if (!isConfigOptionValid(sOption)) {
-                outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
+            if (!isConfigOptionValid(option2)) {
+                outputError("Unknown option (" + option2 + ") in command line option (" + option2 + ")");
                 outputError("Use --help to get available options", false);
                 return false;
             }
-            toggleConfigValue(sOption, bEnable);
+            toggleConfigValue(option2, enable);
         } else {
             // Check for changes to entire list
-            if (sOption.compare("devices") == 0) {
+            if (option2 == "devices") {
                 // Change INDEV_LIST
-                vector<string> vList;
-                if (!getConfigList("INDEV_LIST", vList)) {
+                vector<string> list;
+                if (!getConfigList("INDEV_LIST", list)) {
                     return false;
                 }
-                vector<string>::iterator vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
                 // Change OUTDEV_LIST
-                vList.resize(0);
-                if (!getConfigList("OUTDEV_LIST", vList)) {
+                list.resize(0);
+                if (!getConfigList("OUTDEV_LIST", list)) {
                     return false;
                 }
-                vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
-            } else if (sOption.compare("programs") == 0) {
+            } else if (option2 == "programs") {
                 // Change PROGRAM_LIST
-                vector<string> vList;
-                if (!getConfigList("PROGRAM_LIST", vList)) {
+                vector<string> list;
+                if (!getConfigList("PROGRAM_LIST", list)) {
                     return false;
                 }
-                vector<string>::iterator vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
-            } else if (sOption.compare("everything") == 0) {
+            } else if (option2 == "everything") {
                 // Change ALL_COMPONENTS
-                vector<string> vList;
-                if (!getConfigList("ALL_COMPONENTS", vList)) {
+                vector<string> list;
+                if (!getConfigList("ALL_COMPONENTS", list)) {
                     return false;
                 }
-                vector<string>::iterator vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
-            } else if (sOption.compare("all") == 0) {
+            } else if (option2 == "all") {
                 // Change ALL_COMPONENTS
-                vector<string> vList;
-                if (!getConfigList("ALL_COMPONENTS", vList)) {
+                vector<string> list;
+                if (!getConfigList("ALL_COMPONENTS", list)) {
                     return false;
                 }
-                vector<string>::iterator vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
                 // Change LIBRARY_LIST
-                vList.resize(0);
-                if (!getConfigList("LIBRARY_LIST", vList)) {
+                list.resize(0);
+                if (!getConfigList("LIBRARY_LIST", list)) {
                     return false;
                 }
-                vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
                 // Change PROGRAM_LIST
-                vList.resize(0);
-                if (!getConfigList("PROGRAM_LIST", vList)) {
+                list.resize(0);
+                if (!getConfigList("PROGRAM_LIST", list)) {
                     return false;
                 }
-                vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
-            } else if (sOption.compare("autodetect") == 0) {
+            } else if (option2 == "autodetect") {
                 // Change AUTODETECT_LIBS
-                vector<string> vList;
-                if (!getConfigList("AUTODETECT_LIBS", vList)) {
+                vector<string> list;
+                if (!getConfigList("AUTODETECT_LIBS", list)) {
                     return false;
                 }
-                vector<string>::iterator vitValues = vList.begin();
-                for (vitValues; vitValues < vList.end(); vitValues++) {
-                    toggleConfigValue(*vitValues, bEnable);
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable);
                 }
             } else {
                 // Check if the option is a component
-                vector<string> vList;
-                getConfigList("COMPONENT_LIST", vList);
-                vector<string>::iterator vitComponent = find(vList.begin(), vList.end(), sOption);
-                if (vitComponent != vList.end()) {
+                vector<string> list;
+                getConfigList("COMPONENT_LIST", list);
+                if (find(list.begin(), list.end(), option2) != list.end()) {
                     // This is a component
-                    string sOption2 = sOption.substr(0, sOption.length() - 1);    // Need to remove the s from end
+                    string option3 = option2.substr(0, option2.length() - 1);    // Need to remove the s from end
                     // Get the specific list
-                    vList.resize(0);
-                    transform(sOption2.begin(), sOption2.end(), sOption2.begin(), ::toupper);
-                    getConfigList(sOption2 + "_LIST", vList);
-                    for (vitComponent = vList.begin(); vitComponent < vList.end(); vitComponent++) {
-                        toggleConfigValue(*vitComponent, bEnable);
+                    list.resize(0);
+                    transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
+                    getConfigList(option3 + "_LIST", list);
+                    for (const auto& i : list) {
+                        toggleConfigValue(i, enable);
                     }
                 } else {
                     // If not one of above components then check if it exists as standalone option
-                    if (!isConfigOptionValid(sOption)) {
-                        outputError("Unknown option (" + sOption + ") in command line option (" + stOption + ")");
+                    if (!isConfigOptionValid(option2)) {
+                        outputError("Unknown option (" + option2 + ") in command line option (" + option2 + ")");
                         outputError("Use --help to get available options", false);
                         return false;
                     }
                     // Check if this option has a component list
-                    string sOption2 = sOption;
-                    transform(sOption2.begin(), sOption2.end(), sOption2.begin(), ::toupper);
-                    sOption2 += "_COMPONENTS";
-                    vList.resize(0);
-                    getConfigList(sOption2, vList, false);
-                    for (vitComponent = vList.begin(); vitComponent < vList.end(); vitComponent++) {
+                    string option3 = option2;
+                    transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
+                    option3 += "_COMPONENTS";
+                    list.resize(0);
+                    getConfigList(option3, list, false);
+                    for (const auto& i : list) {
                         // This is a component
-                        sOption2 = vitComponent->substr(0, vitComponent->length() - 1);    // Need to remove the s from
-                                                                                           // end Get the specific list
-                        vector<string> vList2;
-                        transform(sOption2.begin(), sOption2.end(), sOption2.begin(), ::toupper);
-                        getConfigList(sOption2 + "_LIST", vList2);
-                        vector<string>::iterator vitComponent2;
-                        for (vitComponent2 = vList2.begin(); vitComponent2 < vList2.end(); vitComponent2++) {
-                            toggleConfigValue(*vitComponent2, bEnable);
+                        option3 = i.substr(0, i.length() - 1);    // Need to remove the s from end
+                        // Get the specific list
+                        vector<string> list2;
+                        transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
+                        getConfigList(option3 + "_LIST", list2);
+                        for (const auto& j : list) {
+                            toggleConfigValue(j, enable);
                         }
                     }
                 }
-                toggleConfigValue(sOption, bEnable);
+                toggleConfigValue(option2, enable);
             }
         }
     }
     // Add to the internal configuration variable
-    ValuesList::iterator vitOption = m_vFixedConfigValues.begin();
-    for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
-        if (vitOption->m_sOption.compare(m_sProjectName + "_CONFIGURATION") == 0) {
+    auto configPair = m_fixedConfigValues.begin();
+    for (; configPair < m_fixedConfigValues.end(); ++configPair) {
+        if (configPair->m_option == m_projectName + "_CONFIGURATION") {
             break;
         }
     }
-    if (vitOption != m_vFixedConfigValues.end()) {    // This will happen when passing early --prefix, --rootdir etc.
-        vitOption->m_sValue.resize(vitOption->m_sValue.length() - 1);    // Remove trailing "
-        if (vitOption->m_sValue.length() > 2) {
-            vitOption->m_sValue += ' ';
+    if (configPair != m_fixedConfigValues.end()) {    // This will happen when passing early --prefix, --rootdir etc.
+        configPair->m_value.resize(configPair->m_value.length() - 1);    // Remove trailing "
+        if (configPair->m_value.length() > 2) {
+            configPair->m_value += ' ';
         }
-        vitOption->m_sValue += stOption + "\"";
+        configPair->m_value += option + "\"";
     }
     return true;
 }
 
 bool ConfigGenerator::passCurrentValues()
 {
-    if (m_bUsingExistingConfig) {
+    if (m_usingExistingConfig) {
         // Don't output a new config as just use the original
         return passExistingConfig();
     }
 
     // Correct license variables
-    if (getConfigOption("version3")->m_sValue.compare("1") == 0) {
-        if (getConfigOption("gpl")->m_sValue.compare("1") == 0) {
+    if (getConfigOption("version3")->m_value == "1") {
+        if (getConfigOption("gpl")->m_value == "1") {
             fastToggleConfigValue("gplv3", true);
         } else {
             fastToggleConfigValue("lgplv3", true);
@@ -713,41 +692,39 @@ bool ConfigGenerator::passCurrentValues()
     }
 
     // Perform full check of all config values
-    ValuesList::iterator vitOption = m_vConfigValues.begin();
-    for (vitOption; vitOption < m_vConfigValues.end(); vitOption++) {
-        if (!passDependencyCheck(vitOption)) {
+    auto option = m_configValues.begin();
+    for (; option < m_configValues.end(); ++option) {
+        if (!passDependencyCheck(option)) {
             return false;
         }
     }
-
 #if defined(OPTIMISE_ENCODERS) || defined(OPTIMISE_DECODERS)
     // Optimise the config values. Based on user input different encoders/decoder can be disabled as there are now
     // better inbuilt alternatives
-    OptimisedConfigList mOptimisedDisables;
-    buildOptimisedDisables(mOptimisedDisables);
+    OptimisedConfigList optimisedDisables;
+    buildOptimisedDisables(optimisedDisables);
     // Check everything that is disabled based on current configuration
-    OptimisedConfigList::iterator vitDisable = mOptimisedDisables.begin();
-    bool bDisabledOpt = false;
-    for (vitDisable; vitDisable != mOptimisedDisables.end(); vitDisable++) {
+    OptimisedConfigList::iterator disable = optimisedDisables.begin();
+    bool disabledOpt = false;
+    for (; disable != optimisedDisables.end(); ++disable) {
         // Check if optimised value is valid for current configuration
-        ValuesList::iterator vitDisableOpt = getConfigOption(vitDisable->first);
-        if (vitDisableOpt != m_vConfigValues.end()) {
-            if (vitDisableOpt->m_sValue.compare("1") == 0) {
+        ValuesList::iterator disableOpt = getConfigOption(disable->first);
+        if (disableOpt != m_configValues.end()) {
+            if (disableOpt->m_value == "1") {
                 // Disable unneeded items
-                vector<string>::iterator vitOptions = vitDisable->second.begin();
-                for (vitOptions; vitOptions < vitDisable->second.end(); vitOptions++) {
-                    bDisabledOpt = true;
-                    toggleConfigValue(*vitOptions, false);
+                vector<string>::iterator options = disable->second.begin();
+                for (; options < disable->second.end(); ++options) {
+                    disabledOpt = true;
+                    toggleConfigValue(*options, false);
                 }
             }
         }
     }
     // It may be possible that the above optimisation pass disables some dependencies of other options.
     // If this happens then a full recheck is performed
-    if (bDisabledOpt) {
-        vitOption = m_vConfigValues.begin();
-        for (vitOption; vitOption < m_vConfigValues.end(); vitOption++) {
-            if (!passDependencyCheck(vitOption)) {
+    if (disabledOpt) {
+        for (; option < m_configValues.end(); ++option) {
+            if (!passDependencyCheck(option)) {
                 return false;
             }
         }
@@ -755,51 +732,50 @@ bool ConfigGenerator::passCurrentValues()
 #endif
 
     // Check the current options are valid for selected license
-    if (getConfigOption("nonfree")->m_sValue.compare("1") != 0) {
-        vector<string> vLicenseList;
+    if (getConfigOption("nonfree")->m_value != "1") {
+        vector<string> licenseList;
         // Check for existence of specific license lists
-        if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", vLicenseList, false)) {
-            for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
-                if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
-                    outputError("Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
+        if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", licenseList, false)) {
+            for (auto i = licenseList.begin(); i < licenseList.end(); ++i) {
+                if (getConfigOption(*i)->m_value == "1") {
+                    outputError("Current license does not allow for option (" + getConfigOption(*i)->m_option + ")");
                     return false;
                 }
             }
             // Check for gpl3 lists
-            if (getConfigOption("gplv3")->m_sValue.compare("1") != 0) {
-                vLicenseList.clear();
-                if (getConfigList("EXTERNAL_LIBRARY_GPLV3_LIST", vLicenseList, false)) {
-                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
-                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+            if (getConfigOption("gplv3")->m_value != "1") {
+                licenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_GPLV3_LIST", licenseList, false)) {
+                    for (auto i = licenseList.begin(); i < licenseList.end(); ++i) {
+                        if (getConfigOption(*i)->m_value == "1") {
                             outputError(
-                                "Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
+                                "Current license does not allow for option (" + getConfigOption(*i)->m_option + ")");
                             return false;
                         }
                     }
                 }
             }
             // Check for version3 lists
-            if ((getConfigOption("lgplv3")->m_sValue.compare("1") != 0) &&
-                (getConfigOption("gplv3")->m_sValue.compare("1") != 0)) {
-                vLicenseList.clear();
-                if (getConfigList("EXTERNAL_LIBRARY_VERSION3_LIST", vLicenseList, false)) {
-                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
-                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+            if ((getConfigOption("lgplv3")->m_value != "1") && (getConfigOption("gplv3")->m_value != "1")) {
+                licenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_VERSION3_LIST", licenseList, false)) {
+                    for (auto itI = licenseList.begin(); itI < licenseList.end(); ++itI) {
+                        if (getConfigOption(*itI)->m_value == "1") {
                             outputError(
-                                "Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
+                                "Current license does not allow for option (" + getConfigOption(*itI)->m_option + ")");
                             return false;
                         }
                     }
                 }
             }
             // Check for gpl lists
-            if (getConfigOption("gpl")->m_sValue.compare("1") != 0) {
-                vLicenseList.clear();
-                if (getConfigList("EXTERNAL_LIBRARY_GPL_LIST", vLicenseList, false)) {
-                    for (vector<string>::iterator itI = vLicenseList.begin(); itI < vLicenseList.end(); itI++) {
-                        if (getConfigOption(*itI)->m_sValue.compare("1") == 0) {
+            if (getConfigOption("gpl")->m_value != "1") {
+                licenseList.clear();
+                if (getConfigList("EXTERNAL_LIBRARY_GPL_LIST", licenseList, false)) {
+                    for (auto itI = licenseList.begin(); itI < licenseList.end(); ++itI) {
+                        if (getConfigOption(*itI)->m_value == "1") {
                             outputError(
-                                "Current license does not allow for option (" + getConfigOption(*itI)->m_sOption + ")");
+                                "Current license does not allow for option (" + getConfigOption(*itI)->m_option + ")");
                             return false;
                         }
                     }
@@ -815,623 +791,618 @@ bool ConfigGenerator::outputConfig()
     outputLine("  Outputting config.h...");
 
     // Create header output
-    string sHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
-    string sConfigureFile = sHeader;
-    sConfigureFile += "\n#ifndef SMP_CONFIG_H\n";
-    sConfigureFile += "#define SMP_CONFIG_H\n";
+    string fileHeader = getCopywriteHeader("Automatically generated configuration values") + '\n';
+    string configureFile = fileHeader;
+    configureFile += "\n#ifndef SMP_CONFIG_H\n";
+    configureFile += "#define SMP_CONFIG_H\n";
 
     // Update the license configuration
-    ValuesList::iterator vitOption = m_vFixedConfigValues.begin();
-    for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
-        if (vitOption->m_sOption.compare(m_sProjectName + "_LICENSE") == 0) {
+    auto option = m_fixedConfigValues.begin();
+    for (; option < m_fixedConfigValues.end(); ++option) {
+        if (option->m_option == (m_projectName + "_LICENSE")) {
             break;
         }
     }
-    if (getConfigOption("nonfree")->m_sValue.compare("1") == 0) {
-        vitOption->m_sValue = "\"nonfree and unredistributable\"";
-    } else if (getConfigOption("gplv3")->m_sValue.compare("1") == 0) {
-        vitOption->m_sValue = "\"GPL version 3 or later\"";
-    } else if (getConfigOption("lgplv3")->m_sValue.compare("1") == 0) {
-        vitOption->m_sValue = "\"LGPL version 3 or later\"";
-    } else if (getConfigOption("gpl")->m_sValue.compare("1") == 0) {
-        vitOption->m_sValue = "\"GPL version 2 or later\"";
+    if (getConfigOption("nonfree")->m_value == "1") {
+        option->m_value = "\"nonfree and unredistributable\"";
+    } else if (getConfigOption("gplv3")->m_value == "1") {
+        option->m_value = "\"GPL version 3 or later\"";
+    } else if (getConfigOption("lgplv3")->m_value == "1") {
+        option->m_value = "\"LGPL version 3 or later\"";
+    } else if (getConfigOption("gpl")->m_value == "1") {
+        option->m_value = "\"GPL version 2 or later\"";
     } else {
-        vitOption->m_sValue = "\"LGPL version 2.1 or later\"";
+        option->m_value = "\"LGPL version 2.1 or later\"";
     }
 
     // Build inbuilt force replace list
     string header;
-    buildReplaceValues(m_mReplaceList, header, m_mASMReplaceList);
+    buildReplaceValues(m_replaceList, header, m_replaceListASM);
 
     // Ouptut header
-    sConfigureFile += header + '\n';
+    configureFile += header + '\n';
 
     // Output all fixed config options
-    vitOption = m_vFixedConfigValues.begin();
-    for (vitOption; vitOption < m_vFixedConfigValues.end(); vitOption++) {
+    for (const auto& i : m_fixedConfigValues) {
         // Check for forced replacement (only if attribute is not disabled)
-        if ((vitOption->m_sValue.compare("0") != 0) &&
-            (m_mReplaceList.find(vitOption->m_sOption) != m_mReplaceList.end())) {
-            sConfigureFile += m_mReplaceList[vitOption->m_sOption] + '\n';
+        if ((i.m_value != "0") && (m_replaceList.find(i.m_option) != m_replaceList.end())) {
+            configureFile += m_replaceList[i.m_option] + '\n';
         } else {
-            sConfigureFile += "#define " + vitOption->m_sOption + ' ' + vitOption->m_sValue + '\n';
+            configureFile += "#define " + i.m_option + ' ' + i.m_value + '\n';
         }
     }
 
     // Create ASM config file
-    string sHeader2 = sHeader;
-    sHeader2.replace(sHeader2.find(" */", sHeader2.length() - 4), 3, ";******");
-    size_t ulFindPos = sHeader2.find("/*");
-    sHeader2.replace(ulFindPos, 2, ";******");
-    while ((ulFindPos = sHeader2.find(" *", ulFindPos)) != string::npos) {
-        sHeader2.replace(ulFindPos, 2, ";* ");
-        ulFindPos += 3;
+    string header2 = fileHeader;
+    header2.replace(header2.find(" */", header2.length() - 4), 3, ";******");
+    size_t findPos = header2.find("/*");
+    header2.replace(findPos, 2, ";******");
+    while ((findPos = header2.find(" *", findPos)) != string::npos) {
+        header2.replace(findPos, 2, ";* ");
+        findPos += 3;
     }
-    string sASMConfigureFile = sHeader2 + '\n';
+    string configureFileASM = header2 + '\n';
 
     // Output all internal options
-    vitOption = m_vConfigValues.begin();
-    for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
-        string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
+    for (const auto& i : m_configValues) {
+        string sTagName = i.m_prefix + i.m_option;
         // Check for forced replacement (only if attribute is not disabled)
-        string sAddConfig;
-        if ((vitOption->m_sValue.compare("0") != 0) && (m_mReplaceList.find(sTagName) != m_mReplaceList.end())) {
-            sAddConfig = m_mReplaceList[sTagName];
+        string addConfig;
+        if ((i.m_value != "0") && (m_replaceList.find(sTagName) != m_replaceList.end())) {
+            addConfig = m_replaceList[sTagName];
         } else {
-            sAddConfig = "#define " + sTagName + ' ' + vitOption->m_sValue;
+            addConfig = "#define " + sTagName + ' ' + i.m_value;
         }
-        sConfigureFile += sAddConfig + '\n';
-        if ((vitOption->m_sValue.compare("0") != 0) && (m_mASMReplaceList.find(sTagName) != m_mASMReplaceList.end())) {
-            sASMConfigureFile += m_mASMReplaceList[sTagName] + '\n';
+        configureFile += addConfig + '\n';
+        if ((i.m_value != "0") && (m_replaceListASM.find(sTagName) != m_replaceListASM.end())) {
+            configureFileASM += m_replaceListASM[sTagName] + '\n';
         } else {
-            sASMConfigureFile += "%define " + sTagName + ' ' + vitOption->m_sValue + '\n';
+            configureFileASM += "%define " + sTagName + ' ' + i.m_value + '\n';
         }
     }
 
     // Output end header guard
-    sConfigureFile += "#endif /* SMP_CONFIG_H */\n";
+    configureFile += "#endif /* SMP_CONFIG_H */\n";
     // Write output files
-    string sConfigFile = m_sSolutionDirectory + "config.h";
-    if (!writeToFile(sConfigFile, sConfigureFile)) {
-        outputError("Failed opening output configure file (" + sConfigFile + ")");
+    string configFile = m_solutionDirectory + "config.h";
+    if (!writeToFile(configFile, configureFile)) {
+        outputError("Failed opening output configure file (" + configFile + ")");
         return false;
     }
-    sConfigFile = m_sSolutionDirectory + "config.asm";
-    if (!writeToFile(sConfigFile, sASMConfigureFile)) {
-        outputError("Failed opening output asm configure file (" + sConfigFile + ")");
+    configFile = m_solutionDirectory + "config.asm";
+    if (!writeToFile(configFile, configureFileASM)) {
+        outputError("Failed opening output asm configure file (" + configFile + ")");
         return false;
     }
 
     // Output avconfig.h
     outputLine("  Outputting avconfig.h...");
-    if (!makeDirectory(m_sSolutionDirectory + "libavutil")) {
+    if (!makeDirectory(m_solutionDirectory + "libavutil")) {
         outputError("Failed creating local libavutil directory");
         return false;
     }
 
     // Output header guard
-    string sAVConfigFile = sHeader + '\n';
-    sAVConfigFile += "#ifndef SMP_LIBAVUTIL_AVCONFIG_H\n";
-    sAVConfigFile += "#define SMP_LIBAVUTIL_AVCONFIG_H\n";
+    string configFileAV = fileHeader + '\n';
+    configFileAV += "#ifndef SMP_LIBAVUTIL_AVCONFIG_H\n";
+    configFileAV += "#define SMP_LIBAVUTIL_AVCONFIG_H\n";
 
     // avconfig.h currently just uses HAVE_LIST_PUB to define its values
-    vector<string> vAVConfigList;
-    if (!getConfigList("HAVE_LIST_PUB", vAVConfigList)) {
+    vector<string> configListAV;
+    if (!getConfigList("HAVE_LIST_PUB", configListAV)) {
         outputError("Failed finding HAVE_LIST_PUB needed for avconfig.h generation");
         return false;
     }
-    for (vector<string>::iterator vitAVC = vAVConfigList.begin(); vitAVC < vAVConfigList.end(); vitAVC++) {
-        ValuesList::iterator vitOption = getConfigOption(*vitAVC);
-        sAVConfigFile += "#define AV_HAVE_" + vitOption->m_sOption + ' ' + vitOption->m_sValue + '\n';
+    for (const auto& i : configListAV) {
+        auto option2 = getConfigOption(i);
+        configFileAV += "#define AV_HAVE_" + option2->m_option + ' ' + option2->m_value + '\n';
     }
-    sAVConfigFile += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
-    sConfigFile = m_sSolutionDirectory + "libavutil/avconfig.h";
-    if (!writeToFile(sConfigFile, sAVConfigFile)) {
-        outputError("Failed opening output avconfig file (" + sAVConfigFile + ")");
+    configFileAV += "#endif /* SMP_LIBAVUTIL_AVCONFIG_H */\n";
+    configFile = m_solutionDirectory + "libavutil/avconfig.h";
+    if (!writeToFile(configFile, configFileAV)) {
+        outputError("Failed opening output avconfig file (" + configFileAV + ")");
         return false;
     }
 
     // Output ffversion.h
     outputLine("  Outputting ffversion.h...");
     // Open VERSION file and get version string
-    string sVersionDefFile = m_sRootDirectory + "RELEASE";
-    ifstream ifVersionDefFile(sVersionDefFile);
+    string versionDefFile = m_rootDirectory + "RELEASE";
+    ifstream ifVersionDefFile(versionDefFile);
     if (!ifVersionDefFile.is_open()) {
-        outputError("Failed opening output version file (" + sVersionDefFile + ")");
+        outputError("Failed opening output version file (" + versionDefFile + ")");
         return false;
     }
     // Load first line into string
-    string sVersion;
-    getline(ifVersionDefFile, sVersion);
+    string version;
+    getline(ifVersionDefFile, version);
     ifVersionDefFile.close();
 
     // Output header
-    string sVersionFile = sHeader + '\n';
+    string versionFile = fileHeader + '\n';
 
     // Output info
-    sVersionFile += "#ifndef SMP_LIBAVUTIL_FFVERSION_H\n#define SMP_LIBAVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
-    sVersionFile += sVersion;
-    sVersionFile += "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */\n";
+    versionFile += "#ifndef SMP_LIBAVUTIL_FFVERSION_H\n#define SMP_LIBAVUTIL_FFVERSION_H\n#define FFMPEG_VERSION \"";
+    versionFile += version;
+    versionFile += "\"\n#endif /* SMP_LIBAVUTIL_FFVERSION_H */\n";
     // Open output file
-    sConfigFile = m_sSolutionDirectory + "libavutil/ffversion.h";
-    if (!writeToFile(sConfigFile, sVersionFile)) {
-        outputError("Failed opening output version file (" + sVersionFile + ")");
+    configFile = m_solutionDirectory + "libavutil/ffversion.h";
+    if (!writeToFile(configFile, versionFile)) {
+        outputError("Failed opening output version file (" + versionFile + ")");
         return false;
     }
 
     // Output enabled components lists
-    uint uiStart = m_sConfigureFile.find("print_enabled_components ");
-    while (uiStart != string::npos) {
+    uint start = m_configureFile.find("print_enabled_components ");
+    while (start != string::npos) {
         // Get file name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStart + 24);
-        uint uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-        string sFile = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        start = m_configureFile.find_first_not_of(g_whiteSpace, start + 24);
+        uint end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+        string file = m_configureFile.substr(start, end - start);
         // Get struct name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-        string sStruct = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+        end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+        string structName = m_configureFile.substr(start, end - start);
         // Get list name input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-        string sName = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+        start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+        end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+        string name = m_configureFile.substr(start, end - start);
         // Get config list input parameter
-        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-        uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, ++uiStart);    // skip preceding '$'
-        string sList = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
-        if (!passEnabledComponents(sFile, sStruct, sName, sList)) {
+        start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+        end = m_configureFile.find_first_of(g_whiteSpace, ++start);    // skip preceding '$'
+        string list = m_configureFile.substr(start, end - start);
+        if (!passEnabledComponents(file, structName, name, list)) {
             return false;
         }
-        uiStart = m_sConfigureFile.find("print_enabled_components ", uiEnd + 1);
+        start = m_configureFile.find("print_enabled_components ", end + 1);
     }
-
     return true;
 }
 
-void ConfigGenerator::deleteCreatedFiles()
+void ConfigGenerator::deleteCreatedFiles() const
 {
-    if (!m_bUsingExistingConfig) {
+    if (!m_usingExistingConfig) {
         // Delete any previously generated files
-        vector<string> vExistingFiles;
-        findFiles(m_sSolutionDirectory + "config.h", vExistingFiles, false);
-        findFiles(m_sSolutionDirectory + "config.asm", vExistingFiles, false);
-        findFiles(m_sSolutionDirectory + "libavutil/avconfig.h", vExistingFiles, false);
-        findFiles(m_sSolutionDirectory + "libavutil/ffversion.h", vExistingFiles, false);
-        for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
-            deleteFile(*itIt);
+        vector<string> existingFiles;
+        findFiles(m_solutionDirectory + "config.h", existingFiles, false);
+        findFiles(m_solutionDirectory + "config.asm", existingFiles, false);
+        findFiles(m_solutionDirectory + "libavutil/avconfig.h", existingFiles, false);
+        findFiles(m_solutionDirectory + "libavutil/ffversion.h", existingFiles, false);
+        for (const auto& i : existingFiles) {
+            deleteFile(i);
         }
     }
 }
 
-void ConfigGenerator::makeFileProjectRelative(const string& sFileName, string& sRetFileName)
+void ConfigGenerator::makeFileProjectRelative(const string& fileName, string& retFileName) const
 {
-    string sPath;
-    string sFile = sFileName;
-    uint uiPos = sFile.rfind('/');
-    if (uiPos != string::npos) {
-        ++uiPos;
-        sPath = sFileName.substr(0, uiPos);
-        sFile = sFileName.substr(uiPos);
+    string path;
+    string file = fileName;
+    uint pos = file.rfind('/');
+    if (pos != string::npos) {
+        ++pos;
+        path = fileName.substr(0, pos);
+        file = fileName.substr(pos);
     }
-    makePathsRelative(sPath, m_sSolutionDirectory, sRetFileName);
+    makePathsRelative(path, m_solutionDirectory, retFileName);
     // Check if relative to project dir
-    if (sRetFileName.find("./") == 0) {
-        sRetFileName = sRetFileName.substr(2);
+    if (retFileName.find("./") == 0) {
+        retFileName = retFileName.substr(2);
     }
-    sRetFileName += sFile;
+    retFileName += file;
 }
 
-void ConfigGenerator::makeFileGeneratorRelative(const string& sFileName, string& sRetFileName)
+void ConfigGenerator::makeFileGeneratorRelative(const string& fileName, string& retFileName) const
 {
-    string sPath;
-    string sFile = sFileName;
-    uint uiPos = sFile.rfind('/');
-    if (uiPos != string::npos) {
-        ++uiPos;
-        sPath = sFileName.substr(0, uiPos);
-        sFile = sFileName.substr(uiPos);
+    string path;
+    string file = fileName;
+    uint pos = file.rfind('/');
+    if (pos != string::npos) {
+        ++pos;
+        path = fileName.substr(0, pos);
+        file = fileName.substr(pos);
     }
-    makePathsRelative(m_sSolutionDirectory + sPath, "./", sRetFileName);
+    makePathsRelative(m_solutionDirectory + path, "./", retFileName);
     // Check if relative to current dir
-    if (sRetFileName.find("./") == 0) {
-        sRetFileName = sRetFileName.substr(2);
+    if (retFileName.find("./") == 0) {
+        retFileName = retFileName.substr(2);
     }
-    sRetFileName += sFile;
+    retFileName += file;
 }
 
-bool ConfigGenerator::getConfigList(const string& sList, vector<string>& vReturn, bool bForce, uint uiCurrentFilePos)
+bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnList, bool force, uint currentFilePos)
 {
     // Find List name in file (searches backwards so that it finds the closest definition to where we currently are)
     //   This is in case a list is redefined
-    uint uiStart = m_sConfigureFile.rfind(sList + "=", uiCurrentFilePos);
+    uint start = m_configureFile.rfind(list + "=", currentFilePos);
     // Need to ensure this is the correct list
-    while ((uiStart != string::npos) && (m_sConfigureFile.at(uiStart - 1) != '\n')) {
-        uiStart = m_sConfigureFile.rfind(sList + "=", uiStart - 1);
+    while ((start != string::npos) && (m_configureFile.at(start - 1) != '\n')) {
+        start = m_configureFile.rfind(list + "=", start - 1);
     }
-    if (uiStart == string::npos) {
-        if (bForce) {
-            outputError("Failed finding config list (" + sList + ")");
+    if (start == string::npos) {
+        if (force) {
+            outputError("Failed finding config list (" + list + ")");
         }
         return false;
     }
-    uiStart += sList.length() + 1;
+    start += list.length() + 1;
     // Check if this is a list or a function
-    char cEndList = '\n';
-    if (m_sConfigureFile.at(uiStart) == '"') {
-        cEndList = '"';
-        ++uiStart;
-    } else if (m_sConfigureFile.at(uiStart) == '\'') {
-        cEndList = '\'';
-        ++uiStart;
+    char endList = '\n';
+    if (m_configureFile.at(start) == '"') {
+        endList = '"';
+        ++start;
+    } else if (m_configureFile.at(start) == '\'') {
+        endList = '\'';
+        ++start;
     }
     // Get start of tag
-    uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiStart);
-    while (m_sConfigureFile.at(uiStart) != cEndList) {
+    start = m_configureFile.find_first_not_of(g_whiteSpace, start);
+    while (m_configureFile.at(start) != endList) {
         // Check if this is a function
-        uint uiEnd;
-        if ((m_sConfigureFile.at(uiStart) == '$') && (m_sConfigureFile.at(uiStart + 1) == '(')) {
+        uint end;
+        if ((m_configureFile.at(start) == '$') && (m_configureFile.at(start + 1) == '(')) {
             // Skip $(
-            uiStart += 2;
+            start += 2;
             // Get function name
-            uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-            string sFunction = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+            end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+            string function = m_configureFile.substr(start, end - start);
             // Check if this is a known function
-            if (sFunction.compare("find_things") == 0) {
+            if (function == "find_things") {
                 // Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param1 = m_configureFile.substr(start, end - start);
                 // Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param2 = m_configureFile.substr(start, end - start);
                 // Get file name
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                string param3 = m_configureFile.substr(start, end - start);
                 // Call function find_things
-                if (!passFindThings(sParam1, sParam2, sParam3, vReturn)) {
+                if (!passFindThings(param1, param2, param3, returnList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
-                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
-            } else if (sFunction.compare("find_things_extern") == 0) {
+                end = (m_configureFile.at(end) == ')') ? end + 1 : end;
+            } else if (function == "find_things_extern") {
                 // Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param1 = m_configureFile.substr(start, end - start);
                 // Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param2 = m_configureFile.substr(start, end - start);
                 // Get file name
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                string sParam3 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                string param3 = m_configureFile.substr(start, end - start);
                 // Check for optional 4th argument
-                string sParam4;
-                if ((m_sConfigureFile.at(uiEnd) != ')') &&
-                    (m_sConfigureFile.at(m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd)) != ')')) {
-                    uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                    uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                    sParam4 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                string param4;
+                if ((m_configureFile.at(end) != ')') &&
+                    (m_configureFile.at(m_configureFile.find_first_not_of(g_whiteSpace, end)) != ')')) {
+                    start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                    end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                    param4 = m_configureFile.substr(start, end - start);
                 }
                 // Call function find_things
-                if (!passFindThingsExtern(sParam1, sParam2, sParam3, sParam4, vReturn)) {
+                if (!passFindThingsExtern(param1, param2, param3, param4, returnList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
-                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
-            } else if (sFunction.compare("add_suffix") == 0) {
+                end = (m_configureFile.at(end) == ')') ? end + 1 : end;
+            } else if (function == "add_suffix") {
                 // Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param1 = m_configureFile.substr(start, end - start);
                 // Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                string param2 = m_configureFile.substr(start, end - start);
                 // Call function add_suffix
-                if (!passAddSuffix(sParam1, sParam2, vReturn)) {
+                if (!passAddSuffix(param1, param2, returnList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
-                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
-            } else if (sFunction.compare("filter_out") == 0) {
+                end = (m_configureFile.at(end) == ')') ? end + 1 : end;
+            } else if (function == "filter_out") {
                 // This should filter out occurrence of first parameter from the list passed in the second
-                uint uiStartSearch = uiStart - sList.length() - 5;    // ensure search is before current instance of
-                                                                      // list
+                uint startSearch = start - list.length() - 5;    // ensure search is before current instance of
+                // list
                 // Get first parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace, uiStart + 1);
-                string sParam1 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace, start + 1);
+                string param1 = m_configureFile.substr(start, end - start);
                 // Get second parameter
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                string sParam2 = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                string param2 = m_configureFile.substr(start, end - start);
                 // Call function add_suffix
-                if (!passFilterOut(sParam1, sParam2, vReturn, uiStartSearch)) {
+                if (!passFilterOut(param1, param2, returnList, startSearch)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
-                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
-            } else if (sFunction.compare("find_filters_extern") == 0) {
+                end = (m_configureFile.at(end) == ')') ? end + 1 : end;
+            } else if (function == "find_filters_extern") {
                 // Get file name
-                uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd + 1);
-                uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + ")", uiStart + 1);
-                string sParam = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+                start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
+                end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
+                string param = m_configureFile.substr(start, end - start);
                 // Call function find_filters_extern
-                if (!passFindFiltersExtern(sParam, vReturn)) {
+                if (!passFindFiltersExtern(param, returnList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
-                uiEnd = (m_sConfigureFile.at(uiEnd) == ')') ? uiEnd + 1 : uiEnd;
+                end = (m_configureFile.at(end) == ')') ? end + 1 : end;
             } else {
-                outputError("Unknown list function (" + sFunction + ") found in list (" + sList + ")");
+                outputError("Unknown list function (" + function + ") found in list (" + list + ")");
                 return false;
             }
         } else {
-            uiEnd = m_sConfigureFile.find_first_of(sWhiteSpace + cEndList, uiStart + 1);
+            end = m_configureFile.find_first_of(g_whiteSpace + endList, start + 1);
             // Get the tag
-            string sTag = m_sConfigureFile.substr(uiStart, uiEnd - uiStart);
+            string tag = m_configureFile.substr(start, end - start);
             // Check the type of tag
-            if (sTag.at(0) == '$') {
+            if (tag.at(0) == '$') {
                 // Strip the identifier
-                sTag.erase(0, 1);
+                tag.erase(0, 1);
                 // Recursively pass
-                if (!getConfigList(sTag, vReturn, bForce, uiEnd)) {
+                if (!getConfigList(tag, returnList, force, end)) {
                     return false;
                 }
             } else {
                 // Directly add the identifier
-                vReturn.push_back(sTag);
+                returnList.push_back(tag);
             }
         }
-        uiStart = m_sConfigureFile.find_first_not_of(sWhiteSpace, uiEnd);
+        start = m_configureFile.find_first_not_of(g_whiteSpace, end);
         // If this is not specified as a list then only a '\' will allow for more than 1 line
-        if ((cEndList == '\n') && (m_sConfigureFile.at(uiStart) != '\\')) {
+        if ((endList == '\n') && (m_configureFile.at(start) != '\\')) {
             break;
         }
     }
     return true;
 }
 
-bool ConfigGenerator::passFindThings(const string& sParam1, const string& sParam2, const string& sParam3,
-    vector<string>& vReturn, vector<string>* vReturnExterns)
+bool ConfigGenerator::passFindThings(const string& param1, const string& param2, const string& param3,
+    vector<string>& returnList, vector<string>* returnExterns) const
 {
     // Need to find and open the specified file
-    string sFile = m_sRootDirectory + sParam3;
-    string sFindFile;
-    if (!loadFromFile(sFile, sFindFile)) {
+    const string file = m_rootDirectory + param3;
+    string findFile;
+    if (!loadFromFile(file, findFile)) {
         return false;
     }
-    string sDecl;
+    string decl;
 
     // Find the search pattern in the file
-    uint uiStart = sFindFile.find(sParam2);
-    while (uiStart != string::npos) {
+    uint start = findFile.find(param2);
+    while (start != string::npos) {
         // Find the start of the tag (also as ENCDEC should be treated as both DEC+ENC we skip that as well)
-        uiStart = sFindFile.find_first_of(sWhiteSpace + "(", uiStart + 1);
+        start = findFile.find_first_of(g_whiteSpace + "(", start + 1);
         // Skip any filling white space
-        uiStart = sFindFile.find_first_not_of(" \t", uiStart);
+        start = findFile.find_first_not_of(" \t", start);
         // Check if valid
-        if (sFindFile.at(uiStart) != '(') {
+        if (findFile.at(start) != '(') {
             // Get next
-            uiStart = sFindFile.find(sParam2, uiStart + 1);
+            start = findFile.find(param2, start + 1);
             continue;
         }
-        ++uiStart;
+        ++start;
         // Find end of tag
-        uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
-        if (sFindFile.at(uiEnd) != ',') {
+        uint end = findFile.find_first_of(g_whiteSpace + ",);", start);
+        if (findFile.at(end) != ',') {
             // Get next
-            uiStart = sFindFile.find(sParam2, uiEnd + 1);
+            start = findFile.find(param2, end + 1);
             continue;
         }
         // Get the tag string
-        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        string tag = findFile.substr(start, end - start);
         // Check to make sure this is a definition not a macro declaration
-        if (sTag.compare("X") == 0) {
-            if ((vReturnExterns != NULL) && (sDecl.length() == 0)) {
+        if (tag == "X") {
+            if ((returnExterns != nullptr) && (decl.length() == 0)) {
                 // Get the first occurance of extern then till ; as that gives naming for export as well as type
-                uiStart = sFindFile.find("extern ", uiEnd + 1) + 7;
-                uiEnd = sFindFile.find(';', uiStart + 1);
-                sDecl = sFindFile.substr(uiStart, uiEnd - uiStart);
-                uiStart = sDecl.find("##");
-                while (uiStart != string::npos) {
+                start = findFile.find("extern ", end + 1) + 7;
+                end = findFile.find(';', start + 1);
+                decl = findFile.substr(start, end - start);
+                start = decl.find("##");
+                while (start != string::npos) {
                     char cReplace = '@';
-                    if (sDecl.at(uiStart + 2) == 'y') {
+                    if (decl.at(start + 2) == 'y') {
                         cReplace = '$';
                     }
-                    sDecl.replace(uiStart, ((sDecl.length() - uiStart) > 3) ? 5 : 3, 1, cReplace);
-                    uiStart = sDecl.find("##");
+                    decl.replace(start, ((decl.length() - start) > 3) ? 5 : 3, 1, cReplace);
+                    start = decl.find("##");
                 }
             }
 
             // Get next
-            uiStart = sFindFile.find(sParam2, uiEnd + 1);
+            start = findFile.find(param2, end + 1);
             continue;
         }
         // Get second tag
-        uiStart = sFindFile.find_first_not_of(" \t", uiEnd + 1);
-        uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
-        if ((sFindFile.at(uiEnd) != ')') && (sFindFile.at(uiEnd) != ',')) {
+        start = findFile.find_first_not_of(" \t", end + 1);
+        end = findFile.find_first_of(g_whiteSpace + ",);", start);
+        if ((findFile.at(end) != ')') && (findFile.at(end) != ',')) {
             // Get next
-            uiStart = sFindFile.find(sParam2, uiEnd + 1);
+            start = findFile.find(param2, end + 1);
             continue;
         }
-        string sTag2 = sFindFile.substr(uiStart, uiEnd - uiStart);
-        if (vReturnExterns == NULL) {
+        string tag2 = findFile.substr(start, end - start);
+        if (returnExterns == nullptr) {
             // Check that both tags match
-            transform(sTag2.begin(), sTag2.end(), sTag2.begin(), ::toupper);
-            if (sTag2.compare(sTag) != 0) {
+            transform(tag2.begin(), tag2.end(), tag2.begin(), ::toupper);
+            if (tag2 != tag) {
                 // This is somewhat incorrect as the official configuration will always take the second tag
                 //  and create a config option out of it. This is actually incorrect as the source code itself
                 //  only uses the first parameter as the config option.
-                swap(sTag, sTag2);
+                swap(tag, tag2);
             }
         }
-        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
+        transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
         // Add any requested externs
-        if (vReturnExterns != NULL) {
+        if (returnExterns != nullptr) {
             // Create new extern by replacing tag with found one
-            uiStart = 0;
-            string sDecTag = sDecl;
-            while ((uiStart = sDecTag.find('@', uiStart)) != std::string::npos) {
-                sDecTag.replace(uiStart, 1, sTag2);
-                uiStart += sTag2.length();
+            start = 0;
+            string decTag = decl;
+            while ((start = decTag.find('@', start)) != std::string::npos) {
+                decTag.replace(start, 1, tag2);
+                start += tag2.length();
             }
             // Get any remaining tags and add to extern
-            if (sDecTag.find('$') != string::npos) {
+            if (decTag.find('$') != string::npos) {
                 // Get third tag
-                uiStart = sFindFile.find_first_not_of(" \t", uiEnd + 1);
-                uiEnd = sFindFile.find_first_of(sWhiteSpace + ",);", uiStart);
-                if ((sFindFile.at(uiEnd) != ')') && (sFindFile.at(uiEnd) != ',')) {
+                start = findFile.find_first_not_of(" \t", end + 1);
+                end = findFile.find_first_of(g_whiteSpace + ",);", start);
+                if ((findFile.at(end) != ')') && (findFile.at(end) != ',')) {
                     // Get next
-                    uiStart = sFindFile.find(sParam2, uiEnd + 1);
+                    start = findFile.find(param2, end + 1);
                     continue;
                 }
-                string sTag3 = sFindFile.substr(uiStart, uiEnd - uiStart);
+                string tag3 = findFile.substr(start, end - start);
                 // Replace second tag
-                uiStart = 0;
-                while ((uiStart = sDecTag.find('$', uiStart)) != std::string::npos) {
-                    sDecTag.replace(uiStart, 1, sTag3);
-                    uiStart += sTag3.length();
+                start = 0;
+                while ((start = decTag.find('$', start)) != std::string::npos) {
+                    decTag.replace(start, 1, tag3);
+                    start += tag3.length();
                 }
             }
 
             // Add to the list
-            vReturnExterns->push_back(sDecTag);
+            returnExterns->push_back(decTag);
         }
-        sTag = sTag + "_" + sParam1;
+        tag += "_" + param1;
         // Add the new value to list
-        vReturn.push_back(sTag);
+        returnList.push_back(tag);
         // Get next
-        uiStart = sFindFile.find(sParam2, uiEnd + 1);
+        start = findFile.find(param2, end + 1);
     }
     return true;
 }
 
-bool ConfigGenerator::passFindThingsExtern(
-    const string& sParam1, const string& sParam2, const string& sParam3, const string& sParam4, vector<string>& vReturn)
+bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& param2, const string& param3,
+    const string& param4, vector<string>& returnList) const
 {
     // Need to find and open the specified file
-    string sFile = m_sRootDirectory + sParam3;
-    string sFindFile;
-    if (!loadFromFile(sFile, sFindFile)) {
+    const string file = m_rootDirectory + param3;
+    string findFile;
+    if (!loadFromFile(file, findFile)) {
         return false;
     }
 
     // Find the search pattern in the file
-    string sStartSearch = "extern ";
-    uint uiStart = sFindFile.find(sStartSearch);
-    while (uiStart != string::npos) {
-        uiStart += sStartSearch.length();
+    string startSearch = "extern ";
+    uint start = findFile.find(startSearch);
+    while (start != string::npos) {
+        start += startSearch.length();
         // Skip any occurrence of 'const'
-        if ((sFindFile.at(uiStart) == 'c') && (sFindFile.find("const ", uiStart) == uiStart)) {
-            uiStart += 6;
+        if ((findFile.at(start) == 'c') && (findFile.find("const ", start) == start)) {
+            start += 6;
         }
         // Check for search tag
-        uiStart = sFindFile.find_first_not_of(sWhiteSpace, uiStart);
-        if ((sFindFile.at(uiStart) != sParam2.at(0)) || (sFindFile.find(sParam2, uiStart) != uiStart)) {
+        start = findFile.find_first_not_of(g_whiteSpace, start);
+        if ((findFile.at(start) != param2.at(0)) || (findFile.find(param2, start) != start)) {
             // Get next
-            uiStart = sFindFile.find(sStartSearch, uiStart + 1);
+            start = findFile.find(startSearch, start + 1);
             continue;
         }
-        uiStart += sParam2.length() + 1;
-        uiStart = sFindFile.find_first_not_of(sWhiteSpace, uiStart);
+        start += param2.length() + 1;
+        start = findFile.find_first_not_of(g_whiteSpace, start);
         // Check for function start
-        if ((sFindFile.at(uiStart) != 'f') || (sFindFile.find("ff_", uiStart) != uiStart)) {
+        if ((findFile.at(start) != 'f') || (findFile.find("ff_", start) != start)) {
             // Get next
-            uiStart = sFindFile.find(sStartSearch, uiStart + 1);
+            start = findFile.find(startSearch, start + 1);
             continue;
         }
-        uiStart += 3;
+        start += 3;
         // Find end of tag
-        uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();[]", uiStart);
-        uint uiEnd2 = sFindFile.find("_" + sParam1, uiStart);
-        uiEnd = (uiEnd2 < uiEnd) ? uiEnd2 : uiEnd;
-        if ((sFindFile.at(uiEnd) != '_') || (uiEnd2 != uiEnd)) {
+        uint end = findFile.find_first_of(g_whiteSpace + ",();[]", start);
+        uint end2 = findFile.find("_" + param1, start);
+        end = (end2 < end) ? end2 : end;
+        if ((findFile.at(end) != '_') || (end2 != end)) {
             // Get next
-            uiStart = sFindFile.find(sStartSearch, uiEnd + 1);
+            start = findFile.find(startSearch, end + 1);
             continue;
         }
         // Get the tag string
-        uiEnd += 1 + sParam1.length();
-        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        end += 1 + param1.length();
+        string tag = findFile.substr(start, end - start);
         // Check for any 4th value replacements
-        if (sParam4.length() > 0) {
-            uint uiRep = sTag.find("_" + sParam1);
-            sTag.replace(uiRep, uiRep + 1 + sParam1.length(), "_" + sParam4);
+        if (param4.length() > 0) {
+            const uint rep = tag.find("_" + param1);
+            tag.replace(rep, rep + 1 + param1.length(), "_" + param4);
         }
         // Add the new value to list
-        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
-        vReturn.push_back(sTag);
+        transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
+        returnList.push_back(tag);
         // Get next
-        uiStart = sFindFile.find(sStartSearch, uiEnd + 1);
+        start = findFile.find(startSearch, end + 1);
     }
     return true;
 }
 
-bool ConfigGenerator::passFindFiltersExtern(const string& sParam1, vector<string>& vReturn)
+bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>& returnList) const
 {
     // s/^extern AVFilter ff_([avfsinkrc]{2,5})_([a-zA-Z0-9_]+);/\2_filter/p
     // Need to find and open the specified file
-    const string sFile = m_sRootDirectory + sParam1;
-    string sFindFile;
-    if (!loadFromFile(sFile, sFindFile)) {
+    const string file = m_rootDirectory + param1;
+    string findFile;
+    if (!loadFromFile(file, findFile)) {
         return false;
     }
 
     // Find the search pattern in the file
-    const string sSearch = "extern AVFilter ff_";
-    uint uiStart = sFindFile.find(sSearch);
-    while (uiStart != string::npos) {
+    const string search = "extern AVFilter ff_";
+    uint start = findFile.find(search);
+    while (start != string::npos) {
         // Find the start and end of the tag
-        uiStart += sSearch.length();
+        start += search.length();
         // Find end of tag
-        const uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();", uiStart);
+        const uint end = findFile.find_first_of(g_whiteSpace + ",();", start);
         // Get the tag string
-        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        string tag = findFile.substr(start, end - start);
         // Get first part
-        uiStart = sTag.find("_");
-        if (uiStart == string::npos) {
+        start = tag.find('_');
+        if (start == string::npos) {
             // Get next
-            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            start = findFile.find(search, end + 1);
             continue;
         }
-        const string sFirst = sTag.substr(0, uiStart);
-        if (sFirst.find_first_not_of("avfsinkrc") != string::npos) {
+        const string first = tag.substr(0, start);
+        if (first.find_first_not_of("avfsinkrc") != string::npos) {
             // Get next
-            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            start = findFile.find(search, end + 1);
             continue;
         }
         // Get second part
-        sTag = sTag.substr(++uiStart);
-        transform(sTag.begin(), sTag.end(), sTag.begin(), ::tolower);
-        sTag = sTag + "_filter";
+        tag = tag.substr(++start);
+        transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
+        tag += "_filter";
         // Add the new value to list
-        vReturn.push_back(sTag);
+        returnList.push_back(tag);
         // Get next
-        uiStart = sFindFile.find(sSearch, uiEnd + 1);
+        start = findFile.find(search, end + 1);
     }
     return true;
 }
 
 bool ConfigGenerator::passAddSuffix(
-    const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos)
+    const string& param1, const string& param2, vector<string>& returnList, const uint currentFilePos)
 {
     // Convert the first parameter to upper case
-    string sParam1Upper = sParam1;
-    transform(sParam1Upper.begin(), sParam1Upper.end(), sParam1Upper.begin(), ::toupper);
+    string param1Upper = param1;
+    transform(param1Upper.begin(), param1Upper.end(), param1Upper.begin(), ::toupper);
     // Erase the $ from variable
-    string sParam2Cut = sParam2.substr(1, sParam2.length() - 1);
+    const string param2Cut = param2.substr(1, param2.length() - 1);
     // Just call getConfigList
     vector<string> vTemp;
-    if (getConfigList(sParam2Cut, vTemp, true, uiCurrentFilePos)) {
+    if (getConfigList(param2Cut, vTemp, true, currentFilePos)) {
         // Update with the new suffix and add to the list
-        vector<string>::iterator vitList = vTemp.begin();
-        for (vitList; vitList < vTemp.end(); vitList++) {
-            vReturn.push_back(*vitList + sParam1Upper);
+        for (const auto& i : vTemp) {
+            returnList.push_back(i + param1Upper);
         }
         return true;
     }
@@ -1439,18 +1410,17 @@ bool ConfigGenerator::passAddSuffix(
 }
 
 bool ConfigGenerator::passFilterOut(
-    const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos)
+    const string& param1, const string& param2, vector<string>& returnList, const uint currentFilePos)
 {
     // Remove the "'" from the front and back of first parameter
-    string sParam1Cut = sParam1.substr(1, sParam1.length() - 2);
+    const string param1Cut = param1.substr(1, param1.length() - 2);
     // Erase the $ from variable2
-    string sParam2Cut = sParam2.substr(1, sParam2.length() - 1);
+    const string param2Cut = param2.substr(1, param2.length() - 1);
     // Get the list
-    if (getConfigList(sParam2Cut, vReturn, true, uiCurrentFilePos)) {
-        vector<string>::iterator vitCheckItem = vReturn.begin();
-        for (vitCheckItem; vitCheckItem < vReturn.end(); vitCheckItem++) {
-            if (vitCheckItem->compare(sParam1Cut) == 0) {
-                vReturn.erase(vitCheckItem);
+    if (getConfigList(param2Cut, returnList, true, currentFilePos)) {
+        for (auto checkItem = returnList.begin(); checkItem < returnList.end(); ++checkItem) {
+            if (*checkItem == param1Cut) {
+                returnList.erase(checkItem);
                 // assume only appears once in list
                 break;
             }
@@ -1460,65 +1430,64 @@ bool ConfigGenerator::passFilterOut(
     return false;
 }
 
-bool ConfigGenerator::passFullFilterName(const string& sParam1, string& sReturn)
+bool ConfigGenerator::passFullFilterName(const string& param1, string& returnString) const
 {
     // sed -n "s/^extern AVFilter ff_\([avfsinkrc]\{2,5\}\)_$1;/\1_$1/p"
     // Need to find and open the specified file
-    const string sFile = m_sRootDirectory + "libavfilter/allfilters.c";
-    string sFindFile;
-    if (!loadFromFile(sFile, sFindFile)) {
+    const string file = m_rootDirectory + "libavfilter/allfilters.c";
+    string findFile;
+    if (!loadFromFile(file, findFile)) {
         return false;
     }
 
     // Find the search pattern in the file
-    const string sSearch = "extern AVFilter ff_";
-    uint uiStart = sFindFile.find(sSearch);
-    while (uiStart != string::npos) {
+    const string search = "extern AVFilter ff_";
+    uint start = findFile.find(search);
+    while (start != string::npos) {
         // Find the start and end of the tag
-        uiStart += sSearch.length();
+        start += search.length();
         // Find end of tag
-        const uint uiEnd = sFindFile.find_first_of(sWhiteSpace + ",();", uiStart);
+        const uint end = findFile.find_first_of(g_whiteSpace + ",();", start);
         // Get the tag string
-        string sTag = sFindFile.substr(uiStart, uiEnd - uiStart);
+        string tag = findFile.substr(start, end - start);
         // Get first part
-        uiStart = sTag.find("_");
-        if (uiStart == string::npos) {
+        start = tag.find('_');
+        if (start == string::npos) {
             // Get next
-            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            start = findFile.find(search, end + 1);
             continue;
         }
-        const string sFirst = sTag.substr(0, uiStart);
-        if (sFirst.find_first_not_of("avfsinkrc") != string::npos) {
+        const string first = tag.substr(0, start);
+        if (first.find_first_not_of("avfsinkrc") != string::npos) {
             // Get next
-            uiStart = sFindFile.find(sSearch, uiEnd + 1);
+            start = findFile.find(search, end + 1);
             continue;
         }
         // Get second part
-        string sSecond = sTag.substr(++uiStart);
-        transform(sSecond.begin(), sSecond.end(), sSecond.begin(), ::tolower);
-        if (sSecond.compare(sParam1) == 0) {
-            sReturn = sTag;
-            transform(sReturn.begin(), sReturn.end(), sReturn.begin(), ::tolower);
+        string second = tag.substr(++start);
+        transform(second.begin(), second.end(), second.begin(), ::tolower);
+        if (second == param1) {
+            returnString = tag;
+            transform(returnString.begin(), returnString.end(), returnString.begin(), ::tolower);
             return true;
         }
         // Get next
-        uiStart = sFindFile.find(sSearch, uiEnd + 1);
+        start = findFile.find(search, end + 1);
     }
     return true;
 }
 
-bool ConfigGenerator::passConfigList(const string& sPrefix, const string& sSuffix, const string& sList)
+bool ConfigGenerator::passConfigList(const string& prefix, const string& suffix, const string& list)
 {
-    vector<string> vList;
-    if (getConfigList(sList, vList)) {
+    vector<string> configList;
+    if (getConfigList(list, configList)) {
         // Loop through each member of the list and add it to internal list
-        vector<string>::iterator vitList = vList.begin();
-        for (vitList; vitList < vList.end(); vitList++) {
+        for (const auto& i : configList) {
             // Directly add the identifier
-            string sTag = *vitList;
-            transform(sTag.begin(), sTag.end(), sTag.begin(), ::toupper);
-            sTag = sTag + sSuffix;
-            m_vConfigValues.push_back(ConfigPair(sTag, sPrefix, ""));
+            string tag = i;
+            transform(tag.begin(), tag.end(), tag.begin(), ::toupper);
+            tag += suffix;
+            m_configValues.push_back(ConfigPair(tag, prefix, ""));
         }
         return true;
     }
@@ -1526,187 +1495,173 @@ bool ConfigGenerator::passConfigList(const string& sPrefix, const string& sSuffi
 }
 
 bool ConfigGenerator::passEnabledComponents(
-    const string& sFile, const string& sStruct, const string& sName, const string& sList)
+    const string& file, const string& structName, const string& name, const string& list)
 {
-    outputLine("  Outputting enabled components file " + sFile + "...");
-
-    string sOutput;
+    outputLine("  Outputting enabled components file " + file + "...");
+    string output;
     // Add copywrite header
-    string sNameNice = sName;
-    replace(sNameNice.begin(), sNameNice.end(), '_', ' ');
-    sOutput += getCopywriteHeader("Available items from " + sNameNice);
-    sOutput += '\n';
+    string nameNice = name;
+    replace(nameNice.begin(), nameNice.end(), '_', ' ');
+    output += getCopywriteHeader("Available items from " + nameNice);
+    output += '\n';
 
     // Output header
-    sOutput += "static const " + sStruct + " *" + sName + "[] = {\n";
+    output += "static const " + structName + " *" + name + "[] = {\n";
 
     // Output each element of desired list
-    vector<string> vList;
-    if (!getConfigList(sList, vList)) {
+    vector<string> configList;
+    if (!getConfigList(list, configList)) {
         return false;
     }
 
     // Check if using newer static filter list
-    bool bStaticFilterList = false;
-    if ((sName.compare("filter_list") == 0) &&
-        ((m_sConfigureFile.find("full_filter_name()") != string::npos) ||
-            (m_sConfigureFile.find("$full_filter_name_$") != string::npos))) {
-        bStaticFilterList = true;
+    bool staticFilterList = false;
+    if ((name == "filter_list") &&
+        ((m_configureFile.find("full_filter_name()") != string::npos) ||
+            (m_configureFile.find("$full_filter_name_$") != string::npos))) {
+        staticFilterList = true;
     }
-
-    for (vector<string>::iterator vitList = vList.begin(); vitList < vList.end(); vitList++) {
-        ValuesList::iterator vitOption = getConfigOption(*vitList);
-        if (vitOption->m_sValue.compare("1") == 0) {
-            string sOptionLower = vitOption->m_sOption;
-            transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+    for (const auto& i : configList) {
+        auto option = getConfigOption(i);
+        if (option->m_value == "1") {
+            string optionLower = option->m_option;
+            transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
             // Check for device type replacements
-            if (sName.compare("indev_list") == 0) {
-                uint uiFind = sOptionLower.find("_indev");
-                if (uiFind != string::npos) {
-                    sOptionLower.resize(uiFind);
-                    sOptionLower += "_demuxer";
+            if (name == "indev_list") {
+                uint find = optionLower.find("_indev");
+                if (find != string::npos) {
+                    optionLower.resize(find);
+                    optionLower += "_demuxer";
                 }
-            } else if (sName.compare("outdev_list") == 0) {
-                uint uiFind = sOptionLower.find("_outdev");
-                if (uiFind != string::npos) {
-                    sOptionLower.resize(uiFind);
-                    sOptionLower += "_muxer";
+            } else if (name == "outdev_list") {
+                uint find = optionLower.find("_outdev");
+                if (find != string::npos) {
+                    optionLower.resize(find);
+                    optionLower += "_muxer";
                 }
-            } else if (bStaticFilterList) {
-                uint uiFind = sOptionLower.find("_filter");
-                if (uiFind != string::npos) {
-                    sOptionLower.resize(uiFind);
+            } else if (staticFilterList) {
+                uint find = optionLower.find("_filter");
+                if (find != string::npos) {
+                    optionLower.resize(find);
                 }
-                if (!passFullFilterName(sOptionLower, sOptionLower)) {
+                if (!passFullFilterName(optionLower, optionLower)) {
                     continue;
                 }
             }
             // Check if option requires replacement
-            const DefaultValuesList::iterator replaced =
-                m_mReplaceList.find(vitOption->m_sPrefix + vitOption->m_sOption);
-            if (replaced != m_mReplaceList.end()) {
+            if (m_replaceList.find(option->m_prefix + option->m_option) != m_replaceList.end()) {
                 // Since this is a replaced option we need to wrap it in its config preprocessor
-                sOutput += "#if " + vitOption->m_sPrefix + vitOption->m_sOption + '\n';
-                sOutput += "    &ff_" + sOptionLower + ",\n";
-                sOutput += "#endif\n";
+                output += "#if " + option->m_prefix + option->m_option + '\n';
+                output += "    &ff_" + optionLower + ",\n";
+                output += "#endif\n";
             } else {
-                sOutput += "    &ff_" + sOptionLower + ",\n";
+                output += "    &ff_" + optionLower + ",\n";
             }
         }
     }
-    if (bStaticFilterList) {
-        sOutput += "    &ff_asrc_abuffer,\n";
-        sOutput += "    &ff_vsrc_buffer,\n";
-        sOutput += "    &ff_asink_abuffer,\n";
-        sOutput += "    &ff_vsink_buffer,\n";
+    if (staticFilterList) {
+        output += "    &ff_asrc_abuffer,\n";
+        output += "    &ff_vsrc_buffer,\n";
+        output += "    &ff_asink_abuffer,\n";
+        output += "    &ff_vsink_buffer,\n";
     }
-    sOutput += "    NULL };";
+    output += "    NULL };";
 
     // Open output file
-    writeToFile(m_sSolutionDirectory + sFile, sOutput);
+    writeToFile(m_solutionDirectory + file, output);
     return true;
 }
 
-bool ConfigGenerator::fastToggleConfigValue(const string& sOption, bool bEnable)
+bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool enable)
 {
     // Simply find the element in the list and change its setting
-    string sOptionUpper = sOption;    // Ensure it is in upper case
-    transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
+    string optionUpper = option;    // Ensure it is in upper case
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
     bool bRet = false;
-    ValuesList::iterator vitOption = m_vConfigValues.begin();
-    for (vitOption; vitOption < m_vConfigValues.end();
-         vitOption++)    // Some options appear more than once with different prefixes
-    {
-        if (vitOption->m_sOption.compare(sOptionUpper) == 0) {
-            vitOption->m_sValue = (bEnable) ? "1" : "0";
+    // Some options appear more than once with different prefixes
+    for (auto& i : m_configValues) {
+        if (i.m_option == optionUpper) {
+            i.m_value = (enable) ? "1" : "0";
             bRet = true;
         }
     }
     return bRet;
 }
 
-bool ConfigGenerator::toggleConfigValue(const string& sOption, bool bEnable, bool bRecursive)
+bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable, const bool recursive)
 {
-    string sOptionUpper = sOption;    // Ensure it is in upper case
-    transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
+    string optionUpper = option;    // Ensure it is in upper case
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
-    bool bRet = false;
-    ValuesList::iterator vitOption = m_vConfigValues.begin();
-    for (vitOption; vitOption < m_vConfigValues.end();
-         vitOption++)    // Some options appear more than once with different prefixes
-    {
-        if (vitOption->m_sOption.compare(sOptionUpper) == 0) {
-            bRet = true;
-            if (!vitOption->m_bLock) {
+    bool ret = false;
+    // Some options appear more than once with different prefixes
+    for (auto& i : m_configValues) {
+        if (i.m_option == optionUpper) {
+            ret = true;
+            if (!i.m_lock) {
                 // Lock the item to prevent cyclic conditions
-                vitOption->m_bLock = true;
-                if (bEnable && (vitOption->m_sValue.compare("1") != 0)) {
+                i.m_lock = true;
+                if (enable && (i.m_value != "1")) {
                     // Need to convert the name to lower case
-                    string sOptionLower = sOption;
-                    transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
-                    string sCheckFunc = sOptionLower + "_select";
-                    vector<string> vCheckList;
-                    if (getConfigList(sCheckFunc, vCheckList, false)) {
-                        vector<string>::iterator vitCheckItem = vCheckList.begin();
-                        for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                            toggleConfigValue(*vitCheckItem, true, true);
+                    string optionLower = option;
+                    transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
+                    string checkFunc = optionLower + "_select";
+                    vector<string> checkList;
+                    if (getConfigList(checkFunc, checkList, false)) {
+                        for (const auto& j : checkList) {
+                            toggleConfigValue(j, true, true);
                         }
                     }
 
                     // If enabled then all of these should then be enabled
-                    sCheckFunc = sOptionLower + "_suggest";
-                    vCheckList.resize(0);
-                    if (getConfigList(sCheckFunc, vCheckList, false)) {
-                        vector<string>::iterator vitCheckItem = vCheckList.begin();
-                        for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                            toggleConfigValue(*vitCheckItem, true, true);    // Weak check
+                    checkFunc = optionLower + "_suggest";
+                    checkList.resize(0);
+                    if (getConfigList(checkFunc, checkList, false)) {
+                        for (const auto& j : checkList) {
+                            toggleConfigValue(j, true, true);
                         }
                     }
 
                     // Check for any hard dependencies that must be enabled
-                    vector<string> vForceEnable;
-                    buildForcedEnables(sOptionLower, vForceEnable);
-                    vector<string>::iterator vitForcedItem = vForceEnable.begin();
-                    for (vitForcedItem; vitForcedItem < vForceEnable.end(); vitForcedItem++) {
-                        toggleConfigValue(*vitForcedItem, true, true);
+                    vector<string> forceEnable;
+                    buildForcedEnables(optionLower, forceEnable);
+                    for (const auto& j : forceEnable) {
+                        toggleConfigValue(j, true, true);
                     }
-                } else if (!bEnable && (vitOption->m_sValue.compare("0") != 0)) {
+                } else if (!enable && (i.m_value != "0")) {
                     // Need to convert the name to lower case
-                    string sOptionLower = sOption;
-                    transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+                    string optionLower = option;
+                    transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
                     // Check for any hard dependencies that must be disabled
-                    vector<string> vForceDisable;
-                    buildForcedDisables(sOptionLower, vForceDisable);
-                    vector<string>::iterator vitForcedItem = vForceDisable.begin();
-                    for (vitForcedItem; vitForcedItem < vForceDisable.end(); vitForcedItem++) {
-                        toggleConfigValue(*vitForcedItem, false, true);
+                    vector<string> forceDisable;
+                    buildForcedDisables(optionLower, forceDisable);
+                    for (const auto& j : forceDisable) {
+                        toggleConfigValue(j, false, true);
                     }
                 }
                 // Change the items value
-                vitOption->m_sValue = (bEnable) ? "1" : "0";
+                i.m_value = (enable) ? "1" : "0";
                 // Unlock item
-                vitOption->m_bLock = false;
+                i.m_lock = false;
             }
         }
     }
-    if (!bRet) {
-        DependencyList mAdditionalDependencies;
-        buildAdditionalDependencies(mAdditionalDependencies);
-        DependencyList::iterator mitDep = mAdditionalDependencies.find(sOption);
-        if (bRecursive) {
+    if (!ret) {
+        DependencyList additionalDependencies;
+        buildAdditionalDependencies(additionalDependencies);
+        const auto dep = additionalDependencies.find(option);
+        if (recursive) {
             // Ensure this is not already set
-            if (mitDep == mAdditionalDependencies.end()) {
+            if (dep == additionalDependencies.end()) {
                 // Some options are passed in recursively that do not exist in internal list
                 // However there dependencies should still be processed
-                string sOptionUpper = sOption;
-                transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
-                m_vConfigValues.push_back(ConfigPair(sOptionUpper, "", ""));
-                outputInfo("Unlisted config dependency found (" + sOption + ")");
+                m_configValues.push_back(ConfigPair(optionUpper, "", ""));
+                outputInfo("Unlisted config dependency found (" + option + ")");
             }
         } else {
-            if (mitDep == mAdditionalDependencies.end()) {
-                outputError("Unknown config option (" + sOption + ")");
+            if (dep == additionalDependencies.end()) {
+                outputError("Unknown config option (" + option + ")");
                 return false;
             }
         }
@@ -1714,396 +1669,380 @@ bool ConfigGenerator::toggleConfigValue(const string& sOption, bool bEnable, boo
     return true;
 }
 
-ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOption(const string& sOption)
+ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOption(const string& option)
 {
     // Ensure it is in upper case
-    string sOptionUpper = sOption;
-    transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
+    string optionUpper = option;
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
-    ValuesList::iterator vitValues = m_vConfigValues.begin();
-    for (vitValues; vitValues < m_vConfigValues.end(); vitValues++) {
-        if (vitValues->m_sOption.compare(sOptionUpper) == 0) {
-            return vitValues;
+    auto values = m_configValues.begin();
+    for (; values < m_configValues.end(); ++values) {
+        if (values->m_option == optionUpper) {
+            return values;
         }
     }
-    return vitValues;
+    return values;
 }
 
-ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(const string& sOption)
+ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(const string& option)
 {
     // Ensure it is in upper case
-    string sOptionUpper = sOption;
-    transform(sOptionUpper.begin(), sOptionUpper.end(), sOptionUpper.begin(), ::toupper);
+    string optionUpper = option;
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
-    ValuesList::iterator vitValues = m_vConfigValues.begin();
-    for (vitValues; vitValues < m_vConfigValues.end(); vitValues++) {
-        if (sOptionUpper.compare(vitValues->m_sPrefix + vitValues->m_sOption) == 0) {
-            return vitValues;
+    auto values = m_configValues.begin();
+    for (; values < m_configValues.end(); ++values) {
+        if (optionUpper == values->m_prefix + values->m_option) {
+            return values;
         }
     }
-    return vitValues;
+    return values;
 }
 
-bool ConfigGenerator::isConfigOptionEnabled(const string& sOption)
+bool ConfigGenerator::isConfigOptionEnabled(const string& option)
 {
-    const ValuesList::iterator vitOpt = getConfigOption(sOption);
-    return (vitOpt != m_vConfigValues.end()) && (vitOpt->m_sValue.compare("1") == 0);
+    const ValuesList::iterator opt = getConfigOption(option);
+    return (opt != m_configValues.end()) && (opt->m_value == "1");
 }
 
-bool ConfigGenerator::isConfigOptionValid(const string& sOption)
+bool ConfigGenerator::isConfigOptionValid(const string& option)
 {
-    const ValuesList::iterator vitOpt = getConfigOption(sOption);
-    return vitOpt != m_vConfigValues.end();
+    const ValuesList::iterator opt = getConfigOption(option);
+    return opt != m_configValues.end();
 }
 
-bool ConfigGenerator::isConfigOptionValidPrefixed(const string& sOption)
+bool ConfigGenerator::isConfigOptionValidPrefixed(const string& option)
 {
-    const ValuesList::iterator vitOpt = getConfigOptionPrefixed(sOption);
-    return vitOpt != m_vConfigValues.end();
+    const ValuesList::iterator opt = getConfigOptionPrefixed(option);
+    return opt != m_configValues.end();
 }
 
 bool ConfigGenerator::isASMEnabled()
 {
-    if (isConfigOptionValidPrefixed("HAVE_X86ASM") || isConfigOptionValidPrefixed("HAVE_YASM")) {
-        return true;
-    }
-    return false;
+    return isConfigOptionValidPrefixed("HAVE_X86ASM") || isConfigOptionValidPrefixed("HAVE_YASM");
 }
 
-bool ConfigGenerator::getMinWindowsVersion(uint& uiMajor, uint& uiMinor)
+bool ConfigGenerator::getMinWindowsVersion(uint& major, uint& minor) const
 {
-    const string sSearch = "cppflags -D_WIN32_WINNT=0x";
-    uint uiPos = m_sConfigureFile.find(sSearch);
-    uint uiMajorT = 10;    // Initially set minimum version to Win 10
-    uint uiMinorT = 0;
-    bool bFound = false;
-    while (uiPos != string::npos) {
-        uiPos += sSearch.length();
-        uint uiEndPos = m_sConfigureFile.find_first_of(sNonName, uiPos);
+    const string search = "cppflags -D_WIN32_WINNT=0x";
+    uint pos = m_configureFile.find(search);
+    uint majorT = 10;    // Initially set minimum version to Win 10
+    uint minorT = 0;
+    bool found = false;
+    while (pos != string::npos) {
+        pos += search.length();
+        const uint endPos = m_configureFile.find_first_of(g_nonName, pos);
         // Check if valid version tag
-        if ((uiEndPos - uiPos) != 4) {
-            outputInfo("Unknown windows version string found (" + sSearch + ")");
+        if ((endPos - pos) != 4) {
+            outputInfo("Unknown windows version string found (" + search + ")");
         } else {
-            const string sVersionMajor = m_sConfigureFile.substr(uiPos, 2);
+            const string versionMajor = m_configureFile.substr(pos, 2);
             // Convert to int from hex string
-            uint uiVersionMajor = stoul(sVersionMajor, 0, 16);
+            const uint major2 = stoul(versionMajor, nullptr, 16);
             // Check if new version is less than current
-            if (uiVersionMajor <= uiMajorT) {
-                const string sVersionMinor = m_sConfigureFile.substr(uiPos + 2, 2);
-                uint uiVersionMinor = stoul(sVersionMinor, 0, 16);
-                if ((uiVersionMajor < uiMajorT) || (uiVersionMinor < uiMinorT)) {
+            if (major2 <= majorT) {
+                const string versionMinor = m_configureFile.substr(pos + 2, 2);
+                const uint minor2 = stoul(versionMinor, nullptr, 16);
+                if ((major2 < majorT) || (minor2 < minorT)) {
                     // Update best found version
-                    uiMajorT = uiVersionMajor;
-                    uiMinorT = uiVersionMinor;
-                    bFound = true;
+                    majorT = major2;
+                    minorT = minor2;
+                    found = true;
                 }
             }
         }
         // Get next
-        uiPos = m_sConfigureFile.find(sSearch, uiEndPos + 1);
+        pos = m_configureFile.find(search, endPos + 1);
     }
-    if (bFound) {
-        uiMajor = uiMajorT;
-        uiMinor = uiMinorT;
+    if (found) {
+        major = majorT;
+        minor = minorT;
     }
-    return bFound;
+    return found;
 }
 
-bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator vitOption)
+bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator option)
 {
     // Need to convert the name to lower case
-    string sOptionLower = vitOption->m_sOption;
-    transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
+    string optionLower = option->m_option;
+    transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
 
     // Get list of additional dependencies
-    DependencyList mAdditionalDependencies;
-    buildAdditionalDependencies(mAdditionalDependencies);
+    DependencyList additionalDependencies;
+    buildAdditionalDependencies(additionalDependencies);
 
     // Check if disabled
-    if (vitOption->m_sValue.compare("1") != 0) {
+    if (option->m_value != "1") {
         // Enabled if any of these
-        string sCheckFunc = sOptionLower + "_if_any";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        string checkFunc = optionLower + "_if_any";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            for (auto& i : checkList) {
                 // Check if this is a not !
                 bool bToggle = false;
-                if (vitCheckItem->at(0) == '!') {
-                    vitCheckItem->erase(0);
+                if (i.at(0) == '!') {
+                    i.erase(0);
                     bToggle = true;
                 }
-                bool bEnabled;
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo("Unknown option in ifa dependency (" + *vitCheckItem + ") for option (" +
-                            sOptionLower + ")");
-                        bEnabled = false;
+                bool enabled;
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo("Unknown option in ifa dependency (" + i + ") for option (" + optionLower + ")");
+                        enabled = false;
                     } else {
-                        bEnabled = mitDep->second ^ bToggle;
+                        enabled = dep->second ^ bToggle;
                     }
                 } else {
                     // Check if this variable has been initialized already
-                    if (vitTemp > vitOption) {
-                        if (!passDependencyCheck(vitTemp)) {
+                    if (temp > option) {
+                        if (!passDependencyCheck(temp)) {
                             return false;
                         }
                     }
-                    bEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                    enabled = (temp->m_value == "1") ^ bToggle;
                 }
-                if (bEnabled) {
+                if (enabled) {
                     // If any deps are enabled then enable
-                    toggleConfigValue(sOptionLower, true);
+                    toggleConfigValue(optionLower, true);
                     break;
                 }
             }
         }
     }
     // Check if still disabled
-    if (vitOption->m_sValue.compare("1") != 0) {
+    if (option->m_value != "1") {
         // Should be enabled if all of these
-        string sCheckFunc = sOptionLower + "_if";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            bool bAllEnabled = true;
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        string checkFunc = optionLower + "_if";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            bool allEnabled = true;
+            for (auto& i : checkList) {
                 // Check if this is a not !
-                bool bToggle = false;
-                if (vitCheckItem->at(0) == '!') {
-                    vitCheckItem->erase(0);
-                    bToggle = true;
+                bool toggle = false;
+                if (i.at(0) == '!') {
+                    i.erase(0);
+                    toggle = true;
                 }
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo("Unknown option in if dependency (" + *vitCheckItem + ") for option (" +
-                            sOptionLower + ")");
-                        bAllEnabled = false;
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo("Unknown option in if dependency (" + i + ") for option (" + optionLower + ")");
+                        allEnabled = false;
                     } else {
-                        bAllEnabled = mitDep->second ^ bToggle;
+                        allEnabled = dep->second ^ toggle;
                     }
                 } else {
                     // Check if this variable has been initialized already
-                    if (vitTemp > vitOption) {
-                        if (!passDependencyCheck(vitTemp)) {
+                    if (temp > option) {
+                        if (!passDependencyCheck(temp)) {
                             return false;
                         }
                     }
-                    bAllEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                    allEnabled = (temp->m_value == "1") ^ toggle;
                 }
-                if (!bAllEnabled) {
+                if (!allEnabled) {
                     break;
                 }
             }
-            if (bAllEnabled) {
+            if (allEnabled) {
                 // If all deps are enabled then enable
-                toggleConfigValue(sOptionLower, true);
+                toggleConfigValue(optionLower, true);
             }
         }
     }
     // Perform dependency check if enabled
-    if (vitOption->m_sValue.compare("1") == 0) {
+    if (option->m_value == "1") {
         // The following are the needed dependencies that must be enabled
-        string sCheckFunc = sOptionLower + "_deps";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        string checkFunc = optionLower + "_deps";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            for (auto& i : checkList) {
                 // Check if this is a not !
-                bool bToggle = false;
-                if (vitCheckItem->at(0) == '!') {
-                    vitCheckItem->erase(0, 1);
-                    bToggle = true;
+                bool toggle = false;
+                if (i.at(0) == '!') {
+                    i.erase(0, 1);
+                    toggle = true;
                 }
-                bool bEnabled;
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo(
-                            "Unknown option in dependency (" + *vitCheckItem + ") for option (" + sOptionLower + ")");
-                        bEnabled = false;
+                bool enabled;
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo("Unknown option in dependency (" + i + ") for option (" + optionLower + ")");
+                        enabled = false;
                     } else {
-                        bEnabled = mitDep->second ^ bToggle;
+                        enabled = dep->second ^ toggle;
                     }
                 } else {
                     // Check if this variable has been initialized already
-                    if (vitTemp > vitOption) {
-                        if (!passDependencyCheck(vitTemp)) {
+                    if (temp > option) {
+                        if (!passDependencyCheck(temp)) {
                             return false;
                         }
                     }
-                    bEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                    enabled = (temp->m_value == "1") ^ toggle;
                 }
                 // If not all deps are enabled then disable
-                if (!bEnabled) {
-                    toggleConfigValue(sOptionLower, false);
+                if (!enabled) {
+                    toggleConfigValue(optionLower, false);
                     break;
                 }
             }
         }
     }
     // Perform dependency check if still enabled
-    if (vitOption->m_sValue.compare("1") == 0) {
+    if (option->m_value == "1") {
         // Any 1 of the following dependencies are needed
-        string sCheckFunc = sOptionLower + "_deps_any";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            bool bAnyEnabled = false;
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        string checkFunc = optionLower + "_deps_any";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            bool anyEnabled = false;
+            for (auto& i : checkList) {
                 // Check if this is a not !
-                bool bToggle = false;
-                if (vitCheckItem->at(0) == '!') {
-                    vitCheckItem->erase(0);
-                    bToggle = true;
+                bool toggle = false;
+                if (i.at(0) == '!') {
+                    i.erase(0);
+                    toggle = true;
                 }
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo("Unknown option in any dependency (" + *vitCheckItem + ") for option (" +
-                            sOptionLower + ")");
-                        bAnyEnabled = false;
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo("Unknown option in any dependency (" + i + ") for option (" + optionLower + ")");
+                        anyEnabled = false;
                     } else {
-                        bAnyEnabled = mitDep->second ^ bToggle;
+                        anyEnabled = dep->second ^ toggle;
                     }
                 } else {
                     // Check if this variable has been initialized already
-                    if (vitTemp > vitOption) {
-                        if (!passDependencyCheck(vitTemp)) {
+                    if (temp > option) {
+                        if (!passDependencyCheck(temp)) {
                             return false;
                         }
                     }
-                    bAnyEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                    anyEnabled = (temp->m_value == "1") ^ toggle;
                 }
-                if (bAnyEnabled) {
+                if (anyEnabled) {
                     break;
                 }
             }
-            if (!bAnyEnabled) {
+            if (!anyEnabled) {
                 // If not a single dep is enabled then disable
-                toggleConfigValue(sOptionLower, false);
+                toggleConfigValue(optionLower, false);
             }
         }
     }
     // Perform dependency check if still enabled
-    if (vitOption->m_sValue.compare("1") == 0) {
+    if (option->m_value == "1") {
         // If conflict items are enabled then this one must be disabled
-        string sCheckFunc = sOptionLower + "_conflict";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            bool bAnyEnabled = false;
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        string checkFunc = optionLower + "_conflict";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            bool anyEnabled = false;
+            for (auto& i : checkList) {
                 // Check if this is a not !
-                bool bToggle = false;
-                if (vitCheckItem->at(0) == '!') {
-                    vitCheckItem->erase(0);
-                    bToggle = true;
+                bool toggle = false;
+                if (i.at(0) == '!') {
+                    i.erase(0);
+                    toggle = true;
                 }
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo("Unknown option in conflict dependency (" + *vitCheckItem + ") for option (" +
-                            sOptionLower + ")");
-                        bAnyEnabled = false;
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo(
+                            "Unknown option in conflict dependency (" + i + ") for option (" + optionLower + ")");
+                        anyEnabled = false;
                     } else {
-                        bAnyEnabled = mitDep->second ^ bToggle;
+                        anyEnabled = dep->second ^ toggle;
                     }
                 } else {
                     // Check if this variable has been initialized already
-                    if (vitTemp > vitOption) {
-                        if (!passDependencyCheck(vitTemp)) {
+                    if (temp > option) {
+                        if (!passDependencyCheck(temp)) {
                             return false;
                         }
                     }
-                    bAnyEnabled = (vitTemp->m_sValue.compare("1") == 0) ^ bToggle;
+                    anyEnabled = (temp->m_value == "1") ^ toggle;
                 }
-                if (bAnyEnabled) {
+                if (anyEnabled) {
                     break;
                 }
             }
-            if (bAnyEnabled) {
+            if (anyEnabled) {
                 // If a single conflict is enabled then disable
-                toggleConfigValue(sOptionLower, false);
+                toggleConfigValue(optionLower, false);
             }
         }
     }
     // Perform dependency check if still enabled
-    if (vitOption->m_sValue.compare("1") == 0) {
+    if (option->m_value == "1") {
         // All select items are enabled when this item is enabled. If one of them has since been disabled then so must
         // this one
-        string sCheckFunc = sOptionLower + "_select";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if (vitTemp == m_vConfigValues.end()) {
-                    DependencyList::iterator mitDep = mAdditionalDependencies.find(*vitCheckItem);
-                    if (mitDep == mAdditionalDependencies.end()) {
-                        outputInfo("Unknown option in select dependency (" + *vitCheckItem + ") for option (" +
-                            sOptionLower + ")");
+        string checkFunc = optionLower + "_select";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            for (auto& i : checkList) {
+                auto temp = getConfigOption(i);
+                if (temp == m_configValues.end()) {
+                    auto dep = additionalDependencies.find(i);
+                    if (dep == additionalDependencies.end()) {
+                        outputInfo("Unknown option in select dependency (" + i + ") for option (" + optionLower + ")");
                     }
-                    if (!mitDep->second) {
+                    if (!dep->second) {
                         // If any deps are disabled then disable
-                        toggleConfigValue(sOptionLower, false);
+                        toggleConfigValue(optionLower, false);
                     }
                     continue;
                 }
                 // Check if this variable has been initialized already
-                if (vitTemp > vitOption) {
+                if (temp > option) {
                     // Enable it if it is not currently initialised
-                    if (vitTemp->m_sValue.length() == 0) {
-                        string sOptionLower2 = vitTemp->m_sOption;
-                        transform(sOptionLower2.begin(), sOptionLower2.end(), sOptionLower2.begin(), ::tolower);
-                        toggleConfigValue(sOptionLower2, true);
+                    if (temp->m_value.length() == 0) {
+                        string optionLower2 = temp->m_option;
+                        transform(optionLower2.begin(), optionLower2.end(), optionLower2.begin(), ::tolower);
+                        toggleConfigValue(optionLower2, true);
                     }
-                    if (!passDependencyCheck(vitTemp)) {
+                    if (!passDependencyCheck(temp)) {
                         return false;
                     }
                 }
-                if (vitTemp->m_sValue.compare("0") == 0) {
+                if (temp->m_value == "0") {
                     // If any deps are disabled then disable
-                    toggleConfigValue(sOptionLower, false);
+                    toggleConfigValue(optionLower, false);
                     break;
                 }
             }
         }
     }
     // Enable any required deps if still enabled
-    if (vitOption->m_sValue.compare("1") == 0) {
-        string sCheckFunc = sOptionLower + "_select";
-        vector<string> vCheckList;
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                toggleConfigValue(*vitCheckItem, true);
+    if (option->m_value == "1") {
+        string checkFunc = optionLower + "_select";
+        vector<string> checkList;
+        if (getConfigList(checkFunc, checkList, false)) {
+            for (auto& i : checkList) {
+                toggleConfigValue(i, true);
             }
         }
 
         // If enabled then all of these should then be enabled (if not already forced disabled)
-        sCheckFunc = sOptionLower + "_suggest";
-        vCheckList.resize(0);
-        if (getConfigList(sCheckFunc, vCheckList, false)) {
-            vector<string>::iterator vitCheckItem = vCheckList.begin();
-            for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
+        checkFunc = optionLower + "_suggest";
+        checkList.resize(0);
+        if (getConfigList(checkFunc, checkList, false)) {
+            for (auto& i : checkList) {
                 // Only enable if not forced to disable
-                ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                if ((vitTemp != m_vConfigValues.end()) && (vitTemp->m_sValue.compare("0") != 0)) {
-                    toggleConfigValue(*vitCheckItem, true);    // Weak check
+                auto temp = getConfigOption(i);
+                if ((temp != m_configValues.end()) && (temp->m_value != "0")) {
+                    toggleConfigValue(i, true);    // Weak check
                 }
             }
         }
     } else {
         // Ensure the option is not in an uninitialised state
-        toggleConfigValue(sOptionLower, false);
+        toggleConfigValue(optionLower, false);
     }
     return true;
 }

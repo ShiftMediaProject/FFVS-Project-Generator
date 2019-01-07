@@ -24,6 +24,7 @@
 #include "helperFunctions.h"
 
 #include <map>
+#include <utility>
 #include <vector>
 
 class ConfigGenerator
@@ -37,38 +38,39 @@ private:
         friend class ProjectGenerator;
 
     private:
-        string m_sOption;
-        string m_sPrefix;
-        string m_sValue;
-        bool m_bLock;
+        string m_option;
+        string m_prefix;
+        string m_value;
+        bool m_lock;
 
-        ConfigPair(const string& sOption, const string& sPrefix, const string& sValue)
-            : m_sOption(sOption)
-            , m_sPrefix(sPrefix)
-            , m_sValue(sValue)
-            , m_bLock(false)
+        ConfigPair(string option, string prefix, string value)
+            : m_option(std::move(option))
+            , m_prefix(std::move(prefix))
+            , m_value(std::move(value))
+            , m_lock(false)
         {}
     };
-    typedef vector<ConfigPair> ValuesList;
+
+    using ValuesList = vector<ConfigPair>;
     typedef map<string, string> DefaultValuesList;
     typedef map<string, bool> DependencyList;
     typedef map<string, vector<string>> OptimisedConfigList;
 
-    ValuesList m_vFixedConfigValues;
-    ValuesList m_vConfigValues;
-    uint m_uiConfigValuesEnd;
-    string m_sConfigureFile;
-    string m_sToolchain;
-    bool m_bLibav;
-    string m_sProjectName;
-    string m_sRootDirectory;
-    string m_sSolutionDirectory;
-    string m_sOutDirectory;
-    bool m_bDCEOnly;
-    bool m_bUsingExistingConfig;
-    DefaultValuesList m_mReplaceList;
-    DefaultValuesList m_mASMReplaceList;
-    bool m_bUseNASM;
+    ValuesList m_fixedConfigValues;
+    ValuesList m_configValues;
+    uint m_configValuesEnd{};
+    string m_configureFile;
+    string m_toolchain;
+    bool m_isLibav{false};
+    string m_projectName;
+    string m_rootDirectory;
+    string m_solutionDirectory;
+    string m_outDirectory;
+    bool m_onlyDCE{false};
+    bool m_usingExistingConfig{false};
+    DefaultValuesList m_replaceList;
+    DefaultValuesList m_replaceListASM;
+    bool m_useNASM{true};
 
 public:
     /** Default constructor. */
@@ -89,7 +91,7 @@ public:
     bool outputConfig();
 
     /** Deletes any files that may have been previously created by outputConfig. */
-    void deleteCreatedFiles();
+    void deleteCreatedFiles() const;
 
 private:
     /**
@@ -106,10 +108,10 @@ private:
 
     /**
      * Change configuration options.
-     * @param stOption The option to change.
+     * @param option The option to change.
      * @return True if it succeeds, false if it fails.
      */
-    bool changeConfig(const string& stOption);
+    bool changeConfig(const string& option);
 
     /**
      * Checks current config values and performs validation of requirements.
@@ -120,120 +122,121 @@ private:
     /**
      * Makes a files path relative to the project directory.
      * @remark Assumes input file path is relative to the generator.
-     * @param       sFileName    Filename of the file.
-     * @param [out] sRetFileName Filename with the path modified.
+     * @param       fileName    Filename of the file.
+     * @param [out] retFileName Filename with the path modified.
      */
-    void makeFileProjectRelative(const string& sFileName, string& sRetFileName);
+    void makeFileProjectRelative(const string& fileName, string& retFileName) const;
 
     /**
      * Makes a files path relative to the generator directory.
      * @remark Assumes input file path is relative to the project.
-     * @param       sFileName    Filename of the file.
-     * @param [out] sRetFileName Filename with the path modified.
+     * @param       fileName    Filename of the file.
+     * @param [out] retFileName Filename with the path modified.
      */
-    void makeFileGeneratorRelative(const string& sFileName, string& sRetFileName);
+    void makeFileGeneratorRelative(const string& fileName, string& retFileName) const;
 
-    void buildFixedValues(DefaultValuesList& mFixedValues);
+    static void buildFixedValues(DefaultValuesList& fixedValues);
 
     /**
      * Builds a list of configuration options that need to be replaced with the returned values.
-     * @param [in,out] mReplaceValues    The replace values for config.h.
-     * @param [in,out] mASMReplaceValues The replace values for config.asm.
+     * @param [in,out] replaceValues    The replace values for config.h.
+     * @param [in,out] header           The header that must be output at top of config file.
+     * @param [in,out] replaceValuesASM The replace values for config.asm.
      */
-    void buildReplaceValues(DefaultValuesList& mReplaceValues, DefaultValuesList& mASMReplaceValues);
+    void buildReplaceValues(DefaultValuesList& replaceValues, string& header, DefaultValuesList& replaceValuesASM);
 
     /**
      * Creates a list of config items that are automatically set and should be be set by the user.
-     * @param [out] vReservedItems The reserved items.
+     * @param [out] reservedItems The reserved items.
      */
-    void buildReservedValues(vector<string>& vReservedItems);
+    static void buildReservedValues(vector<string>& reservedItems);
 
     /**
      * Creates a list of additional config option dependencies that are not available as actual config options.
-     * @param [out] mAdditionalDependencies The additional dependencies.
+     * @param [out] additionalDependencies The additional dependencies.
      */
-    void buildAdditionalDependencies(DependencyList& mAdditionalDependencies);
+    void buildAdditionalDependencies(DependencyList& additionalDependencies);
 
     /**
      * Creates a list of components that can be disabled based on the current configuration as better alternatives are
      * enabled.
-     * @param [in,out] mOptimisedDisables The optimised disables.
+     * @param [in,out] optimisedDisables The optimised disables.
      */
-    void buildOptimisedDisables(OptimisedConfigList& mOptimisedDisables);
+    static void buildOptimisedDisables(OptimisedConfigList& optimisedDisables);
 
     /**
      * Creates a list of config options that must be forced to be enabled if the specified option is enabled.
-     * @param          sOptionLower The enabled option (in lower case).
-     * @param [in,out] vForceEnable The forced enable options.
+     * @param          optionLower The enabled option (in lower case).
+     * @param [in,out] forceEnable The forced enable options.
      */
-    void buildForcedEnables(string sOptionLower, vector<string>& vForceEnable);
+    void buildForcedEnables(string optionLower, vector<string>& forceEnable);
 
     /**
      * Creates a list of config options that must be forced to be disabled if the specified option is disabled.
-     * @param          sOptionLower The disabled option (in lower case).
-     * @param [in,out] vForceEnable The forced enable options.
+     * @param          optionLower  The disabled option (in lower case).
+     * @param [in,out] forceDisable The forced disable options.
      */
-    void buildForcedDisables(string sOptionLower, vector<string>& vForceDisable);
+    void buildForcedDisables(const string& optionLower, vector<string>& forceDisable);
 
     /**
      * Creates a list of command line arguments that must be handled before all others.
-     * @param [out] vEarlyArgs The early arguments.
+     * @param [out] earlyArgs The early arguments.
      */
-    void buildEarlyConfigArgs(vector<string>& vEarlyArgs);
+    static void buildEarlyConfigArgs(vector<string>& earlyArgs);
 
-    void buildObjects(const string& sTag, vector<string>& vObjects);
+    void buildObjects(const string& tag, vector<string>& objects);
 
     bool getConfigList(
-        const string& sList, vector<string>& vReturn, bool bForce = true, uint uiCurrentFilePos = string::npos);
+        const string& list, vector<string>& returnList, bool force = true, uint currentFilePos = string::npos);
 
     /**
      * Perform the equivalent of configures find_things function.
-     * @param          sParam1        The first parameter.
-     * @param          sParam2        The second parameter.
-     * @param          sParam3        The third parameter.
-     * @param [in,out] vReturn        Returns any detected configure defines.
-     * @param [in,out] vReturnExterns (Optional) If non-null, returns any detected extern variables.
+     * @param          param1        The first parameter.
+     * @param          param2        The second parameter.
+     * @param          param3        The third parameter.
+     * @param [in,out] returnList    Returns any detected configure defines.
+     * @param [in,out] returnExterns (Optional) If non-null, returns any detected extern variables.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindThings(const string& sParam1, const string& sParam2, const string& sParam3, vector<string>& vReturn,
-        vector<string>* vReturnExterns = NULL);
+    bool passFindThings(const string& param1, const string& param2, const string& param3, vector<string>& returnList,
+        vector<string>* returnExterns = nullptr) const;
 
     /**
      * Perform the equivalent of configures find_things_extern function.
-     * @param          sParam1 The first parameter.
-     * @param          sParam2 The second parameter.
-     * @param          sParam3 The third parameter.
-     * @param          sParam4 The fourth parameter.
-     * @param [in,out] vReturn Returns any detected configure defines.
+     * @param          param1     The first parameter.
+     * @param          param2     The second parameter.
+     * @param          param3     The third parameter.
+     * @param          param4     The fourth parameter.
+     * @param [in,out] returnList Returns any detected configure defines.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindThingsExtern(const string& sParam1, const string& sParam2, const string& sParam3,
-        const string& sParam4, vector<string>& vReturn);
+    bool passFindThingsExtern(const string& param1, const string& param2, const string& param3, const string& param4,
+        vector<string>& returnList) const;
 
     /**
      * Perform the equivalent of configures find_filters_extern function.
-     * @param          sParam1      The first parameter.
-     * @param [in,out] vReturn      Returns any detected configure defines.
+     * @param          param1     The first parameter.
+     * @param [in,out] returnList Returns any detected configure defines.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFindFiltersExtern(const string& sParam1, vector<string>& vReturn);
+    bool passFindFiltersExtern(const string& param1, vector<string>& returnList) const;
 
     bool passAddSuffix(
-        const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos = string::npos);
+        const string& param1, const string& param2, vector<string>& returnList, uint currentFilePos = string::npos);
 
-    bool passFilterOut(const string& sParam1, const string& sParam2, vector<string>& vReturn, uint uiCurrentFilePos);
+    bool passFilterOut(const string& param1, const string& param2, vector<string>& returnList, uint currentFilePos);
 
     /**
      * Perform the equivalent of configures full_filter_name function.
-     * @param          sParam1 The first parameter.
-     * @param [in,out] sReturn The return.
+     * @param          param1       The first parameter.
+     * @param [in,out] returnString The return.
      * @return True if it succeeds, false if it fails.
      */
-    bool passFullFilterName(const string& sParam1, string& sReturn);
+    bool passFullFilterName(const string& param1, string& returnString) const;
 
-    bool passConfigList(const string& sPrefix, const string& sSuffix, const string& sList);
+    bool passConfigList(const string& prefix, const string& suffix, const string& list);
 
-    bool passEnabledComponents(const string& sFile, const string& sStruct, const string& sName, const string& sList);
+    bool passEnabledComponents(const string& file, const string& structName, const string& name, const string& list);
 
     /**
      * Sets up all default starting config values.
@@ -249,54 +252,54 @@ private:
 
     /**
      * Update configuration option without performing any dependency option checks.
-     * @param sOption The option to update.
-     * @param bEnable True to enable, false to disable.
+     * @param option The option to update.
+     * @param enable True to enable, false to disable.
      * @return True if it succeeds, false if it fails.
      */
-    bool fastToggleConfigValue(const string& sOption, bool bEnable);
+    bool fastToggleConfigValue(const string& option, bool enable);
 
     /**
      * Update configuration option and perform any dependency option updates as well.
-     * @param sOption The option to update.
-     * @param bEnable True to enable, false to disable.
+     * @param option The option to update.
+     * @param enable True to enable, false to disable.
      * @return True if it succeeds, false if it fails.
      */
-    bool toggleConfigValue(const string& sOption, bool bEnable, bool bRecursive = false);
+    bool toggleConfigValue(const string& option, bool enable, bool recursive = false);
 
     /**
      * Gets configuration option.
-     * @param sOption The options name.
-     * @return The configuration option, m_vConfigValues.end() if option not found.
+     * @param option The options name.
+     * @return The configuration option, m_configValues.end() if option not found.
      */
-    ValuesList::iterator getConfigOption(const string& sOption);
+    ValuesList::iterator getConfigOption(const string& option);
 
     /**
      * Gets configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) included.
-     * @param sOption The options name.
-     * @return The configuration option, m_vConfigValues.end() if option not found.
+     * @param option The options name.
+     * @return The configuration option, m_configValues.end() if option not found.
      */
-    ValuesList::iterator getConfigOptionPrefixed(const string& sOption);
+    ValuesList::iterator getConfigOptionPrefixed(const string& option);
 
     /**
      * Queries if a configuration option is enabled.
-     * @param sOption The option.
+     * @param option The option.
      * @return True if the configuration option is enabled, false if not.
      */
-    bool isConfigOptionEnabled(const string& sOption);
+    bool isConfigOptionEnabled(const string& option);
 
     /**
      * Queries if a configuration option exists.
-     * @param sOption The option.
+     * @param option The option.
      * @return True if the configuration option is valid, false if not.
      */
-    bool isConfigOptionValid(const string& sOption);
+    bool isConfigOptionValid(const string& option);
 
     /**
      * Queries if a configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) exists.
-     * @param sOption The option.
+     * @param option The option.
      * @return True if the configuration option is valid, false if not.
      */
-    bool isConfigOptionValidPrefixed(const string& sOption);
+    bool isConfigOptionValidPrefixed(const string& option);
 
     /**
      * Queries if assembly is enabled.
@@ -306,13 +309,13 @@ private:
 
     /**
      * Gets minimum supported windows version from config file.
-     * @param [out] uiMajor The version number major.
-     * @param [out] uiMinor The version number minor.
+     * @param [out] major The version number major.
+     * @param [out] minor The version number minor.
      * @return True if it succeeds, false if it fails.
      */
-    bool getMinWindowsVersion(uint& uiMajor, uint& uiMinor);
+    bool getMinWindowsVersion(uint& major, uint& minor) const;
 
-    bool passDependencyCheck(const ValuesList::iterator vitOption);
+    bool passDependencyCheck(ValuesList::iterator option);
 };
 
 #endif

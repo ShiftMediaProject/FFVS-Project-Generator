@@ -25,55 +25,52 @@
 bool ConfigGenerator::buildDefaultValues()
 {
     // Set any unset project values
-    if (m_sSolutionDirectory.length() == 0) {
-        if (!m_bDCEOnly) {
-            m_sSolutionDirectory = m_sRootDirectory + "SMP/";
+    if (m_solutionDirectory.length() == 0) {
+        if (!m_onlyDCE) {
+            m_solutionDirectory = m_rootDirectory + "SMP/";
         } else {
-            m_sSolutionDirectory = m_sRootDirectory;
+            m_solutionDirectory = m_rootDirectory;
         }
     }
-    if (m_sOutDirectory.length() == 0) {
-        m_sOutDirectory = "../../../msvc/";
+    if (m_outDirectory.length() == 0) {
+        m_outDirectory = "../../../msvc/";
     }
 
     // configurable options
-    vector<string> vList;
-    if (!getConfigList("PROGRAM_LIST", vList)) {
+    vector<string> list;
+    if (!getConfigList("PROGRAM_LIST", list)) {
         return false;
     }
     // Enable all programs
-    vector<string>::iterator vitValues = vList.begin();
-    for (vitValues; vitValues < vList.end(); vitValues++) {
-        toggleConfigValue(*vitValues, true);
+    for (const auto& i : list) {
+        toggleConfigValue(i, true);
     }
     // Enable all libraries
-    vList.resize(0);
-    if (!getConfigList("LIBRARY_LIST", vList)) {
+    list.resize(0);
+    if (!getConfigList("LIBRARY_LIST", list)) {
         return false;
     }
-    vitValues = vList.begin();
-    for (vitValues; vitValues < vList.end(); vitValues++) {
-        if (!m_bLibav && vitValues->compare("avresample") != 0) {
-            toggleConfigValue(*vitValues, true);
+    for (const auto& i : list) {
+        if (!m_isLibav && i != "avresample") {
+            toggleConfigValue(i, true);
         }
     }
     // Enable all components
-    vList.resize(0);
-    vector<string> vList2;
-    if (!getConfigList("COMPONENT_LIST", vList)) {
+    list.resize(0);
+    vector<string> list2;
+    if (!getConfigList("COMPONENT_LIST", list)) {
         return false;
     }
-    vitValues = vList.begin();
-    for (vitValues; vitValues < vList.end(); vitValues++) {
-        toggleConfigValue(*vitValues, true);
+    for (auto& i : list) {
+        toggleConfigValue(i, true);
         // Get the corresponding list and enable all member elements as well
-        vitValues->resize(vitValues->length() - 1);    // Need to remove the s from end
-        transform(vitValues->begin(), vitValues->end(), vitValues->begin(), ::toupper);
+        i.resize(i.length() - 1);    // Need to remove the s from end
+        transform(i.begin(), i.end(), i.begin(), toupper);
         // Get the specific list
-        vList2.resize(0);
-        getConfigList(*vitValues + "_LIST", vList2);
-        for (vector<string>::iterator vitComponent = vList2.begin(); vitComponent < vList2.end(); vitComponent++) {
-            toggleConfigValue(*vitComponent, true);
+        list2.resize(0);
+        getConfigList(i + "_LIST", list2);
+        for (const auto& j : list2) {
+            toggleConfigValue(j, true);
         }
     }
 
@@ -90,22 +87,21 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("x86_32", true);
     fastToggleConfigValue("x86_64", true);
     // Enable x86 extensions
-    vList.resize(0);
-    if (!getConfigList("ARCH_EXT_LIST_X86", vList)) {
+    list.resize(0);
+    if (!getConfigList("ARCH_EXT_LIST_X86", list)) {
         return false;
     }
-    vitValues = vList.begin();
-    for (vitValues; vitValues < vList.end(); vitValues++) {
-        fastToggleConfigValue(*vitValues, true);
+    for (const auto& i : list) {
+        fastToggleConfigValue(i, true);
         // Also enable _EXTERNAL and _INLINE
-        fastToggleConfigValue(*vitValues + "_EXTERNAL", true);
-        fastToggleConfigValue(*vitValues + "_INLINE", true);
+        fastToggleConfigValue(i + "_EXTERNAL", true);
+        fastToggleConfigValue(i + "_INLINE", true);
     }
 
     // Default we enable asm
     fastToggleConfigValue("yasm", true);
     fastToggleConfigValue("x86asm", true);
-    if (m_bUseNASM) {
+    if (m_useNASM) {
         // NASM doesn't support cpunop
         fastToggleConfigValue("cpunop", false);
         fastToggleConfigValue("cpunop_external", false);
@@ -122,13 +118,12 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("atomics_win32", true);
 
     // math functions
-    vList.resize(0);
-    if (!getConfigList("MATH_FUNCS", vList)) {
+    list.resize(0);
+    if (!getConfigList("MATH_FUNCS", list)) {
         return false;
     }
-    vitValues = vList.begin();
-    for (vitValues; vitValues < vList.end(); vitValues++) {
-        fastToggleConfigValue(*vitValues, true);
+    for (const auto& i : list) {
+        fastToggleConfigValue(i, true);
     }
 
     fastToggleConfigValue("access", true);
@@ -218,147 +213,144 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("pixelutils", true);
 
     // Disable all external libs until explicitly enabled
-    vList.resize(0);
-    if (getConfigList("EXTERNAL_LIBRARY_LIST", vList)) {
-        vector<string>::iterator vitValues = vList.begin();
-        for (vitValues; vitValues < vList.end(); vitValues++) {
-            toggleConfigValue(*vitValues, false);
+    list.resize(0);
+    if (getConfigList("EXTERNAL_LIBRARY_LIST", list)) {
+        for (const auto& i : list) {
+            toggleConfigValue(i, false);
         }
     }
 
     // Disable all hwaccels until explicitly enabled
-    vList.resize(0);
-    if (getConfigList("HWACCEL_LIBRARY_LIST", vList)) {
-        vector<string>::iterator vitValues = vList.begin();
-        for (vitValues; vitValues < vList.end(); vitValues++) {
-            toggleConfigValue(*vitValues, false);
+    list.resize(0);
+    if (getConfigList("HWACCEL_LIBRARY_LIST", list)) {
+        for (const auto& i : list) {
+            toggleConfigValue(i, false);
         }
     }
 
     // Check if auto detection is enabled
-    ValuesList::iterator itAutoDet = ConfigGenerator::getConfigOption("autodetect");
-    if ((itAutoDet == m_vConfigValues.end()) || (itAutoDet->m_sValue.compare("0") != 0)) {
+    const auto autoDet = getConfigOption("autodetect");
+    if ((autoDet == m_configValues.end()) || (autoDet->m_value != "0")) {
         // Enable all the auto detected libs
-        vList.resize(0);
-        if (getConfigList("AUTODETECT_LIBS", vList)) {
+        list.resize(0);
+        if (getConfigList("AUTODETECT_LIBS", list)) {
             string sFileName;
-            vector<string>::iterator vitValues = vList.begin();
-            for (vitValues; vitValues < vList.end(); vitValues++) {
-                bool bEnable;
+            for (const auto& i : list) {
+                bool enable;
                 // Handle detection of various libs
-                if (vitValues->compare("alsa") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("amf") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/AMF/core/Factory.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("appkit") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("bzlib") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/bzlib.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("iconv") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/iconv.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("jack") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("libxcb") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("libxcb_shm") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("libxcb_shape") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("libxcb_xfixes") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("lzma") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/lzma.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("schannel") == 0) {
-                    bEnable = true;
-                } else if (vitValues->compare("sdl2") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/SDL/SDL.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("securetransport") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("sndio") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("xlib") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("zlib") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/zlib.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("amf") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/AMF/core/Version.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("audiotoolbox") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("crystalhd") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("cuda") == 0) {
-                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-                    if (!bEnable) {
-                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                        bEnable = findFile(sFileName, sFileName);
+                if (i == "alsa") {
+                    enable = false;
+                } else if (i == "amf") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/AMF/core/Factory.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "appkit") {
+                    enable = false;
+                } else if (i == "bzlib") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/bzlib.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "iconv") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/iconv.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "jack") {
+                    enable = false;
+                } else if (i == "libxcb") {
+                    enable = false;
+                } else if (i == "libxcb_shm") {
+                    enable = false;
+                } else if (i == "libxcb_shape") {
+                    enable = false;
+                } else if (i == "libxcb_xfixes") {
+                    enable = false;
+                } else if (i == "lzma") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/lzma.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "schannel") {
+                    enable = true;
+                } else if (i == "sdl2") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/SDL/SDL.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "securetransport") {
+                    enable = false;
+                } else if (i == "sndio") {
+                    enable = false;
+                } else if (i == "xlib") {
+                    enable = false;
+                } else if (i == "zlib") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/zlib.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "amf") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/AMF/core/Version.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "audiotoolbox") {
+                    enable = false;
+                } else if (i == "crystalhd") {
+                    enable = false;
+                } else if (i == "cuda") {
+                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    if (!enable) {
+                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
                     }
-                } else if (vitValues->compare("cuvid") == 0) {
-                    bEnable = findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-                    if (!bEnable) {
-                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                        bEnable = findFile(sFileName, sFileName);
+                } else if (i == "cuvid") {
+                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    if (!enable) {
+                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
                     }
-                } else if (vitValues->compare("d3d11va") == 0) {
-                    bEnable = true;
-                } else if (vitValues->compare("dxva2") == 0) {
-                    bEnable = true;
-                } else if (vitValues->compare("ffnvcodec") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("nvdec") == 0) {
-                    bEnable = (findFile(m_sRootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
-                        findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
-                    if (!bEnable) {
-                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/dynlink_loader.h", sFileName);
-                        bEnable = findFile(sFileName, sFileName);
+                } else if (i == "d3d11va") {
+                    enable = true;
+                } else if (i == "dxva2") {
+                    enable = true;
+                } else if (i == "ffnvcodec") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "nvdec") {
+                    enable = (findFile(m_rootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
+                        findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
+                    if (!enable) {
+                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_loader.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
                     }
-                } else if (vitValues->compare("nvenc") == 0) {
-                    bEnable = findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
-                    if (!bEnable) {
-                        makeFileGeneratorRelative(m_sOutDirectory + "include/ffnvcodec/nvEncodeAPI.h", sFileName);
-                        bEnable = findFile(sFileName, sFileName);
+                } else if (i == "nvenc") {
+                    enable = findFile(m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName);
+                    if (!enable) {
+                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/nvEncodeAPI.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
                     }
-                } else if (vitValues->compare("opencl") == 0) {
-                    makeFileGeneratorRelative(m_sOutDirectory + "include/cl/cl.h", sFileName);
-                    bEnable = findFile(sFileName, sFileName);
-                } else if (vitValues->compare("vaapi") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("vda") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("vdpau") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("videotoolbox_hwaccel") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("v4l2_m2m") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("xvmc") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("pthreads") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("os2threads") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("w32threads") == 0) {
-                    bEnable = true;
-                } else if (vitValues->compare("avfoundation") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("coreimage") == 0) {
-                    bEnable = false;
-                } else if (vitValues->compare("videotoolbox") == 0) {
-                    bEnable = false;
+                } else if (i == "opencl") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/cl/cl.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "vaapi") {
+                    enable = false;
+                } else if (i == "vda") {
+                    enable = false;
+                } else if (i == "vdpau") {
+                    enable = false;
+                } else if (i == "videotoolbox_hwaccel") {
+                    enable = false;
+                } else if (i == "v4l2_m2m") {
+                    enable = false;
+                } else if (i == "xvmc") {
+                    enable = false;
+                } else if (i == "pthreads") {
+                    enable = false;
+                } else if (i == "os2threads") {
+                    enable = false;
+                } else if (i == "w32threads") {
+                    enable = true;
+                } else if (i == "avfoundation") {
+                    enable = false;
+                } else if (i == "coreimage") {
+                    enable = false;
+                } else if (i == "videotoolbox") {
+                    enable = false;
                 } else {
                     // This is an unknown option
-                    outputInfo("Found unknown auto detected option " + *vitValues);
+                    outputInfo("Found unknown auto detected option " + i);
                     // Just disable
-                    bEnable = false;
+                    enable = false;
                 }
-                toggleConfigValue(*vitValues, bEnable);
+                toggleConfigValue(i, enable);
             }
             fastToggleConfigValue("autodetect", true);
         } else {
@@ -376,11 +368,11 @@ bool ConfigGenerator::buildDefaultValues()
             fastToggleConfigValue("dxva2", true);
 
             string sFileName;
-            if (findFile(m_sRootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+            if (findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                 fastToggleConfigValue("cuda", true);
                 fastToggleConfigValue("cuvid", true);
             }
-            if (findFile(m_sRootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+            if (findFile(m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                 fastToggleConfigValue("nvenc", true);
             }
         }
@@ -410,131 +402,131 @@ bool ConfigGenerator::buildForcedValues()
     return true;
 }
 
-void ConfigGenerator::buildFixedValues(DefaultValuesList& mFixedValues)
+void ConfigGenerator::buildFixedValues(DefaultValuesList& fixedValues)
 {
-    mFixedValues.clear();
-    mFixedValues["$(c_escape $FFMPEG_CONFIGURATION)"] = "";
-    mFixedValues["$(c_escape $LIBAV_CONFIGURATION)"] = "";
-    mFixedValues["$(c_escape $license)"] = "lgpl";
-    mFixedValues["$(eval c_escape $datadir)"] = ".";
-    mFixedValues["$(c_escape ${cc_ident:-Unknown compiler})"] = "msvc";
-    mFixedValues["$_restrict"] = "__restrict";
-    mFixedValues["$restrict_keyword"] = "__restrict";
-    mFixedValues["${extern_prefix}"] = "";
-    mFixedValues["$build_suffix"] = "";
-    mFixedValues["$SLIBSUF"] = "";
-    mFixedValues["$sws_max_filter_size"] = "256";
+    fixedValues.clear();
+    fixedValues["$(c_escape $FFMPEG_CONFIGURATION)"] = "";
+    fixedValues["$(c_escape $LIBAV_CONFIGURATION)"] = "";
+    fixedValues["$(c_escape $license)"] = "lgpl";
+    fixedValues["$(eval c_escape $datadir)"] = ".";
+    fixedValues["$(c_escape ${cc_ident:-Unknown compiler})"] = "msvc";
+    fixedValues["$_restrict"] = "__restrict";
+    fixedValues["$restrict_keyword"] = "__restrict";
+    fixedValues["${extern_prefix}"] = "";
+    fixedValues["$build_suffix"] = "";
+    fixedValues["$SLIBSUF"] = "";
+    fixedValues["$sws_max_filter_size"] = "256";
 }
 
 void ConfigGenerator::buildReplaceValues(
-    DefaultValuesList& mReplaceValues, string& header, DefaultValuesList& mASMReplaceValues)
+    DefaultValuesList& replaceValues, string& header, DefaultValuesList& replaceValuesASM)
 {
     header = "#ifdef _WIN32\n\
 #   include <sdkddkver.h>\n\
 #   include <winapifamily.h>\n\
 #endif";
-    mReplaceValues.clear();
+    replaceValues.clear();
     // Add to config.h only list
-    mReplaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
+    replaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
 #   define CC_IDENT \"icl\"\n\
 #else\n\
 #   define CC_IDENT \"msvc\"\n\
 #endif";
-    mReplaceValues["EXTERN_PREFIX"] = "#if defined(__x86_64) || defined(_M_X64)\n\
+    replaceValues["EXTERN_PREFIX"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define EXTERN_PREFIX \"\"\n\
 #else\n\
 #   define EXTERN_PREFIX \"_\"\n\
 #endif";
-    mReplaceValues["EXTERN_ASM"] = "#if defined(__x86_64) || defined(_M_X64)\n\
+    replaceValues["EXTERN_ASM"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define EXTERN_ASM\n\
 #else\n\
 #   define EXTERN_ASM _\n\
 #endif";
-    mReplaceValues["SLIBSUF"] = "#if defined(_USRDLL) || defined(_WINDLL)\n\
+    replaceValues["SLIBSUF"] = "#if defined(_USRDLL) || defined(_WINDLL)\n\
 #   define SLIBSUF \".dll\"\n\
 #else\n\
 #   define SLIBSUF \".lib\"\n\
 #endif";
 
-    mReplaceValues["ARCH_X86_32"] = "#if !defined(__x86_64) && !defined(_M_X64)\n\
+    replaceValues["ARCH_X86_32"] = "#if !defined(__x86_64) && !defined(_M_X64)\n\
 #   define ARCH_X86_32 1\n\
 #else\n\
 #   define ARCH_X86_32 0\n\
 #endif";
-    mReplaceValues["ARCH_X86_64"] = "#if defined(__x86_64) || defined(_M_X64)\n\
+    replaceValues["ARCH_X86_64"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define ARCH_X86_64 1\n\
 #else\n\
 #   define ARCH_X86_64 0\n\
 #endif";
-    mReplaceValues["CONFIG_SHARED"] = "#if defined(_USRDLL) || defined(_WINDLL)\n\
+    replaceValues["CONFIG_SHARED"] = "#if defined(_USRDLL) || defined(_WINDLL)\n\
 #   define CONFIG_SHARED 1\n\
 #else\n\
 #   define CONFIG_SHARED 0\n\
 #endif";
-    mReplaceValues["CONFIG_STATIC"] = "#if !defined(_USRDLL) && !defined(_WINDLL)\n\
+    replaceValues["CONFIG_STATIC"] = "#if !defined(_USRDLL) && !defined(_WINDLL)\n\
 #   define CONFIG_STATIC 1\n\
 #else\n\
 #   define CONFIG_STATIC 0\n\
 #endif";
-    mReplaceValues["HAVE_ALIGNED_STACK"] = "#if defined(__x86_64) || defined(_M_X64)\n\
+    replaceValues["HAVE_ALIGNED_STACK"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define HAVE_ALIGNED_STACK 1\n\
 #else\n\
 #   define HAVE_ALIGNED_STACK 0\n\
 #endif";
-    mReplaceValues["HAVE_FAST_64BIT"] = "#if defined(__x86_64) || defined(_M_X64)\n\
+    replaceValues["HAVE_FAST_64BIT"] = "#if defined(__x86_64) || defined(_M_X64)\n\
 #   define HAVE_FAST_64BIT 1\n\
 #else\n\
 #   define HAVE_FAST_64BIT 0\n\
 #endif";
-    mReplaceValues["HAVE_INLINE_ASM"] = "#if defined(__INTEL_COMPILER)\n\
+    replaceValues["HAVE_INLINE_ASM"] = "#if defined(__INTEL_COMPILER)\n\
 #   define HAVE_INLINE_ASM 1\n\
 #else\n\
 #   define HAVE_INLINE_ASM 0\n\
 #endif";
-    mReplaceValues["HAVE_MM_EMPTY"] = "#if defined(__INTEL_COMPILER) || ARCH_X86_32\n\
+    replaceValues["HAVE_MM_EMPTY"] = "#if defined(__INTEL_COMPILER) || ARCH_X86_32\n\
 #   define HAVE_MM_EMPTY 1\n\
 #else\n\
 #   define HAVE_MM_EMPTY 0\n\
 #endif";
-    mReplaceValues["HAVE_STRUCT_POLLFD"] = "#if !defined(_WIN32_WINNT) || _WIN32_WINNT >= 0x0600\n\
+    replaceValues["HAVE_STRUCT_POLLFD"] = "#if !defined(_WIN32_WINNT) || _WIN32_WINNT >= 0x0600\n\
 #   define HAVE_STRUCT_POLLFD 1\n\
 #else\n\
 #   define HAVE_STRUCT_POLLFD 0\n\
 #endif";
-    mReplaceValues["CONFIG_D3D11VA"] = "#if defined(NTDDI_WIN8)\n\
+    replaceValues["CONFIG_D3D11VA"] = "#if defined(NTDDI_WIN8)\n\
 #   define CONFIG_D3D11VA 1\n\
 #else\n\
 #   define CONFIG_D3D11VA 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
+    replaceValues["CONFIG_VP9_D3D11VA_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_D3D11VA_HWACCEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_D3D11VA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
+    replaceValues["CONFIG_VP9_D3D11VA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_D3D11VA2_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_D3D11VA2_HWACCEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
+    replaceValues["CONFIG_VP9_DXVA2_HWACCEL"] = "#if defined(NTDDI_WIN10_TH2)\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 1\n\
 #else\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 0\n\
 #endif";
-    mReplaceValues["HAVE_OPENCL_D3D11"] = "#if defined(NTDDI_WIN8)\n\
+    replaceValues["HAVE_OPENCL_D3D11"] = "#if defined(NTDDI_WIN8)\n\
 #   define HAVE_OPENCL_D3D11 1\n\
 #else\n\
 #   define HAVE_OPENCL_D3D11 0\n\
 #endif";
 
     // Build values specific for WinRT builds
-    mReplaceValues["HAVE_UWP"] =
+    replaceValues["HAVE_UWP"] =
         "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
 #   define HAVE_UWP 1\n\
 #else\n\
 #   define HAVE_UWP 0\n\
 #endif";
-    mReplaceValues["HAVE_WINRT"] =
+    replaceValues["HAVE_WINRT"] =
         "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
 #   define HAVE_WINRT 1\n\
 #else\n\
@@ -553,233 +545,228 @@ void ConfigGenerator::buildReplaceValues(
         }
         winrtDefine += "!HAVE_UWP";
     }
-    mReplaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AVISYNTH 1\n\
 #else\n\
 #   define CONFIG_AVISYNTH 0\n\
 #endif";
-    mReplaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_LIBMFX 1\n\
 #else\n\
 #   define CONFIG_LIBMFX 0\n\
 #endif";
-    mReplaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AMF 1\n\
 #else\n\
 #   define CONFIG_AMF 0\n\
 #endif";
-    mReplaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUDA 1\n\
 #else\n\
 #   define CONFIG_CUDA 0\n\
 #endif";
-    mReplaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUVID 1\n\
 #else\n\
 #   define CONFIG_CUVID 0\n\
 #endif";
-    mReplaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DECKLINK 1\n\
 #else\n\
 #   define CONFIG_DECKLINK 0\n\
 #endif";
-    mReplaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DXVA2 1\n\
 #else\n\
 #   define CONFIG_DXVA2 0\n\
 #endif";
-    mReplaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_FFNVCODEC 1\n\
 #else\n\
 #   define CONFIG_FFNVCODEC 0\n\
 #endif";
-    mReplaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVDEC 1\n\
 #else\n\
 #   define CONFIG_NVDEC 0\n\
 #endif";
-    mReplaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    mReplaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_SCHANNEL 1\n\
 #else\n\
 #   define CONFIG_SCHANNEL 0\n\
 #endif";
-    mReplaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    mReplaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    mReplaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    mReplaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENGL 1\n\
 #else\n\
 #   define CONFIG_OPENGL 0\n\
 #endif";
-    mReplaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
+    replaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENAL 1\n\
 #else\n\
 #   define CONFIG_OPENAL 0\n\
 #endif";
 
     // Build replace values for all x86 inline asm
-    vector<string> vInlineList;
-    getConfigList("ARCH_EXT_LIST_X86", vInlineList);
-    for (vector<string>::iterator vitIt = vInlineList.begin(); vitIt < vInlineList.end(); vitIt++) {
-        transform(vitIt->begin(), vitIt->end(), vitIt->begin(), ::toupper);
-        string sName = "HAVE_" + *vitIt + "_INLINE";
-        mReplaceValues[sName] = "#define " + sName + " ARCH_X86 && HAVE_INLINE_ASM";
+    vector<string> inlineList;
+    getConfigList("ARCH_EXT_LIST_X86", inlineList);
+    for (auto& i : inlineList) {
+        transform(i.begin(), i.end(), i.begin(), toupper);
+        string name = "HAVE_" + i + "_INLINE";
+        replaceValues[name] = "#define " + name + " ARCH_X86 && HAVE_INLINE_ASM";
     }
 
     // Sanity checks for inline asm (Needed as some code only checks availability and not inline_asm)
-    mReplaceValues["HAVE_EBP_AVAILABLE"] = "#if HAVE_INLINE_ASM && !defined(_DEBUG)\n\
+    replaceValues["HAVE_EBP_AVAILABLE"] = "#if HAVE_INLINE_ASM && !defined(_DEBUG)\n\
 #   define HAVE_EBP_AVAILABLE 1\n\
 #else\n\
 #   define HAVE_EBP_AVAILABLE 0\n\
 #endif";
-    mReplaceValues["HAVE_EBX_AVAILABLE"] = "#if HAVE_INLINE_ASM && !defined(_DEBUG)\n\
+    replaceValues["HAVE_EBX_AVAILABLE"] = "#if HAVE_INLINE_ASM && !defined(_DEBUG)\n\
 #   define HAVE_EBX_AVAILABLE 1\n\
 #else\n\
 #   define HAVE_EBX_AVAILABLE 0\n\
 #endif";
 
     // Add any values that may depend on a replace value from above^
-    DefaultValuesList mNewReplaceValues;
-    ValuesList::iterator vitOption = m_vConfigValues.begin();
-    string sSearchSuffix[] = {"_deps", "_select", "_deps_any"};
-    for (vitOption; vitOption < m_vConfigValues.begin() + m_uiConfigValuesEnd; vitOption++) {
-        string sTagName = vitOption->m_sPrefix + vitOption->m_sOption;
+    DefaultValuesList newReplaceValues;
+    string searchSuffix[] = {"_deps", "_select", "_deps_any"};
+    for (const auto& i : m_configValues) {
+        string tagName = i.m_prefix + i.m_option;
         // Check for forced replacement (only if attribute is not disabled)
-        if ((vitOption->m_sValue.compare("0") != 0) && (mReplaceValues.find(sTagName) != mReplaceValues.end())) {
+        if ((i.m_value != "0") && (replaceValues.find(tagName) != replaceValues.end())) {
             // Already exists in list so can skip
             continue;
-        } else {
-            if (vitOption->m_sValue.compare("1") == 0) {
-                // Check if it depends on a replace value
-                string sOptionLower = vitOption->m_sOption;
-                transform(sOptionLower.begin(), sOptionLower.end(), sOptionLower.begin(), ::tolower);
-                for (int iSuff = 0; iSuff < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0])); iSuff++) {
-                    string sCheckFunc = sOptionLower + sSearchSuffix[iSuff];
-                    vector<string> vCheckList;
-                    if (getConfigList(sCheckFunc, vCheckList, false)) {
-                        string sAddConfig;
-                        bool bReservedDeps = false;
-                        vector<string>::iterator vitCheckItem = vCheckList.begin();
-                        for (vitCheckItem; vitCheckItem < vCheckList.end(); vitCheckItem++) {
-                            // Check if this is a not !
-                            bool bToggle = false;
-                            if (vitCheckItem->at(0) == '!') {
-                                vitCheckItem->erase(0, 1);
-                                bToggle = true;
-                            }
-                            ValuesList::iterator vitTemp = getConfigOption(*vitCheckItem);
-                            if (vitTemp != m_vConfigValues.end()) {
-                                string sReplaceCheck = vitTemp->m_sPrefix + vitTemp->m_sOption;
-                                transform(sReplaceCheck.begin(), sReplaceCheck.end(), sReplaceCheck.begin(), ::toupper);
-                                DefaultValuesList::iterator mitDep = mReplaceValues.find(sReplaceCheck);
-                                if (mitDep != mReplaceValues.end()) {
-                                    if (sAddConfig.length() == 0) {
-                                        sAddConfig += sReplaceCheck;
-                                    } else {
-                                        sAddConfig += " && " + sReplaceCheck;
-                                        sAddConfig = '(' + sAddConfig + ')';
-                                    }
-                                    if (bToggle) {
-                                        sAddConfig = '!' + sAddConfig;
-                                    }
-                                    bReservedDeps = true;
-                                } else if (bToggle ^ (vitTemp->m_sValue.compare("1") == 0)) {
-                                    // Check recursively if dep has any deps that are reserved types
-                                    string sOptionLower2 = vitTemp->m_sOption;
-                                    transform(
-                                        sOptionLower2.begin(), sOptionLower2.end(), sOptionLower2.begin(), ::tolower);
-                                    for (int iSuff2 = 0; iSuff2 < (sizeof(sSearchSuffix) / sizeof(sSearchSuffix[0]));
-                                         iSuff2++) {
-                                        sCheckFunc = sOptionLower2 + sSearchSuffix[iSuff2];
-                                        vector<string> vCheckList2;
-                                        if (getConfigList(sCheckFunc, vCheckList2, false)) {
-                                            uint uiCPos = vitCheckItem - vCheckList.begin();
-                                            // Check if not already in list
-                                            vector<string>::iterator vitCheckItem2 = vCheckList2.begin();
-                                            for (vitCheckItem2; vitCheckItem2 < vCheckList2.end(); vitCheckItem2++) {
-                                                // Check if this is a not !
-                                                bool bToggle2 = bToggle;
-                                                if (vitCheckItem2->at(0) == '!') {
-                                                    vitCheckItem2->erase(0, 1);
-                                                    bToggle2 = !bToggle2;
-                                                }
-                                                string sCheckVal = *vitCheckItem2;
-                                                if (bToggle2)
-                                                    sCheckVal = '!' + sCheckVal;
-                                                if (find(vCheckList.begin(), vCheckList.end(), sCheckVal) ==
-                                                    vCheckList.end()) {
-                                                    vCheckList.push_back(sCheckVal);
-                                                }
+        }
+        if (i.m_value == "1") {
+            // Check if it depends on a replace value
+            string optionLower = i.m_option;
+            transform(optionLower.begin(), optionLower.end(), optionLower.begin(), tolower);
+            for (const auto& suff : searchSuffix) {
+                string checkFunc = optionLower + suff;
+                vector<string> checkList;
+                if (getConfigList(checkFunc, checkList, false)) {
+                    string addConfig;
+                    bool reservedDeps = false;
+                    checkList.reserve(checkList.size() + 100);    // Prevent errors when adding to list below
+                    for (auto j = checkList.begin(); j < checkList.end(); ++j) {
+                        // Check if this is a not !
+                        bool toggle = false;
+                        if (j->at(0) == '!') {
+                            j->erase(0, 1);
+                            toggle = true;
+                        }
+                        auto temp = getConfigOption(*j);
+                        if (temp != m_configValues.end()) {
+                            string replaceCheck = temp->m_prefix + temp->m_option;
+                            transform(replaceCheck.begin(), replaceCheck.end(), replaceCheck.begin(), toupper);
+                            auto dep = replaceValues.find(replaceCheck);
+                            if (dep != replaceValues.end()) {
+                                if (addConfig.length() == 0) {
+                                    addConfig += replaceCheck;
+                                } else {
+                                    addConfig += " && " + replaceCheck;
+                                    addConfig = '(' + addConfig + ')';
+                                }
+                                if (toggle) {
+                                    addConfig = '!' + addConfig;
+                                }
+                                reservedDeps = true;
+                            } else if (toggle ^ (temp->m_value == "1")) {
+                                // Check recursively if dep has any deps that are reserved types
+                                string optionLower2 = temp->m_option;
+                                transform(optionLower2.begin(), optionLower2.end(), optionLower2.begin(), tolower);
+                                for (const auto& suff2 : searchSuffix) {
+                                    checkFunc = optionLower2 + suff2;
+                                    vector<string> checkList2;
+                                    if (getConfigList(checkFunc, checkList2, false)) {
+                                        uint cPos = j - checkList.begin();
+                                        // Check if not already in list
+                                        for (auto& k : checkList2) {
+                                            // Check if this is a not !
+                                            bool toggle2 = toggle;
+                                            if (k.at(0) == '!') {
+                                                k.erase(0, 1);
+                                                toggle2 = !toggle2;
+                                            }
+                                            string checkVal = k;
+                                            if (toggle2) {
+                                                checkVal = '!' + checkVal;
+                                            }
+                                            if (find(checkList.begin(), checkList.end(), checkVal) == checkList.end()) {
+                                                checkList.push_back(checkVal);
                                             }
                                             // update iterator position
-                                            vitCheckItem = vCheckList.begin() + uiCPos;
+                                            j = checkList.begin() + cPos;
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        if (bReservedDeps) {
-                            // Add to list
-                            mNewReplaceValues[sTagName] = "#if " + sAddConfig + "\n\
-#   define " + sTagName + " 1\n\
+                    if (reservedDeps) {
+                        // Add to list
+                        newReplaceValues[tagName] = "#if " + addConfig + "\n\
+#   define " + tagName + " 1\n\
 #else\n\
-#   define " + sTagName + " 0\n\
+#   define " + tagName + " 0\n\
 #endif";
-                        }
                     }
                 }
             }
         }
     }
-    for (DefaultValuesList::iterator mitI = mNewReplaceValues.begin(); mitI != mNewReplaceValues.end(); mitI++) {
+    for (auto& newReplaceValue : newReplaceValues) {
         // Add them to the returned list (done here so that any checks above that test if it is reserved only operate on
         // the unmodified original list)
-        mReplaceValues[mitI->first] = mitI->second;
+        replaceValues[newReplaceValue.first] = newReplaceValue.second;
     }
 
     // Add to config.asm only list
-    if (m_bUseNASM) {
-        mASMReplaceValues["ARCH_X86_32"] = "%if __BITS__ = 64\n\
+    if (m_useNASM) {
+        replaceValuesASM["ARCH_X86_32"] = "%if __BITS__ = 64\n\
 %define ARCH_X86_32 0\n\
 %elif __BITS__ = 32\n\
 %define ARCH_X86_32 1\n\
 %define PREFIX\n\
 %endif";
-        mASMReplaceValues["ARCH_X86_64"] = "%if __BITS__ = 64\n\
+        replaceValuesASM["ARCH_X86_64"] = "%if __BITS__ = 64\n\
 %define ARCH_X86_64 1\n\
 %elif __BITS__ = 32\n\
 %define ARCH_X86_64 0\n\
 %endif";
-        mASMReplaceValues["HAVE_ALIGNED_STACK"] = "%if __BITS__ = 64\n\
+        replaceValuesASM["HAVE_ALIGNED_STACK"] = "%if __BITS__ = 64\n\
 %define HAVE_ALIGNED_STACK 1\n\
 %elif __BITS__ = 32\n\
 %define HAVE_ALIGNED_STACK 0\n\
 %endif";
-        mASMReplaceValues["HAVE_FAST_64BIT"] = "%if __BITS__ = 64\n\
+        replaceValuesASM["HAVE_FAST_64BIT"] = "%if __BITS__ = 64\n\
 %define HAVE_FAST_64BIT 1\n\
 %elif __BITS__ = 32\n\
 %define HAVE_FAST_64BIT 0\n\
 %endif";
     } else {
-        mASMReplaceValues["ARCH_X86_32"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        replaceValuesASM["ARCH_X86_32"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define ARCH_X86_32 0\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define ARCH_X86_32 0\n\
@@ -787,21 +774,21 @@ void ConfigGenerator::buildReplaceValues(
 %define ARCH_X86_32 1\n\
 %define PREFIX\n\
 %endif";
-        mASMReplaceValues["ARCH_X86_64"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        replaceValuesASM["ARCH_X86_64"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define ARCH_X86_64 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define ARCH_X86_64 1\n\
 %elifidn __OUTPUT_FORMAT__,win32\n\
 %define ARCH_X86_64 0\n\
 %endif";
-        mASMReplaceValues["HAVE_ALIGNED_STACK"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        replaceValuesASM["HAVE_ALIGNED_STACK"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define HAVE_ALIGNED_STACK 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define HAVE_ALIGNED_STACK 1\n\
 %elifidn __OUTPUT_FORMAT__,win32\n\
 %define HAVE_ALIGNED_STACK 0\n\
 %endif";
-        mASMReplaceValues["HAVE_FAST_64BIT"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
+        replaceValuesASM["HAVE_FAST_64BIT"] = "%ifidn __OUTPUT_FORMAT__,x64\n\
 %define HAVE_FAST_64BIT 1\n\
 %elifidn __OUTPUT_FORMAT__,win64\n\
 %define HAVE_FAST_64BIT 1\n\
@@ -811,101 +798,101 @@ void ConfigGenerator::buildReplaceValues(
     }
 }
 
-void ConfigGenerator::buildReservedValues(vector<string>& vReservedItems)
+void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
 {
-    vReservedItems.resize(0);
+    reservedItems.resize(0);
     // The following are reserved values that are automatically handled and can not be set explicitly
-    vReservedItems.push_back("x86_32");
-    vReservedItems.push_back("x86_64");
-    vReservedItems.push_back("xmm_clobbers");
-    vReservedItems.push_back("shared");
-    vReservedItems.push_back("static");
-    vReservedItems.push_back("aligned_stack");
-    vReservedItems.push_back("fast_64bit");
-    vReservedItems.push_back("mm_empty");
-    vReservedItems.push_back("ebp_available");
-    vReservedItems.push_back("ebx_available");
-    vReservedItems.push_back("debug");
-    vReservedItems.push_back("hardcoded_tables");    // Not supported
-    vReservedItems.push_back("small");
-    vReservedItems.push_back("lto");
-    vReservedItems.push_back("pic");
-    vReservedItems.push_back("uwp");
-    vReservedItems.push_back("winrt");
+    reservedItems.emplace_back("x86_32");
+    reservedItems.emplace_back("x86_64");
+    reservedItems.emplace_back("xmm_clobbers");
+    reservedItems.emplace_back("shared");
+    reservedItems.emplace_back("static");
+    reservedItems.emplace_back("aligned_stack");
+    reservedItems.emplace_back("fast_64bit");
+    reservedItems.emplace_back("mm_empty");
+    reservedItems.emplace_back("ebp_available");
+    reservedItems.emplace_back("ebx_available");
+    reservedItems.emplace_back("debug");
+    reservedItems.emplace_back("hardcoded_tables");    // Not supported
+    reservedItems.emplace_back("small");
+    reservedItems.emplace_back("lto");
+    reservedItems.emplace_back("pic");
+    reservedItems.emplace_back("uwp");
+    reservedItems.emplace_back("winrt");
 }
 
-void ConfigGenerator::buildAdditionalDependencies(DependencyList& mAdditionalDependencies)
+void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies)
 {
-    mAdditionalDependencies.clear();
-    mAdditionalDependencies["android"] = false;
-    mAdditionalDependencies["capCreateCaptureWindow"] = true;
-    mAdditionalDependencies["const_nan"] = true;
-    mAdditionalDependencies["CreateDIBSection"] = true;
-    mAdditionalDependencies["dv1394"] = false;
-    mAdditionalDependencies["DXVA_PicParams_HEVC"] = true;
-    mAdditionalDependencies["DXVA_PicParams_VP9"] = true;
-    mAdditionalDependencies["dxva2api_h"] = true;
-    mAdditionalDependencies["fork"] = false;
-    mAdditionalDependencies["jack_jack_h"] = false;
-    mAdditionalDependencies["IBaseFilter"] = true;
-    mAdditionalDependencies["ID3D11VideoDecoder"] = true;
-    mAdditionalDependencies["ID3D11VideoContext"] = true;
-    mAdditionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
-    mAdditionalDependencies["linux_fb_h"] = false;
-    mAdditionalDependencies["linux_videodev_h"] = false;
-    mAdditionalDependencies["linux_videodev2_h"] = false;
-    mAdditionalDependencies["LoadLibrary"] = true;
-    mAdditionalDependencies["parisc64"] = false;
-    mAdditionalDependencies["DXVA2_ConfigPictureDecode"] = true;
-    mAdditionalDependencies["snd_pcm_htimestamp"] = false;
-    mAdditionalDependencies["va_va_h"] = false;
-    mAdditionalDependencies["vdpau_vdpau_h"] = false;
-    mAdditionalDependencies["vdpau_vdpau_x11_h"] = false;
-    mAdditionalDependencies["vfw32"] = true;
-    mAdditionalDependencies["vfwcap_defines"] = true;
-    mAdditionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
-    mAdditionalDependencies["X11_extensions_Xvlib_h"] = false;
-    mAdditionalDependencies["X11_extensions_XvMClib_h"] = false;
-    mAdditionalDependencies["x264_csp_bgr"] = isConfigOptionEnabled("libx264");
+    additionalDependencies.clear();
+    additionalDependencies["android"] = false;
+    additionalDependencies["capCreateCaptureWindow"] = true;
+    additionalDependencies["const_nan"] = true;
+    additionalDependencies["CreateDIBSection"] = true;
+    additionalDependencies["dv1394"] = false;
+    additionalDependencies["DXVA_PicParams_HEVC"] = true;
+    additionalDependencies["DXVA_PicParams_VP9"] = true;
+    additionalDependencies["dxva2api_h"] = true;
+    additionalDependencies["fork"] = false;
+    additionalDependencies["jack_jack_h"] = false;
+    additionalDependencies["IBaseFilter"] = true;
+    additionalDependencies["ID3D11VideoDecoder"] = true;
+    additionalDependencies["ID3D11VideoContext"] = true;
+    additionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
+    additionalDependencies["linux_fb_h"] = false;
+    additionalDependencies["linux_videodev_h"] = false;
+    additionalDependencies["linux_videodev2_h"] = false;
+    additionalDependencies["LoadLibrary"] = true;
+    additionalDependencies["parisc64"] = false;
+    additionalDependencies["DXVA2_ConfigPictureDecode"] = true;
+    additionalDependencies["snd_pcm_htimestamp"] = false;
+    additionalDependencies["va_va_h"] = false;
+    additionalDependencies["vdpau_vdpau_h"] = false;
+    additionalDependencies["vdpau_vdpau_x11_h"] = false;
+    additionalDependencies["vfw32"] = true;
+    additionalDependencies["vfwcap_defines"] = true;
+    additionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
+    additionalDependencies["X11_extensions_Xvlib_h"] = false;
+    additionalDependencies["X11_extensions_XvMClib_h"] = false;
+    additionalDependencies["x264_csp_bgr"] = isConfigOptionEnabled("libx264");
     bool bCuvid = isConfigOptionEnabled("cuvid");
-    mAdditionalDependencies["CUVIDH264PICPARAMS"] = bCuvid;
-    mAdditionalDependencies["CUVIDHEVCPICPARAMS"] = bCuvid;
-    mAdditionalDependencies["CUVIDVC1PICPARAMS"] = bCuvid;
-    mAdditionalDependencies["CUVIDVP9PICPARAMS"] = bCuvid;
-    mAdditionalDependencies["VAEncPictureParameterBufferH264"] = false;
-    mAdditionalDependencies["videotoolbox_encoder"] = false;
-    mAdditionalDependencies["VAEncPictureParameterBufferHEVC"] = false;
-    mAdditionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
-    mAdditionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
-    mAdditionalDependencies["VAEncPictureParameterBufferVP8"] = false;
-    mAdditionalDependencies["VAEncPictureParameterBufferVP9"] = false;
-    mAdditionalDependencies["ole32"] = true;
-    mAdditionalDependencies["shell32"] = true;
-    mAdditionalDependencies["wincrypt"] = true;
-    mAdditionalDependencies["psapi"] = true;
-    mAdditionalDependencies["user32"] = true;
-    mAdditionalDependencies["qtkit"] = false;
-    mAdditionalDependencies["coreservices"] = false;
-    mAdditionalDependencies["corefoundation"] = false;
-    mAdditionalDependencies["corevideo"] = false;
-    mAdditionalDependencies["coremedia"] = false;
-    mAdditionalDependencies["coregraphics"] = false;
-    mAdditionalDependencies["applicationservices"] = false;
-    mAdditionalDependencies["libdl"] = false;
-    mAdditionalDependencies["libm"] = false;
-    mAdditionalDependencies["libvorbisenc"] = isConfigOptionEnabled("libvorbis");
+    additionalDependencies["CUVIDH264PICPARAMS"] = bCuvid;
+    additionalDependencies["CUVIDHEVCPICPARAMS"] = bCuvid;
+    additionalDependencies["CUVIDVC1PICPARAMS"] = bCuvid;
+    additionalDependencies["CUVIDVP9PICPARAMS"] = bCuvid;
+    additionalDependencies["VAEncPictureParameterBufferH264"] = false;
+    additionalDependencies["videotoolbox_encoder"] = false;
+    additionalDependencies["VAEncPictureParameterBufferHEVC"] = false;
+    additionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
+    additionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
+    additionalDependencies["VAEncPictureParameterBufferVP8"] = false;
+    additionalDependencies["VAEncPictureParameterBufferVP9"] = false;
+    additionalDependencies["ole32"] = true;
+    additionalDependencies["shell32"] = true;
+    additionalDependencies["wincrypt"] = true;
+    additionalDependencies["psapi"] = true;
+    additionalDependencies["user32"] = true;
+    additionalDependencies["qtkit"] = false;
+    additionalDependencies["coreservices"] = false;
+    additionalDependencies["corefoundation"] = false;
+    additionalDependencies["corevideo"] = false;
+    additionalDependencies["coremedia"] = false;
+    additionalDependencies["coregraphics"] = false;
+    additionalDependencies["applicationservices"] = false;
+    additionalDependencies["libdl"] = false;
+    additionalDependencies["libm"] = false;
+    additionalDependencies["libvorbisenc"] = isConfigOptionEnabled("libvorbis");
     if (!isConfigOptionValid("atomics_native")) {
-        mAdditionalDependencies["atomics_native"] = true;
+        additionalDependencies["atomics_native"] = true;
     }
 }
 
-void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& mOptimisedDisables)
+void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisables)
 {
     // This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
     //  then simply disable the inbuilt so as to avoid unnecessary compilation
 
-    mOptimisedDisables.clear();
+    optimisedDisables.clear();
     // From trac.ffmpeg.org/wiki/GuidelinesHighQualityAudio
     // Dolby Digital: ac3
     // Dolby Digital Plus: eac3
@@ -921,106 +908,106 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& mOptimisedDisa
     // wmav2/wmav1 > libvo_aacenc
 
 #ifdef OPTIMISE_ENCODERS
-    mOptimisedDisables["LIBTWOLAME_ENCODER"].push_back("MP2_ENCODER");
-    mOptimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBFAAC_ENCODER");
-    mOptimisedDisables["LIBFDK_AAC_ENCODER"].push_back("AAC_ENCODER");
-    mOptimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
-    mOptimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBAACPLUS_ENCODER");
-    mOptimisedDisables["LIBFAAC_ENCODER"].push_back("AAC_ENCODER");
-    mOptimisedDisables["LIBFAAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
-    mOptimisedDisables["AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
-    mOptimisedDisables["LIBVORBIS_ENCODER"].push_back("VORBIS_ENCODER");
-    mOptimisedDisables["LIBMP3LAME_ENCODER"].push_back("LIBSHINE_ENCODER");
-    mOptimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER");    //???
-    mOptimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");      //???
-    mOptimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");      //???
+    optimisedDisables["LIBTWOLAME_ENCODER"].push_back("MP2_ENCODER");
+    optimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBFAAC_ENCODER");
+    optimisedDisables["LIBFDK_AAC_ENCODER"].push_back("AAC_ENCODER");
+    optimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
+    optimisedDisables["LIBFDK_AAC_ENCODER"].push_back("LIBAACPLUS_ENCODER");
+    optimisedDisables["LIBFAAC_ENCODER"].push_back("AAC_ENCODER");
+    optimisedDisables["LIBFAAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
+    optimisedDisables["AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
+    optimisedDisables["LIBVORBIS_ENCODER"].push_back("VORBIS_ENCODER");
+    optimisedDisables["LIBMP3LAME_ENCODER"].push_back("LIBSHINE_ENCODER");
+    optimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER");    //???
+    optimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");      //???
+    optimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");      //???
 #endif
 
 #ifdef OPTIMISE_DECODERS
-    mOptimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");          //???
-    mOptimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");    //???
-    mOptimisedDisables["LIBNUT_MUXER"].push_back("NUT_MUXER");
-    mOptimisedDisables["LIBNUT_DEMUXER"].push_back("NUT_DEMUXER");
-    mOptimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");    //???
-    mOptimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");    //???
-    mOptimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");       //???
-    mOptimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
-    mOptimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");    //???
-    mOptimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");    // Inbuilt native decoder is apparently faster
-    mOptimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");
-    mOptimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");    //??? Not sure which is better
+    optimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");          //???
+    optimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");    //???
+    optimisedDisables["LIBNUT_MUXER"].push_back("NUT_MUXER");
+    optimisedDisables["LIBNUT_DEMUXER"].push_back("NUT_DEMUXER");
+    optimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");    //???
+    optimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");    //???
+    optimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");       //???
+    optimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
+    optimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");    //???
+    optimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");    // Inbuilt native decoder is apparently faster
+    optimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");
+    optimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");    //??? Not sure which is better
 #endif
 }
 
-#define CHECKFORCEDENABLES(Opt)                              \
-    {                                                        \
-        if (getConfigOption(Opt) != m_vConfigValues.end()) { \
-            vForceEnable.push_back(Opt);                     \
-        }                                                    \
+#define CHECKFORCEDENABLES(Opt)                             \
+    {                                                       \
+        if (getConfigOption(Opt) != m_configValues.end()) { \
+            forceEnable.push_back(Opt);                     \
+        }                                                   \
     }
 
-void ConfigGenerator::buildForcedEnables(string sOptionLower, vector<string>& vForceEnable)
+void ConfigGenerator::buildForcedEnables(string optionLower, vector<string>& forceEnable)
 {
-    if (sOptionLower.compare("fontconfig") == 0) {
+    if (optionLower == "fontconfig") {
         CHECKFORCEDENABLES("libfontconfig");
-    } else if (sOptionLower.compare("dxva2") == 0) {
+    } else if (optionLower == "dxva2") {
         CHECKFORCEDENABLES("dxva2_lib");
-    } else if (sOptionLower.compare("libcdio") == 0) {
+    } else if (optionLower == "libcdio") {
         CHECKFORCEDENABLES("cdio_paranoia_paranoia_h");
-    } else if (sOptionLower.compare("libmfx") == 0) {
+    } else if (optionLower == "libmfx") {
         CHECKFORCEDENABLES("qsv");
-    } else if (sOptionLower.compare("dcadec") == 0) {
+    } else if (optionLower == "dcadec") {
         CHECKFORCEDENABLES("struct_dcadec_exss_info_matrix_encoding");
-    } else if (sOptionLower.compare("sdl") == 0) {
+    } else if (optionLower == "sdl") {
         fastToggleConfigValue("sdl2", true);    // must use fastToggle to prevent infinite cycle
-    } else if (sOptionLower.compare("sdl2") == 0) {
+    } else if (optionLower == "sdl2") {
         fastToggleConfigValue("sdl", true);    // must use fastToggle to prevent infinite cycle
-    } else if (sOptionLower.compare("libvorbis") == 0) {
+    } else if (optionLower == "libvorbis") {
         CHECKFORCEDENABLES("libvorbisenc");
-    } else if (sOptionLower.compare("opencl") == 0) {
+    } else if (optionLower == "opencl") {
         CHECKFORCEDENABLES("opencl_d3d11");
         CHECKFORCEDENABLES("opencl_dxva2");
-    } else if (sOptionLower.compare("ffnvcodec") == 0) {
+    } else if (optionLower == "ffnvcodec") {
         CHECKFORCEDENABLES("cuda");
-    } else if (sOptionLower.compare("cuda") == 0) {
+    } else if (optionLower == "cuda") {
         CHECKFORCEDENABLES("ffnvcodec");
     }
 }
 
-void ConfigGenerator::buildForcedDisables(string sOptionLower, vector<string>& vForceDisable)
+void ConfigGenerator::buildForcedDisables(const string& optionLower, vector<string>& forceDisable)
 {
-    if (sOptionLower.compare("sdl") == 0) {
+    if (optionLower == "sdl") {
         fastToggleConfigValue("sdl2", false);    // must use fastToggle to prevent infinite cycle
-    } else if (sOptionLower.compare("sdl2") == 0) {
+    } else if (optionLower == "sdl2") {
         fastToggleConfigValue("sdl", false);    // must use fastToggle to prevent infinite cycle
     } else {
         // Currently disable values are exact opposite of the corresponding enable ones
-        buildForcedEnables(sOptionLower, vForceDisable);
+        buildForcedEnables(optionLower, forceDisable);
     }
 }
 
-void ConfigGenerator::buildEarlyConfigArgs(vector<string>& vEarlyArgs)
+void ConfigGenerator::buildEarlyConfigArgs(vector<string>& earlyArgs)
 {
-    vEarlyArgs.resize(0);
-    vEarlyArgs.push_back("--rootdir");
-    vEarlyArgs.push_back("--projdir");
-    vEarlyArgs.push_back("--prefix");
-    vEarlyArgs.push_back("--loud");
-    vEarlyArgs.push_back("--quiet");
-    vEarlyArgs.push_back("--autodetect");
-    vEarlyArgs.push_back("--use-yasm");
+    earlyArgs.resize(0);
+    earlyArgs.emplace_back("--rootdir");
+    earlyArgs.emplace_back("--projdir");
+    earlyArgs.emplace_back("--prefix");
+    earlyArgs.emplace_back("--loud");
+    earlyArgs.emplace_back("--quiet");
+    earlyArgs.emplace_back("--autodetect");
+    earlyArgs.emplace_back("--use-yasm");
 }
 
-void ConfigGenerator::buildObjects(const string& sTag, vector<string>& vObjects)
+void ConfigGenerator::buildObjects(const string& tag, vector<string>& objects)
 {
-    if (sTag.compare("COMPAT_OBJS") == 0) {
-        vObjects.push_back(
-            "msvcrt/snprintf");          // msvc only provides _snprintf which does not conform to snprintf standard
-        vObjects.push_back("strtod");    // msvc contains a strtod but it does not handle NaN's correctly
-        vObjects.push_back("getopt");
-    } else if (sTag.compare("EMMS_OBJS__yes_") == 0) {
-        if (this->getConfigOption("MMX_EXTERNAL")->m_sValue.compare("1") == 0) {
-            vObjects.push_back("x86/emms");    // asm emms is not required in 32b but is for 64bit unless with icl
+    if (tag == "COMPAT_OBJS") {
+        objects.emplace_back(
+            "msvcrt/snprintf");            // msvc only provides _snprintf which does not conform to snprintf standard
+        objects.emplace_back("strtod");    // msvc contains a strtod but it does not handle NaN's correctly
+        objects.emplace_back("getopt");
+    } else if (tag == "EMMS_OBJS__yes_") {
+        if (this->getConfigOption("MMX_EXTERNAL")->m_value == "1") {
+            objects.emplace_back("x86/emms");    // asm emms is not required in 32b but is for 64bit unless with icl
         }
     }
 }

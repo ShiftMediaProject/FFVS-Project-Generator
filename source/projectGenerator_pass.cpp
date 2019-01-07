@@ -53,12 +53,12 @@ bool ProjectGenerator::passStaticIncludeObject(uint& uiStartPos, uint& uiEndPos,
         m_ConfigHelper.buildObjects(sTag, vFiles);
         if (sTag2.length() > 0) {
             // Prepend the full library path
-            for (vector<string>::iterator vitFile = vFiles.begin(); vitFile < vFiles.end(); vitFile++) {
+            for (auto vitFile = vFiles.begin(); vitFile < vFiles.end(); ++vitFile) {
                 *vitFile = sTag2 + *vitFile;
             }
         }
         // Loop through each item and add to list
-        for (vector<string>::iterator vitFile = vFiles.begin(); vitFile < vFiles.end(); vitFile++) {
+        for (auto vitFile = vFiles.begin(); vitFile < vFiles.end(); ++vitFile) {
             // Check if object already included in internal list
             if (find(m_vCIncludes.begin(), m_vCIncludes.end(), *vitFile) == m_vCIncludes.end()) {
                 vStaticIncludes.push_back(*vitFile);
@@ -126,21 +126,20 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos
         uiEndPos = m_sInLine.find(')', uiStartPos);
         string sDynInc = m_sInLine.substr(uiStartPos + 2, uiEndPos - uiStartPos - 2);
         // Find it in the unknown list
-        UnknownList::iterator mitObjectList = m_mUnknowns.find(sDynInc);
+        auto mitObjectList = m_mUnknowns.find(sDynInc);
         if (mitObjectList != m_mUnknowns.end()) {
             // Loop over each internal object
-            for (StaticList::iterator vitObject = mitObjectList->second.begin();
-                 vitObject < mitObjectList->second.end(); vitObject++) {
+            for (auto vitObject = mitObjectList->second.begin(); vitObject < mitObjectList->second.end(); ++vitObject) {
                 // Check if object already included in internal list
                 if (find(vIncludes.begin(), vIncludes.end(), *vitObject) == vIncludes.end()) {
                     // Check if the config option is correct
-                    ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
-                    if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
+                    auto vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
+                    if (vitOption == m_ConfigHelper.m_configValues.end()) {
                         outputInfo("Unknown dynamic configuration option (" + sIdent + ") used when passing object (" +
                             *vitObject + ")");
                         return true;
                     }
-                    if (vitOption->m_sValue.compare("1") == 0) {
+                    if (vitOption->m_value == "1") {
                         vIncludes.push_back(*vitObject);
                         // outputInfo("Found Dynamic: '" + *vitObject + "', '" + "( " + sIdent + " && " + sDynInc + " )"
                         // + "'");
@@ -175,15 +174,15 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos
         // Check if object already included in internal list
         if (find(vIncludes.begin(), vIncludes.end(), sTag) == vIncludes.end()) {
             // Check if the config option is correct
-            ConfigGenerator::ValuesList::iterator vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
-            if (vitOption == m_ConfigHelper.m_vConfigValues.end()) {
+            auto vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
+            if (vitOption == m_ConfigHelper.m_configValues.end()) {
                 outputInfo(
                     "Unknown dynamic configuration option (" + sIdent + ") used when passing object (" + sTag + ")");
                 return true;
             }
-            if (vitOption->m_sValue.compare(sCompare) == 0) {
+            if (vitOption->m_value == sCompare) {
                 // Check if the config option is for a reserved type
-                if (m_ConfigHelper.m_mReplaceList.find(sIdent) != m_ConfigHelper.m_mReplaceList.end()) {
+                if (m_ConfigHelper.m_replaceList.find(sIdent) != m_ConfigHelper.m_replaceList.end()) {
                     m_mReplaceIncludes[sTag].push_back(sIdent);
                     // outputInfo("Found Dynamic Replace: '" + sTag + "', '" + sIdent + "'");
                 } else {
@@ -274,7 +273,7 @@ bool ProjectGenerator::passDASMInclude(uint uiOffset)
 bool ProjectGenerator::passMMXInclude()
 {
     // Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_sValue.compare("1") == 0) {
+    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
         return passStaticInclude(8, m_vIncludes);
     }
     return true;
@@ -283,7 +282,7 @@ bool ProjectGenerator::passMMXInclude()
 bool ProjectGenerator::passDMMXInclude()
 {
     // Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_sValue.compare("1") == 0) {
+    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
         return passDynamicInclude(9, m_vIncludes);
     }
     return true;
@@ -377,7 +376,7 @@ bool ProjectGenerator::passMake()
         // Read each line in the MakeFile
         while (getline(m_ifInputFile, m_sInLine)) {
             // Check what information is included in the current line
-            if (m_sInLine.substr(0, 4).compare("OBJS") == 0) {
+            if (m_sInLine.substr(0, 4) == "OBJS") {
                 // Found some c includes
                 if (m_sInLine.at(4) == '-') {
                     // Found some dynamic c includes
@@ -392,8 +391,7 @@ bool ProjectGenerator::passMake()
                         return false;
                     }
                 }
-            } else if ((m_sInLine.substr(0, 11).compare("X86ASM-OBJS") == 0) ||
-                (m_sInLine.substr(0, 9).compare("YASM-OBJS") == 0)) {
+            } else if ((m_sInLine.substr(0, 11) == "X86ASM-OBJS") || (m_sInLine.substr(0, 9) == "YASM-OBJS")) {
                 // Found some YASM includes
                 uint uiOffset = (m_sInLine.at(0) == 'X') ? 2 : 0;
                 if (m_sInLine.at(9 + uiOffset) == '-') {
@@ -409,7 +407,7 @@ bool ProjectGenerator::passMake()
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 8).compare("MMX-OBJS") == 0) {
+            } else if (m_sInLine.substr(0, 8) == "MMX-OBJS") {
                 // Found some ASM includes
                 if (m_sInLine.at(8) == '-') {
                     // Found some dynamic MMX includes
@@ -424,7 +422,7 @@ bool ProjectGenerator::passMake()
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 7).compare("HEADERS") == 0) {
+            } else if (m_sInLine.substr(0, 7) == "HEADERS") {
                 // Found some headers
                 if (m_sInLine.at(7) == '-') {
                     // Found some dynamic headers
@@ -445,7 +443,7 @@ bool ProjectGenerator::passMake()
                     m_ifInputFile.close();
                     return false;
                 }
-            } else if (m_sInLine.substr(0, 6).compare("FFLIBS") == 0) {
+            } else if (m_sInLine.substr(0, 6) == "FFLIBS") {
                 // Found some libs
                 if (m_sInLine.at(6) == '-') {
                     // Found some dynamic libs
@@ -498,7 +496,7 @@ bool ProjectGenerator::passProgramMake()
         // Read each line in the MakeFile
         while (getline(m_ifInputFile, m_sInLine)) {
             // Check what information is included in the current line
-            if (m_sInLine.substr(0, sObjTag.length()).compare(sObjTag) == 0) {
+            if (m_sInLine.substr(0, sObjTag.length()) == sObjTag) {
                 // Cut the line so it can be used by default passers
                 m_sInLine = m_sInLine.substr(sObjTag.length() - 4);
                 if (m_sInLine.at(4) == '-') {
@@ -514,7 +512,7 @@ bool ProjectGenerator::passProgramMake()
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 6).compare("FFLIBS") == 0) {
+            } else if (m_sInLine.substr(0, 6) == "FFLIBS") {
                 // Found some libs
                 if (m_sInLine.at(6) == '-') {
                     // Found some dynamic libs
@@ -591,7 +589,7 @@ bool ProjectGenerator::passProgramMake()
         // When passing the fftools folder some objects are added with fftools folder prefixed to file name
         const string sMakeFolder = "fftools/";
         uint uiPos;
-        for (vector<string>::iterator itI = m_vIncludes.begin(); itI < m_vIncludes.end(); itI++) {
+        for (auto itI = m_vIncludes.begin(); itI < m_vIncludes.end(); ++itI) {
             if ((uiPos = itI->find(sMakeFolder)) != string::npos) {
                 itI->erase(uiPos, sMakeFolder.length());
             }

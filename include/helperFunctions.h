@@ -29,176 +29,176 @@ using namespace std;
 #if defined(__x86_64) || defined(_M_X64)
 typedef unsigned __int64 uint;
 #else
-typedef unsigned int uint;
+using uint = unsigned int;
 #endif
 
 namespace project_generate {
 /**
  * Loads from a file.
- * @param       sFileName  Filename of the file.
- * @param [out] sRetString The returned string containing file contents.
- * @param       bBinary    (Optional) True to read in binary mode.
- * @param       bOutError  (Optional) True to output any detected errors.
+ * @param       fileName  Filename of the file.
+ * @param [out] retString The returned string containing file contents.
+ * @param       binary    (Optional) True to read in binary mode.
+ * @param       outError  (Optional) True to output any detected errors.
  * @return True if it succeeds, false if it fails.
  */
-bool loadFromFile(const string& sFileName, string& sRetString, bool bBinary = false, bool bOutError = true);
+bool loadFromFile(const string& fileName, string& retString, bool binary = false, bool outError = true);
 
 /**
  * Loads from an internal embedded resource.
- * @param       iResourceID Identifier for the resource.
- * @param [out] sRetString  The returned string containing the loaded resource.
+ * @param       resourceID Identifier for the resource.
+ * @param [out] retString  The returned string containing the loaded resource.
  * @return True if it succeeds, false if it fails.
  */
-bool loadFromResourceFile(int iResourceID, string& sRetString);
+bool loadFromResourceFile(int resourceID, string& retString);
 
 /**
  * Writes to file.
- * @param sFileName Filename of the file.
- * @param sString   The string to write.
- * @param bBinary   (Optional) True to write in binary mode (in normal text mode line ending are converted to OS
+ * @param fileName Filename of the file.
+ * @param inString The inString to write.
+ * @param binary   (Optional) True to write in binary mode (in normal text mode line ending are converted to OS
  *                  specific).
  * @return True if it succeeds, false if it fails.
  */
-bool writeToFile(const string& sFileName, const string& sString, bool bBinary = false);
+bool writeToFile(const string& fileName, const string& inString, bool binary = false);
 
 /**
  * Copies an internal embedded resource to a file.
- * @param iResourceID      Identifier for the resource.
- * @param sDestinationFile Destination file.
- * @param bBinary          (Optional) True to write in binary mode (in normal text mode line ending are converted to
+ * @param resourceID      Identifier for the resource.
+ * @param destinationFile Destination file.
+ * @param binary          (Optional) True to write in binary mode (in normal text mode line ending are converted to
  *                         OS specific).
  * @return True if it succeeds, false if it fails.
  */
-bool copyResourceFile(int iResourceID, const string& sDestinationFile, bool bBinary = false);
+bool copyResourceFile(int resourceID, const string& destinationFile, bool binary = false);
 
 /**
  * Deletes s file.
- * @param sDestinationFile Pathname of the file to delete.
+ * @param destinationFile Pathname of the file to delete.
  */
-void deleteFile(const string& sDestinationFile);
+void deleteFile(const string& destinationFile);
 
 /**
  * Deletes a folder.
- * @param sDestinationFolder Pathname of the folder to delete.
+ * @param destinationFolder Pathname of the folder to delete.
  */
-void deleteFolder(const string& sDestinationFolder);
+void deleteFolder(const string& destinationFolder);
 
 /**
  * Queries if a folder is empty.
- * @param sFolder Pathname of the folder.
+ * @param folder Pathname of the folder.
  * @return True if the folder is empty, false if not.
  */
-bool isFolderEmpty(const string& sFolder);
+bool isFolderEmpty(const string& folder);
 
 /**
  * Copies a file.
- * @param sSourceFolder      Pathname of the source folder.
- * @param sDestinationFolder Pathname of the destination folder.
+ * @param sourceFolder      Pathname of the source folder.
+ * @param destinationFolder Pathname of the destination folder.
  * @return True if it succeeds, false if it fails.
  */
-bool copyFile(const string& sSourceFolder, const string& sDestinationFolder);
+bool copyFile(const string& sourceFolder, const string& destinationFolder);
 
 /**
  * Gets default copywrite header.
- * @param sDecription The description of the current file to add to the header.
+ * @param decription The description of the current file to add to the header.
  * @return The copywrite header.
  */
-string getCopywriteHeader(const string& sDecription);
+string getCopywriteHeader(const string& decription);
 
 /**
  * Makes a directory.
- * @param sDirectory Pathname of the directory.
+ * @param directory Pathname of the directory.
  * @return True if it succeeds, false if it fails.
  */
-bool makeDirectory(const string& sDirectory);
+bool makeDirectory(const string& directory);
 
 /**
  * Searches for the first file by name (supports wildcards).
- * @param       sFileName    The file name to search for.
- * @param [out] sRetFileName Filename of the found file.
+ * @param       fileName    The file name to search for.
+ * @param [out] retFileName Filename of the found file.
  * @return True if it succeeds, false if it fails.
  */
-bool findFile(const string& sFileName, string& sRetFileName);
+bool findFile(const string& fileName, string& retFileName);
 
 /**
  * Searches for files by name (supports wildcards).
- * @param          sFileSearch The file name to search for.
- * @param [in,out] vRetFiles   The returned list of found files.
- * @param          bRecursive    (Optional) True to process any sub-directories.
+ * @param          fileSearch The file name to search for.
+ * @param [in,out] retFiles   The returned list of found files.
+ * @param          recursive  (Optional) True to process any sub-directories.
  * @return True if it succeeds, false if it fails.
  */
-bool findFiles(const string& sFileSearch, vector<string>& vRetFiles, bool bRecursive = true);
+bool findFiles(const string& fileSearch, vector<string>& retFiles, bool recursive = true);
 
 /**
  * Searches for folders by name (supports wildcards).
- * @param          sFolderSearch The folder name to search for.
- * @param [in,out] vRetFolders   The returned list of found folders.
- * @param          bRecursive    (Optional) True to process any sub-directories.
+ * @param          folderSearch The folder name to search for.
+ * @param [in,out] retFolders   The returned list of found folders.
+ * @param          recursive    (Optional) True to process any sub-directories.
  * @return True if it succeeds, false if it fails.
  */
-bool findFolders(const string& sFolderSearch, vector<string>& vRetFolders, bool bRecursive = true);
+bool findFolders(const string& folderSearch, vector<string>& retFolders, bool recursive = true);
 
 /**
  * Makes a file path relative to another.
- * @param       sPath           Input path.
- * @param       sMakeRelativeTo The path to make relative to.
- * @param [out] sRetPath        The returned path.
+ * @param       path           Input path.
+ * @param       makeRelativeTo The path to make relative to.
+ * @param [out] retPath        The returned path.
  */
-void makePathsRelative(const string& sPath, const string& sMakeRelativeTo, string& sRetPath);
+void makePathsRelative(const string& path, const string& makeRelativeTo, string& retPath);
 
 /**
  * Removes all whitespace from a string in place.
- * @param [in,out] sString The string to operate on.
+ * @param [in,out] inputString The string to operate on.
  */
-void removeWhiteSpace(string& sString);
+void removeWhiteSpace(string& inputString);
 
 /**
  * Searches through a string and replaces all occurrences of the search tag in place.
- * @param [in,out] sString  The string to perform find and replace operation on.
- * @param          sSearch  The search string.
- * @param          sReplace The string used for replacement.
+ * @param [in,out] inString The string to perform find and replace operation on.
+ * @param          search   The search string.
+ * @param          replace  The string used for replacement.
  */
-void findAndReplace(string& sString, const string& sSearch, const string& sReplace);
+void findAndReplace(string& inString, const string& search, const string& replace);
 
 /**
  * Searches for the existence of an environment variable.
- * @param sEnvVar The environment variable.
+ * @param envVar The environment variable.
  * @return True if it succeeds, false if it fails.
  */
-bool findEnvironmentVariable(const string& sEnvVar);
+bool findEnvironmentVariable(const string& envVar);
 
 /** Press key to continue terminal prompt. */
 void pressKeyToContinue();
 
 /**
  * Output a single line of text.
- * @param sMessage The message.
+ * @param message The message.
  */
-void outputLine(const string& sMessage);
+void outputLine(const string& message);
 
 /**
  * Output information message.
  * @remark Whether this outputs depends on currently set verbosity.
- * @param sMessage The message.
- * @param bHeader  (Optional) True to add the info starting header.
+ * @param message The message.
+ * @param header  (Optional) True to add the info starting header.
  */
-void outputInfo(const string& sMessage, bool bHeader = true);
+void outputInfo(const string& message, bool header = true);
 
 /**
  * Output warning message.
  * @remark Whether this outputs depends on currently set verbosity.
- * @param sMessage The message.
- * @param bHeader  (Optional) True to add the warning starting header.
+ * @param message The message.
+ * @param header  (Optional) True to add the warning starting header.
  */
-void outputWarning(const string& sMessage, bool bHeader = true);
+void outputWarning(const string& message, bool header = true);
 
 /**
  * Output error message.
  * @remark Whether this outputs depends on currently set verbosity.
- * @param sMessage The message.
- * @param bHeader  (Optional) True to add the error starting header.
+ * @param message The message.
+ * @param header  (Optional) True to add the error starting header.
  */
-void outputError(const string& sMessage, bool bHeader = true);
+void outputError(const string& message, bool header = true);
 
 enum Verbosity
 {
@@ -213,11 +213,11 @@ enum Verbosity
  */
 void setOutputVerbosity(Verbosity verbose);
 
-const string sEndLine = "\n\r\f\v";
-const string sWhiteSpace = " \t" + sEndLine;
-const string sOperators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
-const string sNonName = sOperators + sWhiteSpace;
-const string sPreProcessor = "&|()!=";
+const string g_endLine = "\n\r\f\v";
+const string g_whiteSpace = " \t" + g_endLine;
+const string g_operators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
+const string g_nonName = g_operators + g_whiteSpace;
+const string g_preProcessor = "&|()!=";
 };    // namespace project_generate
 
 using namespace project_generate;

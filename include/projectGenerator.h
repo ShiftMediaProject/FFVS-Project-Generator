@@ -29,7 +29,7 @@
 class ProjectGenerator
 {
 private:
-    typedef vector<string> StaticList;
+    using StaticList = vector<string>;
     typedef map<string, StaticList> UnknownList;
     ifstream m_ifInputFile;
     string m_sInLine;
@@ -194,7 +194,7 @@ private:
      * @param [out] sRetFileName Filename of the found file.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFile(const string& sFile, const string& sExtension, string& sRetFileName);
+    bool findSourceFile(const string& sFile, const string& sExtension, string& sRetFileName) const;
 
     /**
      * Searches for matching source files.
@@ -203,7 +203,7 @@ private:
      * @param [in,out] vRetFiles  The returned list of matching files.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFiles(const string& sFile, const string& sExtension, vector<string>& vRetFiles);
+    bool findSourceFiles(const string& sFile, const string& sExtension, vector<string>& vRetFiles) const;
 
     void buildInterDependenciesHelper(const StaticList& vConfigOptions, const StaticList& vAddDeps, StaticList& vLibs);
 
@@ -223,16 +223,16 @@ private:
 
     void buildProjectDependencies(map<string, bool>& mProjectDeps);
 
-    void buildProjectGUIDs(map<string, string>& mKeys);
+    void buildProjectGUIDs(map<string, string>& mKeys) const;
 
     struct DCEParams
     {
         string sDefine;
         string sFile;
 
-        bool operator==(const string& sCompare)
+        bool operator==(const string& sCompare) const
         {
-            return (sFile.compare(sCompare) == 0);
+            return (sFile == sCompare);
         }
     };
 
@@ -241,20 +241,20 @@ private:
      * @param [out] mDCEDefinitions The return list of built DCE functions.
      * @param [out] mDCEVariables   The return list of built DCE variables.
      */
-    void buildProjectDCEs(map<string, DCEParams>& mDCEDefinitions, map<string, DCEParams>& mDCEVariables);
+    void buildProjectDCEs(map<string, DCEParams>& mDCEDefinitions, map<string, DCEParams>& mDCEVariables) const;
 
     bool checkProjectFiles();
 
     bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes);
 
     bool findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes,
-        StaticList& vASMIncludes, StaticList& vHIncludes);
+        StaticList& vASMIncludes, StaticList& vHIncludes) const;
 
-    void outputTemplateTags(string& sProjectTemplate, string& sFilterTemplate);
+    void outputTemplateTags(string& sProjectTemplate, string& sFiltersTemplate) const;
 
     void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType,
         string& sProjectTemplate, string& sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters,
-        bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false);
+        bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false) const;
 
     void outputSourceFiles(string& sProjectTemplate, string& sFilterTemplate);
 
@@ -269,7 +269,8 @@ private:
      * 1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runCompiler(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
+    bool runCompiler(
+        const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
 
     /**
      * Executes a batch script to perform operations using the msvc compiler.
@@ -280,7 +281,8 @@ private:
      * 1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runMSVC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
+    bool runMSVC(
+        const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
 
     /**
      * Executes a bash script to perform operations using the gcc compiler.
@@ -290,7 +292,7 @@ private:
      * @param          iRunType          The type of operation to run on input files (1=pre-process to .i file).
      * @return True if it succeeds, false if it fails.
      */
-    bool runGCC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType);
+    bool runGCC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
 
     /**
      * Output additional build events to the project.
@@ -303,7 +305,7 @@ private:
      * @param          vIncludeDirs     The include dirs.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputIncludeDirs(const StaticList& vIncludeDirs, string& sProjectTemplate);
+    static void outputIncludeDirs(const StaticList& vIncludeDirs, string& sProjectTemplate);
 
     /**
      * Output additional library search directories to project.
@@ -311,7 +313,7 @@ private:
      * @param          vLib64Dirs       The library 64b dirs.
      * @param [in,out] sProjectTemplate The project template.
      */
-    void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string& sProjectTemplate);
+    static void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string& sProjectTemplate);
 
     /**
      * Output additional defines to the project.
@@ -346,7 +348,7 @@ private:
      * @param [in,out] vUsedFunctions      The return list of found functions not in DCE.
      */
     void outputProjectDCEFindFunctions(const string& sFile, const string& sFileName,
-        map<string, DCEParams>& mFoundDCEUsage, bool& bRequiresPreProcess, set<string>& vNonDCEUsage);
+        map<string, DCEParams>& mFoundDCEUsage, bool& bRequiresPreProcess, set<string>& vNonDCEUsage) const;
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.
@@ -366,14 +368,14 @@ private:
      *                              identified table/array declaration.
      * @return True if it succeeds finding the function, false if it fails.
      */
-    bool outputProjectDCEsFindDeclarations(const string& sFile, const string& sFunction, const string& sFileName,
+    static bool outputProjectDCEsFindDeclarations(const string& sFile, const string& sFunction, const string& sFileName,
         string& sRetDeclaration, bool& bIsFunction);
 
     /**
      * Cleans a pre-processor define conditional string to remove any invalid values.
      * @param [in,out] sDefine The pre-processor define string to clean.
      */
-    void outputProjectDCECleanDefine(string& sDefine);
+    static void outputProjectDCECleanDefine(string& sDefine);
 
     /**
      * Combines 2 pre-processor define conditional strings.
@@ -381,7 +383,7 @@ private:
      * @param       sDefine2   The second define.
      * @param [out] sRetDefine The returned combined define.
      */
-    void outputProgramDCEsCombineDefine(const string& sDefine, const string& sDefine2, string& sRetDefine);
+    static void outputProgramDCEsCombineDefine(const string& sDefine, const string& sDefine2, string& sRetDefine);
 
     const string sTempDirectory = "FFVSTemp/";
 };

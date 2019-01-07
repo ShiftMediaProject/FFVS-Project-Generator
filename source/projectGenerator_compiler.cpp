@@ -24,7 +24,7 @@
 #include <utility>
 
 bool ProjectGenerator::runCompiler(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
 {
 #ifdef _MSC_VER
     // If compiled by msvc then only msvc builds are supported
@@ -36,17 +36,17 @@ bool ProjectGenerator::runCompiler(
 }
 
 bool ProjectGenerator::runMSVC(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_ConfigHelper.m_sOutDirectory;
+    string sOutDir = m_ConfigHelper.m_outDirectory;
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sSolutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_solutionDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_rootDirectory);
     string sCLExtra;
-    for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {
+    for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
         string sIncludeDir = *vitIt;
         uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
         if (uiFindPos2 != string::npos) {
@@ -131,12 +131,13 @@ exit /b 1\n\
 popd\n";
     sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > nul 2>&1\n";
     sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > nul 2>&1\n";
-    for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
+    for (auto& mDirectoryObject : mDirectoryObjects) {
         const uint uiRowSize = 32;
-        uint uiNumCLCalls = (uint)ceilf((float)itI->second.size() / (float)uiRowSize);
+        uint uiNumCLCalls = static_cast<uint>(
+            ceilf(static_cast<float>(mDirectoryObject.second.size()) / static_cast<float>(uiRowSize)));
         uint uiTotalPos = 0;
-        string sDirName = sTempFolder + "/" + itI->first;
-        if (itI->first.length() > 0) {
+        string sDirName = sTempFolder + "/" + mDirectoryObject.first;
+        if (mDirectoryObject.first.length() > 0) {
             // Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
         }
@@ -151,15 +152,15 @@ popd\n";
         // Split calls into groups of 50 to prevent batch file length limit
         for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
             sCLLaunchBat += "cl.exe ";
-            sCLLaunchBat += sCLExtra +
-                " /D\"_DEBUG\" /D\"WIN32\" /D\"_WINDOWS\" /D\"HAVE_AV_CONFIG_H\" /FI\"compat.h\" " + sRuntype +
-                " /c /MP /w /nologo";
+            sCLLaunchBat += sCLExtra + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /FI"compat.h" )" +
+                sRuntype + " /c /MP /w /nologo";
             uint uiStartPos = uiTotalPos;
-            for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, itI->second.size()); uiTotalPos++) {
+            for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, mDirectoryObject.second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
-                    m_ConfigHelper.makeFileGeneratorRelative(itI->second[uiTotalPos], itI->second[uiTotalPos]);
+                    m_ConfigHelper.makeFileGeneratorRelative(
+                        mDirectoryObject.second[uiTotalPos], mDirectoryObject.second[uiTotalPos]);
                 }
-                sCLLaunchBat += " \"" + itI->second[uiTotalPos] + "\"";
+                sCLLaunchBat += " \"" + mDirectoryObject.second[uiTotalPos] + "\"";
             }
             sCLLaunchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
@@ -247,17 +248,17 @@ popd\n";
 }
 
 bool ProjectGenerator::runGCC(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType)
+    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_ConfigHelper.m_sOutDirectory;
+    string sOutDir = m_ConfigHelper.m_outDirectory;
     m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sSolutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_sRootDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_solutionDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_rootDirectory);
     string sCLExtra;
-    for (StaticList::const_iterator vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); vitIt++) {
+    for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
         string sIncludeDir = *vitIt;
         uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
         if (uiFindPos2 != string::npos) {
@@ -267,7 +268,7 @@ bool ProjectGenerator::runGCC(
         if (uiFindPos2 != string::npos) {
             sIncludeDir.replace(uiFindPos2, 2, "%");
         }
-        uiFindPos2 = sIncludeDir.find(")");
+        uiFindPos2 = sIncludeDir.find(')');
         if (uiFindPos2 != string::npos) {
             sIncludeDir.replace(uiFindPos2, 1, "%");
         }
@@ -289,9 +290,9 @@ bool ProjectGenerator::runGCC(
     sCLLaunchBat += "rm -rf " + sTempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
     sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > /dev/null 2>&1\n";
     sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > /dev/null 2>&1\n";
-    for (map<string, StaticList>::iterator itI = mDirectoryObjects.begin(); itI != mDirectoryObjects.end(); itI++) {
-        string sDirName = sTempFolder + "/" + itI->first;
-        if (itI->first.length() > 0) {
+    for (auto& mDirectoryObject : mDirectoryObjects) {
+        string sDirName = sTempFolder + "/" + mDirectoryObject.first;
+        if (mDirectoryObject.first.length() > 0) {
             // Need to make output directory so compile doesn't fail outputting
             sCLLaunchBat += "mkdir \"" + sDirName + "\" > /dev/null 2>&1\n";
         }
@@ -300,16 +301,17 @@ bool ProjectGenerator::runGCC(
         if (iRunType == 0) {
             outputError("Generation of definitions is not supported using gcc.");
             return false;
-        } else if (iRunType == 1) {
+        }
+        if (iRunType == 1) {
             sRuntype = "-E -P";
         }
         // Check if gcc or mingw
-        if (m_ConfigHelper.m_sToolchain.find("mingw") != string::npos) {
-            sCLExtra += "-D\"WIN32\" -D\"_WINDOWS\"";
+        if (m_ConfigHelper.m_toolchain.find("mingw") != string::npos) {
+            sCLExtra += R"(-D"WIN32" -D"_WINDOWS")";
         }
 
         // Split calls as gcc outputs a single file at a time
-        for (StaticList::iterator vitJ = itI->second.begin(); vitJ < itI->second.end(); vitJ++) {
+        for (auto vitJ = mDirectoryObject.second.begin(); vitJ < mDirectoryObject.second.end(); ++vitJ) {
             sCLLaunchBat += "gcc ";
             sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
             if (iRunType == 0) {
