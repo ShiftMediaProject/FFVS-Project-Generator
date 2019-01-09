@@ -121,7 +121,7 @@ bool ProjectGenerator::passStaticInclude(uint uiILength, StaticList& vStaticIncl
 
 bool ProjectGenerator::passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos, string& sIdent, StaticList& vIncludes)
 {
-    // Check if this is A valid File or a past compile option
+    // Check if this is a valid File or a past compile option
     if (m_sInLine.at(uiStartPos) == '$') {
         uiEndPos = m_sInLine.find(')', uiStartPos);
         string sDynInc = m_sInLine.substr(uiStartPos + 2, uiEndPos - uiStartPos - 2);
@@ -469,6 +469,26 @@ bool ProjectGenerator::passMake()
                 if (!passDLibUnknown()) {
                     m_ifInputFile.close();
                     return false;
+                }
+            } else if (m_sInLine.substr(0, 5) == "ifdef") {
+                // Check for configuration value
+                const uint startPos = m_sInLine.find_first_not_of(" \t", 5);
+                uint endPos = m_sInLine.find_first_of(" \t\n\r", startPos + 1);
+                endPos = (endPos == string::npos) ? endPos : endPos - startPos;
+                string config = m_sInLine.substr(startPos, endPos);
+                // Check if the config option is correct
+                auto option = m_ConfigHelper.getConfigOptionPrefixed(config);
+                if (option == m_ConfigHelper.m_configValues.end()) {
+                    outputInfo("Unknown ifdef configuration option (" + config + ")");
+                    return false;
+                }
+                if (option->m_value != "1") {
+                    // Skip everything between the ifdefs
+                    while (getline(m_ifInputFile, m_sInLine)) {
+                        if ((m_sInLine.substr(0, 5) == "endif") || (m_sInLine.substr(0, 4) == "else")) {
+                            break;
+                        }
+                    }
                 }
             }
         }
