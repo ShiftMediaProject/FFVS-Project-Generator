@@ -545,6 +545,37 @@ void ConfigGenerator::buildReplaceValues(
         }
         winrtDefine += "!HAVE_UWP";
     }
+    replaceValues["HAVE_GETPROCESSAFFINITYMASK"] = "#if defined(NTDDI_WIN10_RS3)\n\
+#   define HAVE_GETPROCESSAFFINITYMASK 1\n\
+#else\n\
+#   define HAVE_GETPROCESSAFFINITYMASK 0\n\
+#endif";
+    replaceValues["HAVE_LOADLIBRARY"] = "#if " + winrtDefine + "\n\
+#   define HAVE_LOADLIBRARY 1\n\
+#else\n\
+#   define HAVE_LOADLIBRARY 0\n\
+#endif";
+    replaceValues["HAVE_MAPVIEWOFFILE"] = "#if " + winrtDefine + "\n\
+#   define HAVE_MAPVIEWOFFILE 1\n\
+#else\n\
+#   define HAVE_MAPVIEWOFFILE 0\n\
+#endif";
+    replaceValues["HAVE_SETCONSOLETEXTATTRIBUTE"] = "#if " + winrtDefine + "\n\
+#   define HAVE_SETCONSOLETEXTATTRIBUTE 1\n\
+#else\n\
+#   define HAVE_SETCONSOLETEXTATTRIBUTE 0\n\
+#endif";
+    replaceValues["HAVE_SETCONSOLECTRLHANDLER"] = "#if " + winrtDefine + "\n\
+#   define HAVE_SETCONSOLECTRLHANDLER 1\n\
+#else\n\
+#   define HAVE_SETCONSOLECTRLHANDLER 0\n\
+#endif";
+    replaceValues["HAVE_VIRTUALALLOC"] = "#if " + winrtDefine + "\n\
+#   define HAVE_VIRTUALALLOC 1\n\
+#else\n\
+#   define HAVE_VIRTUALALLOC 0\n\
+#endif";
+
     replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AVISYNTH 1\n\
 #else\n\
