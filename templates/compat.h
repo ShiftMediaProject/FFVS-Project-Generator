@@ -35,6 +35,11 @@
 #       define strtod avpriv_strtod
 #       define strtoll _strtoi64
 #   endif
+#   include <sdkddkver.h>
+#   if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)
+#       include <stdlib.h>
+#       define getenv(x) NULL
+#   endif
 #endif
 
 #endif /* SMP_COMPAT_H */
