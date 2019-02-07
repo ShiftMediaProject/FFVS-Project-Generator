@@ -245,39 +245,29 @@ void ProjectGenerator::buildDependenciesWinRT(StaticList& vLibs, StaticList& vAd
     // Search through dependency list and remove any not supported by WinRT
     for (auto vitLib = vLibs.begin(); vitLib < vLibs.end(); ++vitLib) {
         if (*vitLib == "libmfx") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         }
     }
     // Remove any additional windows libs
     for (auto vitLib = vAddLibs.begin(); vitLib < vAddLibs.end(); ++vitLib) {
         if (*vitLib == "cuda") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "nvcuvid") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "ws2_32") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "Bcrypt") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "Advapi32") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "strmiids") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "vfw32") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "shlwapi") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         } else if (*vitLib == "ksuser") {
-            --vitLib;
-            vLibs.erase(vitLib);
+            vLibs.erase(vitLib--);
         }
     }
     // Add additional windows libs
