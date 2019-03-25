@@ -410,7 +410,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& mProjectDeps)
     mProjectDeps["gcrypt"] = (m_sProjectName == "libavformat");
     mProjectDeps["gmp"] = (m_sProjectName == "libavformat");
     mProjectDeps["gnutls"] = (m_sProjectName == "libavformat");
-    mProjectDeps["iconv"] = (m_sProjectName == "libavcodec");
+    mProjectDeps["iconv"] = (m_sProjectName == "libavformat") || (m_sProjectName == "libavcodec");
     mProjectDeps["ladspa"] = (m_sProjectName == "libavfilter");
     mProjectDeps["libaacplus"] = (m_sProjectName == "libavcodec");
     mProjectDeps["libass"] = (m_sProjectName == "libavfilter");
