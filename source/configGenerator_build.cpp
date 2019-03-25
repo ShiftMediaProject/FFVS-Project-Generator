@@ -576,86 +576,134 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_VIRTUALALLOC 0\n\
 #endif";
 
-    replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
+    auto opt = getConfigOptionPrefixed("CONFIG_AVISYNTH");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AVISYNTH 1\n\
 #else\n\
 #   define CONFIG_AVISYNTH 0\n\
 #endif";
-    replaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_LIBMFX");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_LIBMFX 1\n\
 #else\n\
 #   define CONFIG_LIBMFX 0\n\
 #endif";
-    replaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_AMF");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AMF 1\n\
 #else\n\
 #   define CONFIG_AMF 0\n\
 #endif";
-    replaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_CUDA");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUDA 1\n\
 #else\n\
 #   define CONFIG_CUDA 0\n\
 #endif";
-    replaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_CUVID");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUVID 1\n\
 #else\n\
 #   define CONFIG_CUVID 0\n\
 #endif";
-    replaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_DECKLINK");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DECKLINK 1\n\
 #else\n\
 #   define CONFIG_DECKLINK 0\n\
 #endif";
-    replaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_DXVA2");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DXVA2 1\n\
 #else\n\
 #   define CONFIG_DXVA2 0\n\
 #endif";
-    replaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_FFNVCODEC");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_FFNVCODEC 1\n\
 #else\n\
 #   define CONFIG_FFNVCODEC 0\n\
 #endif";
-    replaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_NVDEC");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVDEC 1\n\
 #else\n\
 #   define CONFIG_NVDEC 0\n\
 #endif";
-    replaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_NVENC");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    replaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_SCHANNEL");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_SCHANNEL 1\n\
 #else\n\
 #   define CONFIG_SCHANNEL 0\n\
 #endif";
-    replaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_DSHOW_INDEV");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    replaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_GDIGRAB_INDEV");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    replaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_VFWCAP_INDEV");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    replaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_OPENGL");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENGL 1\n\
 #else\n\
 #   define CONFIG_OPENGL 0\n\
 #endif";
-    replaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
+    }
+    opt = getConfigOptionPrefixed("CONFIG_OPENAL");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        replaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENAL 1\n\
 #else\n\
 #   define CONFIG_OPENAL 0\n\
 #endif";
+    }
 
     // Build replace values for all x86 inline asm
     vector<string> inlineList;

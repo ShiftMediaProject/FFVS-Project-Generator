@@ -819,7 +819,7 @@ bool ConfigGenerator::outputConfig()
     string header;
     buildReplaceValues(m_replaceList, header, m_replaceListASM);
 
-    // Ouptut header
+    // Output header
     configureFile += header + '\n';
 
     // Output all fixed config options
