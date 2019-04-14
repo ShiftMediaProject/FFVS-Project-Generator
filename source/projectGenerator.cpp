@@ -728,7 +728,8 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     // Change all occurrences of template_platform with specified project toolchain
     string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>";
+    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='16.0'\">v142</PlatformToolset>";
     if (m_configHelper.m_toolchain.compare("msvc") != 0) {
         sToolchain +=
             "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
@@ -736,7 +737,8 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     <PlatformToolset Condition=\"'$(ICPP_COMPILER15)'!=''\">Intel C++ Compiler XE 15.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER16)'!=''\">Intel C++ Compiler 16.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER17)'!=''\">Intel C++ Compiler 17.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER18)'!=''\">Intel C++ Compiler 18.0</PlatformToolset>";
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER18)'!=''\">Intel C++ Compiler 18.0</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(ICPP_COMPILER19)'!=''\">Intel C++ Compiler 19.0</PlatformToolset>";
     }
 
     const string sPlatformSearch = "<PlatformToolset>template_platform</PlatformToolset>";
