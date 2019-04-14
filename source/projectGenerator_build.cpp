@@ -27,7 +27,7 @@ void ProjectGenerator::buildInterDependenciesHelper(
 {
     bool bFound = false;
     for (auto itI = vConfigOptions.begin(); itI < vConfigOptions.end(); ++itI) {
-        bFound = m_ConfigHelper.isConfigOptionEnabled(*itI);
+        bFound = m_configHelper.isConfigOptionEnabled(*itI);
         if (!bFound) {
             break;
         }
@@ -45,9 +45,9 @@ void ProjectGenerator::buildInterDependenciesHelper(
 void ProjectGenerator::buildInterDependencies(StaticList& vLibs)
 {
     // Get the lib dependencies from the configure file
-    string sLibName = m_sProjectName.substr(3) + "_deps";
+    string sLibName = m_projectName.substr(3) + "_deps";
     vector<string> vLibDeps;
-    if (m_ConfigHelper.getConfigList(sLibName, vLibDeps, false)) {
+    if (m_configHelper.getConfigList(sLibName, vLibDeps, false)) {
         for (auto itI = vLibDeps.begin(); itI < vLibDeps.end(); ++itI) {
             string sSearchTag = "lib" + *itI;
             if (find(vLibs.begin(), vLibs.end(), sSearchTag) == vLibs.end()) {
@@ -57,7 +57,7 @@ void ProjectGenerator::buildInterDependencies(StaticList& vLibs)
     }
 
     // Hard coded configuration checks for inter dependencies between different source libs.
-    if (m_sProjectName == "libavfilter") {
+    if (m_projectName == "libavfilter") {
         buildInterDependenciesHelper({"afftfilt_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"afir_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"amovie_filter"}, {"avformat", "avcodec"}, vLibs);
@@ -90,9 +90,9 @@ void ProjectGenerator::buildInterDependencies(StaticList& vLibs)
         buildInterDependenciesHelper({"subtitles_filter"}, {"avformat", "avcodec"}, vLibs);
         buildInterDependenciesHelper({"uspp_filter"}, {"avcodec"}, vLibs);
         buildInterDependenciesHelper({"zoompan_filter"}, {"swscale"}, vLibs);
-    } else if (m_sProjectName == "libavdevice") {
+    } else if (m_projectName == "libavdevice") {
         buildInterDependenciesHelper({"lavfi_indev"}, {"avfilter"}, vLibs);
-    } else if (m_sProjectName == "libavcodec") {
+    } else if (m_projectName == "libavcodec") {
         buildInterDependenciesHelper({"opus_decoder"}, {"swresample"}, vLibs);
     }
 }
@@ -100,7 +100,7 @@ void ProjectGenerator::buildInterDependencies(StaticList& vLibs)
 void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs)
 {
     // Add any forced dependencies
-    if (m_sProjectName == "libavformat") {
+    if (m_projectName == "libavformat") {
         vAddLibs.push_back("ws2_32");    // Add the additional required libs
     }
 
@@ -110,15 +110,15 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
 
     // Loop through each known configuration option and add the required dependencies
     vector<string> vExternLibs;
-    m_ConfigHelper.getConfigList("EXTERNAL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
-    m_ConfigHelper.getConfigList("EXTERNAL_LIBRARY_LIST", vExternLibs);
-    m_ConfigHelper.getConfigList("HW_CODECS_LIST", vExternLibs, false);    // used on some older ffmpeg versions
-    m_ConfigHelper.getConfigList("HWACCEL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
-    m_ConfigHelper.getConfigList("HWACCEL_LIBRARY_LIST", vExternLibs, false);
-    m_ConfigHelper.getConfigList("SYSTEM_LIBRARIES", vExternLibs, false);
+    m_configHelper.getConfigList("EXTERNAL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
+    m_configHelper.getConfigList("EXTERNAL_LIBRARY_LIST", vExternLibs);
+    m_configHelper.getConfigList("HW_CODECS_LIST", vExternLibs, false);    // used on some older ffmpeg versions
+    m_configHelper.getConfigList("HWACCEL_AUTODETECT_LIBRARY_LIST", vExternLibs, false);
+    m_configHelper.getConfigList("HWACCEL_LIBRARY_LIST", vExternLibs, false);
+    m_configHelper.getConfigList("SYSTEM_LIBRARIES", vExternLibs, false);
     for (auto vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); ++vitLib) {
         // Check if enabled
-        if (m_ConfigHelper.getConfigOption(*vitLib)->m_value == "1") {
+        if (m_configHelper.getConfigOption(*vitLib)->m_value == "1") {
             // Check if this dependency is valid for this project (if the dependency is not known default to enable)
             if (mProjectDeps.find(*vitLib) == mProjectDeps.end()) {
                 outputInfo("Unknown dependency found (" + *vitLib + ")");
@@ -164,7 +164,7 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
                 vAddLibs.push_back("Opengl32");    // Add the additional required libs
             } else if (*vitLib == "opencl") {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_rootDirectory + "compat/opencl/cl.h", sFileName)) {
+                if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", sFileName)) {
                     vAddLibs.push_back("OpenCL");    // Add the additional required libs
                 }
             } else if (*vitLib == "openal") {
@@ -175,14 +175,14 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
                 // Doesn't require any additional libs
             } else if (*vitLib == "cuda") {
                 string sFileName;
-                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") &&
-                    !findFile(m_ConfigHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
+                    !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     vAddLibs.push_back("cuda");    // Add the additional required libs
                 }
             } else if (*vitLib == "cuvid") {
                 string sFileName;
-                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") &&
-                    !findFile(m_ConfigHelper.m_rootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
+                if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
+                    !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_nvcuvid.h", sFileName)) {
                     vAddLibs.push_back("nvcuvid");    // Add the additional required libs
                 }
             } else if ((*vitLib == "nvdec") || (*vitLib == "nvenc")) {
@@ -190,7 +190,7 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
             } else if (*vitLib == "schannel") {
                 vAddLibs.push_back("Secur32");    // Add the additional required libs
             } else if (*vitLib == "sdl") {
-                if (!m_ConfigHelper.isConfigOptionValid("sdl2")) {
+                if (!m_configHelper.isConfigOptionValid("sdl2")) {
                     vLibs.push_back("libsdl");    // Only add if not sdl2
                 }
             } else if (*vitLib == "wincrypt") {
@@ -219,13 +219,13 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
     }
 
     // Add in extralibs used for various devices
-    if (m_sProjectName == "libavdevice") {
+    if (m_projectName == "libavdevice") {
         vExternLibs.resize(0);
-        m_ConfigHelper.getConfigList("OUTDEV_LIST", vExternLibs);
-        m_ConfigHelper.getConfigList("INDEV_LIST", vExternLibs);
+        m_configHelper.getConfigList("OUTDEV_LIST", vExternLibs);
+        m_configHelper.getConfigList("INDEV_LIST", vExternLibs);
         for (auto vitLib = vExternLibs.begin(); vitLib < vExternLibs.end(); ++vitLib) {
             // Check if enabled
-            if (m_ConfigHelper.getConfigOption(*vitLib)->m_value == "1") {
+            if (m_configHelper.getConfigOption(*vitLib)->m_value == "1") {
                 // Add the additional required libs
                 if (*vitLib == "dshow_indev") {
                     vAddLibs.push_back("strmiids");
@@ -271,7 +271,7 @@ void ProjectGenerator::buildDependenciesWinRT(StaticList& vLibs, StaticList& vAd
         }
     }
     // Add additional windows libs
-    if (m_ConfigHelper.getConfigOption("CONFIG_D3D11VA")->m_value == "1") {
+    if (m_configHelper.getConfigOption("CONFIG_D3D11VA")->m_value == "1") {
         vAddLibs.push_back("dxgi");
         vAddLibs.push_back("d3d11");
     }
@@ -287,7 +287,7 @@ void ProjectGenerator::buildDependencyValues(
     // Loop through each known configuration option and add the required dependencies
     for (map<string, bool>::iterator mitLib = mProjectDeps.begin(); mitLib != mProjectDeps.end(); ++mitLib) {
         // Check if enabled//Check if optimised value is valid for current configuration
-        if (mitLib->second && m_ConfigHelper.isConfigOptionEnabled(mitLib->first)) {
+        if (mitLib->second && m_configHelper.isConfigOptionEnabled(mitLib->first)) {
             // Add in the additional include directories
             if (mitLib->first == "libopus") {
                 vIncludeDirs.push_back("$(OutDir)/include/opus");
@@ -302,7 +302,7 @@ void ProjectGenerator::buildDependencyValues(
                 vIncludeDirs.push_back("$(OutDir)/include/libxml2");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
                 vDefines.push_back("LIBXML_STATIC");
-            } else if ((mitLib->first == "sdl") && !m_ConfigHelper.isConfigOptionValid("sdl2")) {
+            } else if ((mitLib->first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2")) {
                 vIncludeDirs.push_back("$(OutDir)/include/SDL");
                 vIncludeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
             } else if (mitLib->first == "sdl2") {
@@ -312,7 +312,7 @@ void ProjectGenerator::buildDependencyValues(
                 // Requires glext headers to be installed in include dir (does not require the libs)
             } else if (mitLib->first == "opencl") {
                 string sFileName;
-                if (!findFile(m_ConfigHelper.m_rootDirectory + "compat/opencl/cl.h", sFileName)) {
+                if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", sFileName)) {
                     // Need to check for the existence of environment variables
                     if (findEnvironmentVariable("AMDAPPSDKROOT")) {
                         vIncludeDirs.push_back("$(AMDAPPSDKROOT)/include/");
@@ -347,8 +347,8 @@ void ProjectGenerator::buildDependencyValues(
                 vLib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
             } else if (mitLib->first == "nvenc") {
                 string sFileName;
-                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") &&
-                    !findFile(m_ConfigHelper.m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+                if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
+                    !findFile(m_configHelper.m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
                     // Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
                         outputWarning("Could not find the CUDA SDK environment variable.");
@@ -365,8 +365,8 @@ void ProjectGenerator::buildDependencyValues(
                 }
             } else if ((mitLib->first == "cuda") || (mitLib->first == "cuvid")) {
                 string sFileName;
-                if (!m_ConfigHelper.isConfigOptionEnabled("ffnvcodec") &&
-                    !findFile(m_ConfigHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
+                    !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     // Need to check for the existence of environment variables
                     if (!findEnvironmentVariable("CUDA_PATH")) {
                         outputWarning("Could not find the CUDA SDK environment variable.");
@@ -390,109 +390,109 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& mProjectDeps)
     string sNotUsed;
     mProjectDeps["amf"] = false;         // no dependencies ever needed
     mProjectDeps["avisynth"] = false;    // no dependencies ever needed
-    mProjectDeps["bcrypt"] = (m_sProjectName == "libavutil");
-    mProjectDeps["bzlib"] = (m_sProjectName == "libavformat") || (m_sProjectName == "libavcodec");
-    mProjectDeps["crystalhd"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["chromaprint"] = (m_sProjectName == "libavformat");
-    mProjectDeps["cuda"] = ((m_sProjectName == "libavutil") && findSourceFile("hwcontext_cuda", ".h", sNotUsed)) ||
-        (m_sProjectName == "libavfilter") ||
-        (m_ConfigHelper.isConfigOptionEnabled("nvenc") && (m_sProjectName == "libavcodec")) ||
-        (m_ConfigHelper.isConfigOptionEnabled("cuvid") &&
-            ((m_sProjectName == "libavcodec") || (m_sProjectName == "ffmpeg") || (m_sProjectName == "avconv")));
+    mProjectDeps["bcrypt"] = (m_projectName == "libavutil");
+    mProjectDeps["bzlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
+    mProjectDeps["crystalhd"] = (m_projectName == "libavcodec");
+    mProjectDeps["chromaprint"] = (m_projectName == "libavformat");
+    mProjectDeps["cuda"] = ((m_projectName == "libavutil") && findSourceFile("hwcontext_cuda", ".h", sNotUsed)) ||
+        (m_projectName == "libavfilter") ||
+        (m_configHelper.isConfigOptionEnabled("nvenc") && (m_projectName == "libavcodec")) ||
+        (m_configHelper.isConfigOptionEnabled("cuvid") &&
+            ((m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv")));
     mProjectDeps["cuvid"] =
-        (m_sProjectName == "libavcodec") || (m_sProjectName == "ffmpeg") || (m_sProjectName == "avconv");
+        (m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv");
     mProjectDeps["d3d11va"] = false;    // supplied by windows sdk
     mProjectDeps["dxva2"] = false;
-    mProjectDeps["decklink"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libfontconfig"] = (m_sProjectName == "libavfilter");
+    mProjectDeps["decklink"] = (m_projectName == "libavdevice");
+    mProjectDeps["libfontconfig"] = (m_projectName == "libavfilter");
     mProjectDeps["ffnvcodec"] = false;
-    mProjectDeps["frei0r"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["gcrypt"] = (m_sProjectName == "libavformat");
-    mProjectDeps["gmp"] = (m_sProjectName == "libavformat");
-    mProjectDeps["gnutls"] = (m_sProjectName == "libavformat");
-    mProjectDeps["iconv"] = (m_sProjectName == "libavformat") || (m_sProjectName == "libavcodec");
-    mProjectDeps["ladspa"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libaacplus"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libass"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libbluray"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libbs2b"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libcaca"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libcdio"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libcelt"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libdc1394"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libdcadec"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libfaac"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libfdk_aac"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libflite"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libfreetype"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libfribidi"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libgme"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libgsm"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libiec61883"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libilbc"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libkvazaar"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libmfx"] = ((m_sProjectName == "libavutil") && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) ||
-        (m_sProjectName == "libavcodec") ||
-        ((m_sProjectName == "libavfilter") && findSourceFile("vf_deinterlace_qsv", ".c", sNotUsed)) ||
-        (m_sProjectName == "ffmpeg") || (m_sProjectName == "avconv");
-    mProjectDeps["libmodplug"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libmp3lame"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libnpp"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libnut"] = (m_sProjectName == "libformat");
-    mProjectDeps["libopencore_amrnb"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libopencore_amrwb"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libopencv"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libopenjpeg"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libopenh264"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libopus"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libpulse"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["librubberband"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libquvi"] = (m_sProjectName == "libavformat");
-    mProjectDeps["librtmp"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libschroedinger"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libshine"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libsmbclient"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libsnappy"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libsoxr"] = (m_sProjectName == "libswresample");
-    mProjectDeps["libspeex"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libssh"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libstagefright_h264"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libtesseract"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libtheora"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libtwolame"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libutvideo"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libv4l2"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["libvidstab"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libvo_aacenc"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libvo_amrwbenc"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libvorbis"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libvpx"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libwavpack"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libwebp"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libx264"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libx265"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libxavs"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libxml2"] = (m_sProjectName == "libavformat");
-    mProjectDeps["libxvid"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["libzimg"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libzmq"] = (m_sProjectName == "libavfilter");
-    mProjectDeps["libzvbi"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["lzma"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["nvdec"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["nvenc"] = (m_sProjectName == "libavcodec");
-    mProjectDeps["openal"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["opencl"] = (m_sProjectName == "libavutil") || (m_sProjectName == "libavfilter") ||
-        (m_sProjectName == "ffmpeg") || (m_sProjectName == "avconv") || (m_sProjectName == "ffplay") ||
-        (m_sProjectName == "avplay") || (m_sProjectName == "ffprobe") || (m_sProjectName == "avprobe");
-    mProjectDeps["opengl"] = (m_sProjectName == "libavdevice");
-    mProjectDeps["openssl"] = (m_sProjectName == "libavformat");
-    mProjectDeps["schannel"] = (m_sProjectName == "libavformat");
+    mProjectDeps["frei0r"] = (m_projectName == "libavfilter");
+    mProjectDeps["gcrypt"] = (m_projectName == "libavformat");
+    mProjectDeps["gmp"] = (m_projectName == "libavformat");
+    mProjectDeps["gnutls"] = (m_projectName == "libavformat");
+    mProjectDeps["iconv"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
+    mProjectDeps["ladspa"] = (m_projectName == "libavfilter");
+    mProjectDeps["libaacplus"] = (m_projectName == "libavcodec");
+    mProjectDeps["libass"] = (m_projectName == "libavfilter");
+    mProjectDeps["libbluray"] = (m_projectName == "libavformat");
+    mProjectDeps["libbs2b"] = (m_projectName == "libavfilter");
+    mProjectDeps["libcaca"] = (m_projectName == "libavdevice");
+    mProjectDeps["libcdio"] = (m_projectName == "libavdevice");
+    mProjectDeps["libcelt"] = (m_projectName == "libavcodec");
+    mProjectDeps["libdc1394"] = (m_projectName == "libavdevice");
+    mProjectDeps["libdcadec"] = (m_projectName == "libavcodec");
+    mProjectDeps["libfaac"] = (m_projectName == "libavcodec");
+    mProjectDeps["libfdk_aac"] = (m_projectName == "libavcodec");
+    mProjectDeps["libflite"] = (m_projectName == "libavfilter");
+    mProjectDeps["libfreetype"] = (m_projectName == "libavfilter");
+    mProjectDeps["libfribidi"] = (m_projectName == "libavfilter");
+    mProjectDeps["libgme"] = (m_projectName == "libavformat");
+    mProjectDeps["libgsm"] = (m_projectName == "libavcodec");
+    mProjectDeps["libiec61883"] = (m_projectName == "libavdevice");
+    mProjectDeps["libilbc"] = (m_projectName == "libavcodec");
+    mProjectDeps["libkvazaar"] = (m_projectName == "libavcodec");
+    mProjectDeps["libmfx"] = ((m_projectName == "libavutil") && findSourceFile("hwcontext_qsv", ".h", sNotUsed)) ||
+        (m_projectName == "libavcodec") ||
+        ((m_projectName == "libavfilter") && findSourceFile("vf_deinterlace_qsv", ".c", sNotUsed)) ||
+        (m_projectName == "ffmpeg") || (m_projectName == "avconv");
+    mProjectDeps["libmodplug"] = (m_projectName == "libavformat");
+    mProjectDeps["libmp3lame"] = (m_projectName == "libavcodec");
+    mProjectDeps["libnpp"] = (m_projectName == "libavfilter");
+    mProjectDeps["libnut"] = (m_projectName == "libformat");
+    mProjectDeps["libopencore_amrnb"] = (m_projectName == "libavcodec");
+    mProjectDeps["libopencore_amrwb"] = (m_projectName == "libavcodec");
+    mProjectDeps["libopencv"] = (m_projectName == "libavfilter");
+    mProjectDeps["libopenjpeg"] = (m_projectName == "libavcodec");
+    mProjectDeps["libopenh264"] = (m_projectName == "libavcodec");
+    mProjectDeps["libopus"] = (m_projectName == "libavcodec");
+    mProjectDeps["libpulse"] = (m_projectName == "libavdevice");
+    mProjectDeps["librubberband"] = (m_projectName == "libavfilter");
+    mProjectDeps["libquvi"] = (m_projectName == "libavformat");
+    mProjectDeps["librtmp"] = (m_projectName == "libavformat");
+    mProjectDeps["libschroedinger"] = (m_projectName == "libavcodec");
+    mProjectDeps["libshine"] = (m_projectName == "libavcodec");
+    mProjectDeps["libsmbclient"] = (m_projectName == "libavformat");
+    mProjectDeps["libsnappy"] = (m_projectName == "libavcodec");
+    mProjectDeps["libsoxr"] = (m_projectName == "libswresample");
+    mProjectDeps["libspeex"] = (m_projectName == "libavcodec");
+    mProjectDeps["libssh"] = (m_projectName == "libavformat");
+    mProjectDeps["libstagefright_h264"] = (m_projectName == "libavcodec");
+    mProjectDeps["libtesseract"] = (m_projectName == "libavfilter");
+    mProjectDeps["libtheora"] = (m_projectName == "libavcodec");
+    mProjectDeps["libtwolame"] = (m_projectName == "libavcodec");
+    mProjectDeps["libutvideo"] = (m_projectName == "libavcodec");
+    mProjectDeps["libv4l2"] = (m_projectName == "libavdevice");
+    mProjectDeps["libvidstab"] = (m_projectName == "libavfilter");
+    mProjectDeps["libvo_aacenc"] = (m_projectName == "libavcodec");
+    mProjectDeps["libvo_amrwbenc"] = (m_projectName == "libavcodec");
+    mProjectDeps["libvorbis"] = (m_projectName == "libavcodec");
+    mProjectDeps["libvpx"] = (m_projectName == "libavcodec");
+    mProjectDeps["libwavpack"] = (m_projectName == "libavcodec");
+    mProjectDeps["libwebp"] = (m_projectName == "libavcodec");
+    mProjectDeps["libx264"] = (m_projectName == "libavcodec");
+    mProjectDeps["libx265"] = (m_projectName == "libavcodec");
+    mProjectDeps["libxavs"] = (m_projectName == "libavcodec");
+    mProjectDeps["libxml2"] = (m_projectName == "libavformat");
+    mProjectDeps["libxvid"] = (m_projectName == "libavcodec");
+    mProjectDeps["libzimg"] = (m_projectName == "libavfilter");
+    mProjectDeps["libzmq"] = (m_projectName == "libavfilter");
+    mProjectDeps["libzvbi"] = (m_projectName == "libavcodec");
+    mProjectDeps["lzma"] = (m_projectName == "libavcodec");
+    mProjectDeps["nvdec"] = (m_projectName == "libavcodec");
+    mProjectDeps["nvenc"] = (m_projectName == "libavcodec");
+    mProjectDeps["openal"] = (m_projectName == "libavdevice");
+    mProjectDeps["opencl"] = (m_projectName == "libavutil") || (m_projectName == "libavfilter") ||
+        (m_projectName == "ffmpeg") || (m_projectName == "avconv") || (m_projectName == "ffplay") ||
+        (m_projectName == "avplay") || (m_projectName == "ffprobe") || (m_projectName == "avprobe");
+    mProjectDeps["opengl"] = (m_projectName == "libavdevice");
+    mProjectDeps["openssl"] = (m_projectName == "libavformat");
+    mProjectDeps["schannel"] = (m_projectName == "libavformat");
     mProjectDeps["sdl"] =
-        (m_sProjectName == "libavdevice") || (m_sProjectName == "ffplay") || (m_sProjectName == "avplay");
+        (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     mProjectDeps["sdl2"] =
-        (m_sProjectName == "libavdevice") || (m_sProjectName == "ffplay") || (m_sProjectName == "avplay");
+        (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     // mProjectDeps["x11grab"] = ( m_projectName.compare("libavdevice") == 0 );//Always disabled on Win32
-    mProjectDeps["zlib"] = (m_sProjectName == "libavformat") || (m_sProjectName == "libavcodec");
+    mProjectDeps["zlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
 }
 
 void ProjectGenerator::buildProjectGUIDs(map<string, string>& mKeys) const
@@ -507,7 +507,7 @@ void ProjectGenerator::buildProjectGUIDs(map<string, string>& mKeys) const
     mKeys["libswscale"] = "6D8A6330-8EBE-49FD-9281-0A396F9F28F2";
     mKeys["libpostproc"] = "4D9C457D-9ADA-4A12-9D06-42D80124C5AB";
 
-    if (!m_ConfigHelper.m_isLibav) {
+    if (!m_configHelper.m_isLibav) {
         mKeys["ffmpeg"] = "4081C77E-F1F7-49FA-9BD8-A4D267C83716";
         mKeys["ffplay"] = "E2A6865D-BD68-45B4-8130-EFD620F2C7EB";
         mKeys["ffprobe"] = "147A422A-FA63-4724-A5D9-08B1CAFDAB59";
@@ -531,17 +531,17 @@ void ProjectGenerator::buildProjectDCEs(
         string sHeader;
     };
     vector<FindThingsVars> vSearchLists;
-    if (m_sProjectName == "libavcodec") {
+    if (m_projectName == "libavcodec") {
         vSearchLists.push_back({"encoder", "ENC", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
         vSearchLists.push_back({"decoder", "DEC", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
         vSearchLists.push_back({"hwaccel", "HWACCEL", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
         vSearchLists.push_back({"parser", "PARSER", "libavcodec/allcodecs.c", "libavcodec/avcodec.h"});
-    } else if (m_sProjectName == "libavformat") {
+    } else if (m_projectName == "libavformat") {
         vSearchLists.push_back({"muxer", "_MUX", "libavformat/allformats.c", "libavformat/avformat.h"});
         vSearchLists.push_back({"demuxer", "DEMUX", "libavformat/allformats.c", "libavformat/avformat.h"});
-    } else if (m_sProjectName == "libavfilter") {
+    } else if (m_projectName == "libavfilter") {
         vSearchLists.push_back({"filter", "FILTER", "libavfilter/allfilters.c", "libavfilter/avfilter.h"});
-    } else if (m_sProjectName == "libavdevice") {
+    } else if (m_projectName == "libavdevice") {
         vSearchLists.push_back({"outdev", "OUTDEV", "libavdevice/alldevices.c", "libavdevice/avdevice.h"});
         vSearchLists.push_back({"indev", "_IN", "libavdevice/alldevices.c", "libavdevice/avdevice.h"});
     }
@@ -552,7 +552,7 @@ void ProjectGenerator::buildProjectDCEs(
         StaticList vRetExterns;
         string sList = (*itLists).sList;
         transform(sList.begin(), sList.end(), sList.begin(), toupper);
-        m_ConfigHelper.passFindThings(itLists->sList, itLists->sSearch, itLists->sFile, vRet, &vRetExterns);
+        m_configHelper.passFindThings(itLists->sList, itLists->sSearch, itLists->sFile, vRet, &vRetExterns);
         for (auto itRet = vRet.begin(), itRet2 = vRetExterns.begin(); itRet < vRet.end(); ++itRet, ++itRet2) {
             string sType = *itRet2;
             transform(itRet->begin(), itRet->end(), itRet->begin(), toupper);

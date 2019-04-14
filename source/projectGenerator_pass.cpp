@@ -17,51 +17,50 @@
  * License along with ShiftMediaProject; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
 #include "projectGenerator.h"
 
 #include <algorithm>
 #include <utility>
 
-bool ProjectGenerator::passStaticIncludeObject(uint& uiStartPos, uint& uiEndPos, StaticList& vStaticIncludes)
+bool ProjectGenerator::passStaticIncludeObject(uint& startPos, uint& endPos, StaticList& staticIncludes)
 {
     // Add the found string to internal storage
-    uiEndPos = m_sInLine.find_first_of(". \t", uiStartPos);
-    if ((uiEndPos != string::npos) && (m_sInLine.at(uiEndPos) == '.')) {
+    endPos = m_inLine.find_first_of(". \t", startPos);
+    if ((endPos != string::npos) && (m_inLine.at(endPos) == '.')) {
         // Skip any ./ or ../
-        uint uiEndPos2 = m_sInLine.find_first_not_of(".\\", uiEndPos + 1);
-        if ((uiEndPos2 != string::npos) && (uiEndPos2 > uiEndPos + 1)) {
-            uiEndPos = m_sInLine.find_first_of(". \t", uiEndPos2 + 1);
+        const uint endPos2 = m_inLine.find_first_not_of(".\\", endPos + 1);
+        if ((endPos2 != string::npos) && (endPos2 > endPos + 1)) {
+            endPos = m_inLine.find_first_of(". \t", endPos2 + 1);
         }
     }
-    string sTag = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
+    string sTag = m_inLine.substr(startPos, endPos - startPos);
     if (sTag.find('$') != string::npos) {
         // Invalid include. Occurs when include is actually a variable
-        uiStartPos += 2;
-        sTag = m_sInLine.substr(uiStartPos, m_sInLine.find(')', uiStartPos) - uiStartPos);
+        startPos += 2;
+        sTag = m_inLine.substr(startPos, m_inLine.find(')', startPos) - startPos);
         // Check if additional variable (This happens when a string should be prepended to existing items within tag.)
-        string sTag2;
+        string tag2;
         if (sTag.find(':') != string::npos) {
-            uiStartPos = sTag.find(":%=");
-            uint uiStartPos2 = uiStartPos + 3;
-            uiEndPos = sTag.find('%', uiStartPos2);
-            sTag2 = sTag.substr(uiStartPos2, uiEndPos - uiStartPos2);
-            sTag = sTag.substr(0, uiStartPos);
+            startPos = sTag.find(":%=");
+            const uint startPos2 = startPos + 3;
+            endPos = sTag.find('%', startPos2);
+            tag2 = sTag.substr(startPos2, endPos - startPos2);
+            sTag = sTag.substr(0, startPos);
         }
         // Get variable contents
-        vector<string> vFiles;
-        m_ConfigHelper.buildObjects(sTag, vFiles);
-        if (sTag2.length() > 0) {
+        vector<string> files;
+        m_configHelper.buildObjects(sTag, files);
+        if (tag2.length() > 0) {
             // Prepend the full library path
-            for (auto vitFile = vFiles.begin(); vitFile < vFiles.end(); ++vitFile) {
-                *vitFile = sTag2 + *vitFile;
+            for (auto file = files.begin(); file < files.end(); ++file) {
+                *file = tag2 + *file;
             }
         }
         // Loop through each item and add to list
-        for (auto vitFile = vFiles.begin(); vitFile < vFiles.end(); ++vitFile) {
+        for (auto file = files.begin(); file < files.end(); ++file) {
             // Check if object already included in internal list
-            if (find(m_vCIncludes.begin(), m_vCIncludes.end(), *vitFile) == m_vCIncludes.end()) {
-                vStaticIncludes.push_back(*vitFile);
+            if (find(m_includesC.begin(), m_includesC.end(), *file) == m_includesC.end()) {
+                staticIncludes.push_back(*file);
                 // outputInfo("Found C Static: '" + *vitFile + "'");
             }
         }
@@ -69,125 +68,125 @@ bool ProjectGenerator::passStaticIncludeObject(uint& uiStartPos, uint& uiEndPos,
     }
 
     // Check if object already included in internal list
-    if (find(vStaticIncludes.begin(), vStaticIncludes.end(), sTag) == vStaticIncludes.end()) {
-        vStaticIncludes.push_back(sTag);
+    if (find(staticIncludes.begin(), staticIncludes.end(), sTag) == staticIncludes.end()) {
+        staticIncludes.push_back(sTag);
         // outputInfo("Found Static: '" + sTag + "'");
     }
     return true;
 }
 
-bool ProjectGenerator::passStaticIncludeLine(uint uiStartPos, StaticList& vStaticIncludes)
+bool ProjectGenerator::passStaticIncludeLine(uint startPos, StaticList& staticIncludes)
 {
-    uint uiEndPos;
-    if (!passStaticIncludeObject(uiStartPos, uiEndPos, vStaticIncludes)) {
+    uint endPos;
+    if (!passStaticIncludeObject(startPos, endPos, staticIncludes)) {
         return false;
     }
     // Check if there are multiple files declared on the same line
-    while (uiEndPos != string::npos) {
-        uiStartPos = m_sInLine.find_first_of(" \t\\\n\0", uiEndPos);
-        uiStartPos = m_sInLine.find_first_not_of(" \t\\\n\0", uiStartPos);
-        if (uiStartPos == string::npos) {
+    while (endPos != string::npos) {
+        startPos = m_inLine.find_first_of(" \t\\\n\0", endPos);
+        startPos = m_inLine.find_first_not_of(" \t\\\n\0", startPos);
+        if (startPos == string::npos) {
             break;
         }
-        if (!passStaticIncludeObject(uiStartPos, uiEndPos, vStaticIncludes)) {
+        if (!passStaticIncludeObject(startPos, endPos, staticIncludes)) {
             return false;
         }
     }
     return true;
 }
 
-bool ProjectGenerator::passStaticInclude(uint uiILength, StaticList& vStaticIncludes)
+bool ProjectGenerator::passStaticInclude(const uint length, StaticList& staticIncludes)
 {
     // Remove the identifier and '='
-    uint uiStartPos = m_sInLine.find_first_not_of(" +=:", uiILength);
-    if (!passStaticIncludeLine(uiStartPos, vStaticIncludes)) {
+    uint startPos = m_inLine.find_first_not_of(" +=:", length);
+    if (!passStaticIncludeLine(startPos, staticIncludes)) {
         return true;
     }
     // Check if this is a multi line declaration
-    while (m_sInLine.back() == '\\') {
+    while (m_inLine.back() == '\\') {
         // Get the next line
-        getline(m_ifInputFile, m_sInLine);
+        getline(m_inputFile, m_inLine);
         // Remove the whitespace
-        uiStartPos = m_sInLine.find_first_not_of(" \t");
-        if (uiStartPos == string::npos) {
+        startPos = m_inLine.find_first_not_of(" \t");
+        if (startPos == string::npos) {
             break;
         }
-        if (!passStaticIncludeLine(uiStartPos, vStaticIncludes)) {
+        if (!passStaticIncludeLine(startPos, staticIncludes)) {
             return true;
         }
     }
     return true;
 }
 
-bool ProjectGenerator::passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos, string& sIdent, StaticList& vIncludes)
+bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, string& ident, StaticList& includes)
 {
     // Check if this is a valid File or a past compile option
-    if (m_sInLine.at(uiStartPos) == '$') {
-        uiEndPos = m_sInLine.find(')', uiStartPos);
-        string sDynInc = m_sInLine.substr(uiStartPos + 2, uiEndPos - uiStartPos - 2);
+    if (m_inLine.at(startPos) == '$') {
+        endPos = m_inLine.find(')', startPos);
+        const string dynInc = m_inLine.substr(startPos + 2, endPos - startPos - 2);
         // Find it in the unknown list
-        auto mitObjectList = m_mUnknowns.find(sDynInc);
-        if (mitObjectList != m_mUnknowns.end()) {
+        auto objectList = m_unknowns.find(dynInc);
+        if (objectList != m_unknowns.end()) {
             // Loop over each internal object
-            for (auto vitObject = mitObjectList->second.begin(); vitObject < mitObjectList->second.end(); ++vitObject) {
+            for (auto object = objectList->second.begin(); object < objectList->second.end(); ++object) {
                 // Check if object already included in internal list
-                if (find(vIncludes.begin(), vIncludes.end(), *vitObject) == vIncludes.end()) {
+                if (find(includes.begin(), includes.end(), *object) == includes.end()) {
                     // Check if the config option is correct
-                    auto vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
-                    if (vitOption == m_ConfigHelper.m_configValues.end()) {
-                        outputInfo("Unknown dynamic configuration option (" + sIdent + ") used when passing object (" +
-                            *vitObject + ")");
+                    auto option = m_configHelper.getConfigOptionPrefixed(ident);
+                    if (option == m_configHelper.m_configValues.end()) {
+                        outputInfo("Unknown dynamic configuration option (" + ident + ") used when passing object (" +
+                            *object + ")");
                         return true;
                     }
-                    if (vitOption->m_value == "1") {
-                        vIncludes.push_back(*vitObject);
-                        // outputInfo("Found Dynamic: '" + *vitObject + "', '" + "( " + sIdent + " && " + sDynInc + " )"
+                    if (option->m_value == "1") {
+                        includes.push_back(*object);
+                        // outputInfo("Found Dynamic: '" + *vitObject + "', '" + "( " + ident + " && " + sDynInc + " )"
                         // + "'");
                     }
                 }
             }
         } else {
-            outputError("Found unknown token (" + sDynInc + ")");
+            outputError("Found unknown token (" + dynInc + ")");
             return false;
         }
-    } else if (m_sInLine.at(uiStartPos) == '#') {
+    } else if (m_inLine.at(startPos) == '#') {
         // Found a comment, just skip till end of line
-        uiEndPos = m_sInLine.length();
+        endPos = m_inLine.length();
         return true;
     } else {
         // Check for condition
-        string sCompare = "1";
-        if (sIdent.at(0) == '!') {
-            sIdent = sIdent.substr(1);
-            sCompare = "0";
+        string compare = "1";
+        if (ident.at(0) == '!') {
+            ident = ident.substr(1);
+            compare = "0";
         }
-        uiEndPos = m_sInLine.find_first_of(". \t", uiStartPos);
-        if ((uiEndPos != string::npos) && (m_sInLine.at(uiEndPos) == '.')) {
+        endPos = m_inLine.find_first_of(". \t", startPos);
+        if ((endPos != string::npos) && (m_inLine.at(endPos) == '.')) {
             // Skip any ./ or ../
-            uint uiEndPos2 = m_sInLine.find_first_not_of(".\\", uiEndPos + 1);
-            if ((uiEndPos2 != string::npos) && (uiEndPos2 > uiEndPos + 1)) {
-                uiEndPos = m_sInLine.find_first_of(". \t", uiEndPos2 + 1);
+            const uint endPos2 = m_inLine.find_first_not_of(".\\", endPos + 1);
+            if ((endPos2 != string::npos) && (endPos2 > endPos + 1)) {
+                endPos = m_inLine.find_first_of(". \t", endPos2 + 1);
             }
         }
         // Add the found string to internal storage
-        string sTag = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
+        const string tag = m_inLine.substr(startPos, endPos - startPos);
         // Check if object already included in internal list
-        if (find(vIncludes.begin(), vIncludes.end(), sTag) == vIncludes.end()) {
+        if (find(includes.begin(), includes.end(), tag) == includes.end()) {
             // Check if the config option is correct
-            auto vitOption = m_ConfigHelper.getConfigOptionPrefixed(sIdent);
-            if (vitOption == m_ConfigHelper.m_configValues.end()) {
+            const auto option = m_configHelper.getConfigOptionPrefixed(ident);
+            if (option == m_configHelper.m_configValues.end()) {
                 outputInfo(
-                    "Unknown dynamic configuration option (" + sIdent + ") used when passing object (" + sTag + ")");
+                    "Unknown dynamic configuration option (" + ident + ") used when passing object (" + tag + ")");
                 return true;
             }
-            if (vitOption->m_value == sCompare) {
+            if (option->m_value == compare) {
                 // Check if the config option is for a reserved type
-                if (m_ConfigHelper.m_replaceList.find(sIdent) != m_ConfigHelper.m_replaceList.end()) {
-                    m_mReplaceIncludes[sTag].push_back(sIdent);
-                    // outputInfo("Found Dynamic Replace: '" + sTag + "', '" + sIdent + "'");
+                if (m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
+                    m_replaceIncludes[tag].push_back(ident);
+                    // outputInfo("Found Dynamic Replace: '" + sTag + "', '" + ident + "'");
                 } else {
-                    vIncludes.push_back(sTag);
-                    // outputInfo("Found Dynamic: '" + sTag + "', '" + sIdent + "'");
+                    includes.push_back(tag);
+                    // outputInfo("Found Dynamic: '" + sTag + "', '" + ident + "'");
                 }
             }
         }
@@ -195,47 +194,47 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos
     return true;
 }
 
-bool ProjectGenerator::passDynamicIncludeLine(uint uiStartPos, string& sIdent, StaticList& vIncludes)
+bool ProjectGenerator::passDynamicIncludeLine(uint startPos, string& ident, StaticList& includes)
 {
-    uint uiEndPos;
-    if (!passDynamicIncludeObject(uiStartPos, uiEndPos, sIdent, vIncludes)) {
+    uint endPos;
+    if (!passDynamicIncludeObject(startPos, endPos, ident, includes)) {
         return false;
     }
     // Check if there are multiple files declared on the same line
-    while (uiEndPos != string::npos) {
-        uiStartPos = m_sInLine.find_first_of(" \t\\\n\0", uiEndPos);
-        uiStartPos = m_sInLine.find_first_not_of(" \t\\\n\0", uiStartPos);
-        if (uiStartPos == string::npos) {
+    while (endPos != string::npos) {
+        startPos = m_inLine.find_first_of(" \t\\\n\0", endPos);
+        startPos = m_inLine.find_first_not_of(" \t\\\n\0", startPos);
+        if (startPos == string::npos) {
             break;
         }
-        if (!passDynamicIncludeObject(uiStartPos, uiEndPos, sIdent, vIncludes)) {
+        if (!passDynamicIncludeObject(startPos, endPos, ident, includes)) {
             return false;
         }
     }
     return true;
 }
 
-bool ProjectGenerator::passDynamicInclude(uint uiILength, StaticList& vIncludes)
+bool ProjectGenerator::passDynamicInclude(const uint length, StaticList& includes)
 {
     // Find the dynamic identifier
-    uint uiStartPos = m_sInLine.find_first_not_of("$( \t", uiILength);
-    uint uiEndPos = m_sInLine.find(')', uiStartPos);
-    string sIdent = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
+    uint startPos = m_inLine.find_first_not_of("$( \t", length);
+    const uint endPos = m_inLine.find(')', startPos);
+    string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
-    uiStartPos = m_sInLine.find_first_not_of("+=: \t", uiEndPos + 1);
-    if (!passDynamicIncludeLine(uiStartPos, sIdent, vIncludes)) {
+    startPos = m_inLine.find_first_not_of("+=: \t", endPos + 1);
+    if (!passDynamicIncludeLine(startPos, ident, includes)) {
         return false;
     }
     // Check if this is a multi line declaration
-    while (m_sInLine.back() == '\\') {
+    while (m_inLine.back() == '\\') {
         // Get the next line
-        getline(m_ifInputFile, m_sInLine);
+        getline(m_inputFile, m_inLine);
         // Remove the whitespace
-        uiStartPos = m_sInLine.find_first_not_of(" \t");
-        if (uiStartPos == string::npos) {
+        startPos = m_inLine.find_first_not_of(" \t");
+        if (startPos == string::npos) {
             break;
         }
-        if (!passDynamicIncludeLine(uiStartPos, sIdent, vIncludes)) {
+        if (!passDynamicIncludeLine(startPos, ident, includes)) {
             return false;
         }
     }
@@ -244,28 +243,28 @@ bool ProjectGenerator::passDynamicInclude(uint uiILength, StaticList& vIncludes)
 
 bool ProjectGenerator::passCInclude()
 {
-    return passStaticInclude(4, m_vIncludes);
+    return passStaticInclude(4, m_includes);
 }
 
 bool ProjectGenerator::passDCInclude()
 {
-    return passDynamicInclude(5, m_vIncludes);
+    return passDynamicInclude(5, m_includes);
 }
 
-bool ProjectGenerator::passASMInclude(uint uiOffset)
+bool ProjectGenerator::passASMInclude(const uint offset)
 {
     // Check if supported option
-    if (m_ConfigHelper.isASMEnabled()) {
-        return passStaticInclude(9 + uiOffset, m_vIncludes);
+    if (m_configHelper.isASMEnabled()) {
+        return passStaticInclude(9 + offset, m_includes);
     }
     return true;
 }
 
-bool ProjectGenerator::passDASMInclude(uint uiOffset)
+bool ProjectGenerator::passDASMInclude(const uint offset)
 {
     // Check if supported option
-    if (m_ConfigHelper.isASMEnabled()) {
-        return passDynamicInclude(10 + uiOffset, m_vIncludes);
+    if (m_configHelper.isASMEnabled()) {
+        return passDynamicInclude(10 + offset, m_includes);
     }
     return true;
 }
@@ -273,8 +272,8 @@ bool ProjectGenerator::passDASMInclude(uint uiOffset)
 bool ProjectGenerator::passMMXInclude()
 {
     // Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
-        return passStaticInclude(8, m_vIncludes);
+    if (m_configHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
+        return passStaticInclude(8, m_includes);
     }
     return true;
 }
@@ -282,55 +281,55 @@ bool ProjectGenerator::passMMXInclude()
 bool ProjectGenerator::passDMMXInclude()
 {
     // Check if supported option
-    if (m_ConfigHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
-        return passDynamicInclude(9, m_vIncludes);
+    if (m_configHelper.getConfigOptionPrefixed("HAVE_MMX")->m_value == "1") {
+        return passDynamicInclude(9, m_includes);
     }
     return true;
 }
 
-bool ProjectGenerator::passHInclude(uint uiCutPos)
+bool ProjectGenerator::passHInclude(const uint cutPos)
 {
-    return passStaticInclude(uiCutPos, m_vHIncludes);
+    return passStaticInclude(cutPos, m_includesH);
 }
 
 bool ProjectGenerator::passDHInclude()
 {
-    return passDynamicInclude(8, m_vHIncludes);
+    return passDynamicInclude(8, m_includesH);
 }
 
 bool ProjectGenerator::passLibInclude()
 {
-    return passStaticInclude(6, m_vLibs);
+    return passStaticInclude(6, m_libs);
 }
 
 bool ProjectGenerator::passDLibInclude()
 {
-    return passDynamicInclude(7, m_vLibs);
+    return passDynamicInclude(7, m_libs);
 }
 
 bool ProjectGenerator::passDUnknown()
 {
     // Find the dynamic identifier
-    uint uiStartPos = m_sInLine.find("$(");
-    uint uiEndPos = m_sInLine.find(')', uiStartPos);
-    string sPrefix = m_sInLine.substr(0, uiStartPos) + "yes";
-    uiStartPos += 2;    // Skip the $(
-    string sIdent = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
+    uint startPos = m_inLine.find("$(");
+    const uint endPos = m_inLine.find(')', startPos);
+    const string prefix = m_inLine.substr(0, startPos) + "yes";
+    startPos += 2;    // Skip the $(
+    string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
-    uiStartPos = m_sInLine.find_first_not_of("+= \t", uiEndPos + 1);
-    if (!passDynamicIncludeLine(uiStartPos, sIdent, m_mUnknowns[sPrefix])) {
+    startPos = m_inLine.find_first_not_of("+= \t", endPos + 1);
+    if (!passDynamicIncludeLine(startPos, ident, m_unknowns[prefix])) {
         return false;
     }
     // Check if this is a multi line declaration
-    while (m_sInLine.back() == '\\') {
+    while (m_inLine.back() == '\\') {
         // Get the next line
-        getline(m_ifInputFile, m_sInLine);
+        getline(m_inputFile, m_inLine);
         // Remove the whitespace
-        uiStartPos = m_sInLine.find_first_not_of(" \t");
-        if (uiStartPos == string::npos) {
+        startPos = m_inLine.find_first_not_of(" \t");
+        if (startPos == string::npos) {
             break;
         }
-        if (!passDynamicIncludeLine(uiStartPos, sIdent, m_mUnknowns[sPrefix])) {
+        if (!passDynamicIncludeLine(startPos, ident, m_unknowns[prefix])) {
             return false;
         }
     }
@@ -340,26 +339,26 @@ bool ProjectGenerator::passDUnknown()
 bool ProjectGenerator::passDLibUnknown()
 {
     // Find the dynamic identifier
-    uint uiStartPos = m_sInLine.find("$(");
-    uint uiEndPos = m_sInLine.find(')', uiStartPos);
-    string sPrefix = m_sInLine.substr(0, uiStartPos) + "yes";
-    uiStartPos += 2;    // Skip the $(
-    string sIdent = m_sInLine.substr(uiStartPos, uiEndPos - uiStartPos);
+    uint startPos = m_inLine.find("$(");
+    const uint endPos = m_inLine.find(')', startPos);
+    const string prefix = m_inLine.substr(0, startPos) + "yes";
+    startPos += 2;    // Skip the $(
+    string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
-    uiStartPos = m_sInLine.find_first_not_of("+= \t", uiEndPos + 1);
-    if (!passDynamicIncludeLine(uiStartPos, sIdent, m_mUnknowns[sPrefix])) {
+    startPos = m_inLine.find_first_not_of("+= \t", endPos + 1);
+    if (!passDynamicIncludeLine(startPos, ident, m_unknowns[prefix])) {
         return false;
     }
     // Check if this is a multi line declaration
-    while (m_sInLine.back() == '\\') {
+    while (m_inLine.back() == '\\') {
         // Get the next line
-        getline(m_ifInputFile, m_sInLine);
+        getline(m_inputFile, m_inLine);
         // Remove the whitespace
-        uiStartPos = m_sInLine.find_first_not_of(" \t");
-        if (uiStartPos == string::npos) {
+        startPos = m_inLine.find_first_not_of(" \t");
+        if (startPos == string::npos) {
             break;
         }
-        if (!passDynamicIncludeLine(uiStartPos, sIdent, m_mUnknowns[sPrefix])) {
+        if (!passDynamicIncludeLine(startPos, ident, m_unknowns[prefix])) {
             return false;
         }
     }
@@ -368,256 +367,255 @@ bool ProjectGenerator::passDLibUnknown()
 
 bool ProjectGenerator::passMake()
 {
-    string sMakeFile = m_sProjectDir + "MakeFile";
-    outputLine("  Generating from Makefile (" + sMakeFile + ")...");
+    const string makeFile = m_projectDir + "MakeFile";
+    outputLine("  Generating from Makefile (" + makeFile + ")...");
     // Open the input Makefile
-    m_ifInputFile.open(sMakeFile);
-    if (m_ifInputFile.is_open()) {
+    m_inputFile.open(makeFile);
+    if (m_inputFile.is_open()) {
         // Read each line in the MakeFile
-        while (getline(m_ifInputFile, m_sInLine)) {
+        while (getline(m_inputFile, m_inLine)) {
             // Check what information is included in the current line
-            if (m_sInLine.substr(0, 4) == "OBJS") {
+            if (m_inLine.substr(0, 4) == "OBJS") {
                 // Found some c includes
-                if (m_sInLine.at(4) == '-') {
+                if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static c includes
                     if (!passCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if ((m_sInLine.substr(0, 11) == "X86ASM-OBJS") || (m_sInLine.substr(0, 9) == "YASM-OBJS")) {
+            } else if ((m_inLine.substr(0, 11) == "X86ASM-OBJS") || (m_inLine.substr(0, 9) == "YASM-OBJS")) {
                 // Found some YASM includes
-                uint uiOffset = (m_sInLine.at(0) == 'X') ? 2 : 0;
-                if (m_sInLine.at(9 + uiOffset) == '-') {
+                const uint offset = (m_inLine.at(0) == 'X') ? 2 : 0;
+                if (m_inLine.at(9 + offset) == '-') {
                     // Found some dynamic ASM includes
-                    if (!passDASMInclude(uiOffset)) {
-                        m_ifInputFile.close();
+                    if (!passDASMInclude(offset)) {
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static ASM includes
-                    if (!passASMInclude(uiOffset)) {
-                        m_ifInputFile.close();
+                    if (!passASMInclude(offset)) {
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 8) == "MMX-OBJS") {
+            } else if (m_inLine.substr(0, 8) == "MMX-OBJS") {
                 // Found some ASM includes
-                if (m_sInLine.at(8) == '-') {
+                if (m_inLine.at(8) == '-') {
                     // Found some dynamic MMX includes
                     if (!passDMMXInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static MMX includes
                     if (!passMMXInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 7) == "HEADERS") {
+            } else if (m_inLine.substr(0, 7) == "HEADERS") {
                 // Found some headers
-                if (m_sInLine.at(7) == '-') {
+                if (m_inLine.at(7) == '-') {
                     // Found some dynamic headers
                     if (!passDHInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static headers
                     if (!passHInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (m_sInLine.find("BUILT_HEADERS") == 0) {
+            } else if (m_inLine.find("BUILT_HEADERS") == 0) {
                 // Found some static built headers
                 if (!passHInclude(13)) {
-                    m_ifInputFile.close();
+                    m_inputFile.close();
                     return false;
                 }
-            } else if (m_sInLine.substr(0, 6) == "FFLIBS") {
+            } else if (m_inLine.substr(0, 6) == "FFLIBS") {
                 // Found some libs
-                if (m_sInLine.at(6) == '-') {
+                if (m_inLine.at(6) == '-') {
                     // Found some dynamic libs
                     if (!passDLibInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static libs
                     if (!passLibInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (m_sInLine.find("-OBJS-$") != string::npos) {
+            } else if (m_inLine.find("-OBJS-$") != string::npos) {
                 // Found unknown
                 if (!passDUnknown()) {
-                    m_ifInputFile.close();
+                    m_inputFile.close();
                     return false;
                 }
-            } else if (m_sInLine.find("LIBS-$") != string::npos) {
+            } else if (m_inLine.find("LIBS-$") != string::npos) {
                 // Found Lib unknown
                 if (!passDLibUnknown()) {
-                    m_ifInputFile.close();
+                    m_inputFile.close();
                     return false;
                 }
-            } else if (m_sInLine.substr(0, 5) == "ifdef") {
+            } else if (m_inLine.substr(0, 5) == "ifdef") {
                 // Check for configuration value
-                const uint startPos = m_sInLine.find_first_not_of(" \t", 5);
-                uint endPos = m_sInLine.find_first_of(" \t\n\r", startPos + 1);
+                const uint startPos = m_inLine.find_first_not_of(" \t", 5);
+                uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
                 endPos = (endPos == string::npos) ? endPos : endPos - startPos;
-                string config = m_sInLine.substr(startPos, endPos);
+                string config = m_inLine.substr(startPos, endPos);
                 // Check if the config option is correct
-                auto option = m_ConfigHelper.getConfigOptionPrefixed(config);
-                if (option == m_ConfigHelper.m_configValues.end()) {
+                auto option = m_configHelper.getConfigOptionPrefixed(config);
+                if (option == m_configHelper.m_configValues.end()) {
                     outputInfo("Unknown ifdef configuration option (" + config + ")");
                     return false;
                 }
                 if (option->m_value != "1") {
                     // Skip everything between the ifdefs
-                    while (getline(m_ifInputFile, m_sInLine)) {
-                        if ((m_sInLine.substr(0, 5) == "endif") || (m_sInLine.substr(0, 4) == "else")) {
+                    while (getline(m_inputFile, m_inLine)) {
+                        if ((m_inLine.substr(0, 5) == "endif") || (m_inLine.substr(0, 4) == "else")) {
                             break;
                         }
                     }
                 }
             }
         }
-        m_ifInputFile.close();
+        m_inputFile.close();
         return true;
     }
-    outputError("Could not open open MakeFile (" + sMakeFile + ")");
+    outputError("Could not open open MakeFile (" + makeFile + ")");
     return false;
 }
 
 bool ProjectGenerator::passProgramMake()
 {
-    uint uiChecks = 2;
-    while (uiChecks >= 1) {
+    uint checks = 2;
+    while (checks >= 1) {
         // Open the input Makefile
-        string sMakeFile = m_sProjectDir + "MakeFile";
-        m_ifInputFile.open(sMakeFile);
-        if (!m_ifInputFile.is_open()) {
-            outputError("Could not open open MakeFile (" + sMakeFile + ")");
+        string makeFile = m_projectDir + "MakeFile";
+        m_inputFile.open(makeFile);
+        if (!m_inputFile.is_open()) {
+            outputError("Could not open open MakeFile (" + makeFile + ")");
         }
-
-        outputLine("  Generating from Makefile (" + sMakeFile + ") for project " + m_sProjectName + "...");
-        string sObjTag = "OBJS-" + m_sProjectName;
-        uint uiFindPos;
+        outputLine("  Generating from Makefile (" + makeFile + ") for project " + m_projectName + "...");
+        string objTag = "OBJS-" + m_projectName;
+        uint findPos;
         // Read each line in the MakeFile
-        while (getline(m_ifInputFile, m_sInLine)) {
+        while (getline(m_inputFile, m_inLine)) {
             // Check what information is included in the current line
-            if (m_sInLine.substr(0, sObjTag.length()) == sObjTag) {
+            if (m_inLine.substr(0, objTag.length()) == objTag) {
                 // Cut the line so it can be used by default passers
-                m_sInLine = m_sInLine.substr(sObjTag.length() - 4);
-                if (m_sInLine.at(4) == '-') {
+                m_inLine = m_inLine.substr(objTag.length() - 4);
+                if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static c includes
                     if (!passCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (m_sInLine.substr(0, 6) == "FFLIBS") {
+            } else if (m_inLine.substr(0, 6) == "FFLIBS") {
                 // Found some libs
-                if (m_sInLine.at(6) == '-') {
+                if (m_inLine.at(6) == '-') {
                     // Found some dynamic libs
                     if (!passDLibInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static libs
                     if (!passLibInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if ((uiFindPos = m_sInLine.find("eval OBJS-$(prog)")) != string::npos) {
-                m_sInLine = m_sInLine.substr(uiFindPos + 13);
-                if (m_sInLine.at(4) == '-') {
+            } else if ((findPos = m_inLine.find("eval OBJS-$(prog)")) != string::npos) {
+                m_inLine = m_inLine.substr(findPos + 13);
+                if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static c includes
                     if (!passCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if (((uiFindPos = m_sInLine.find("OBJS-$(1)")) != string::npos) && (uiFindPos == 0)) {
-                m_sInLine = m_sInLine.substr(uiFindPos + 5, m_sInLine.find(".o", uiFindPos + 9) + 2 - (uiFindPos + 5));
-                if (m_sInLine.at(4) == '-') {
+            } else if (((findPos = m_inLine.find("OBJS-$(1)")) != string::npos) && (findPos == 0)) {
+                m_inLine = m_inLine.substr(findPos + 5, m_inLine.find(".o", findPos + 9) + 2 - (findPos + 5));
+                if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static c includes
                     if (!passCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
-            } else if ((uiFindPos = m_sInLine.find("eval OBJS-$(P)")) != string::npos) {
-                m_sInLine = m_sInLine.substr(uiFindPos + 10);
-                if (m_sInLine.at(4) == '-') {
+            } else if ((findPos = m_inLine.find("eval OBJS-$(P)")) != string::npos) {
+                m_inLine = m_inLine.substr(findPos + 10);
+                if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 } else {
                     // Found some static c includes
                     if (!passCInclude()) {
-                        m_ifInputFile.close();
+                        m_inputFile.close();
                         return false;
                     }
                 }
             }
         }
-        m_ifInputFile.close();
-        if (uiChecks == 2) {
-            string sIgnore;
-            const string sMakeFolder = "fftools/";
-            sMakeFile = m_sProjectDir + sMakeFolder + "MakeFile";
-            if (findFile(sMakeFile, sIgnore)) {
+        m_inputFile.close();
+        if (checks == 2) {
+            string ignore;
+            const string makeFolder = "fftools/";
+            makeFile = m_projectDir + makeFolder + "MakeFile";
+            if (findFile(makeFile, ignore)) {
                 // If using the Makefile in fftools then we need to read both it and the root Makefile
-                m_sProjectDir += sMakeFolder;
+                m_projectDir += makeFolder;
             } else {
-                --uiChecks;
+                --checks;
             }
         }
         // When passing the fftools folder some objects are added with fftools folder prefixed to file name
-        const string sMakeFolder = "fftools/";
+        const string makeFolder = "fftools/";
         uint uiPos;
-        for (auto itI = m_vIncludes.begin(); itI < m_vIncludes.end(); ++itI) {
-            if ((uiPos = itI->find(sMakeFolder)) != string::npos) {
-                itI->erase(uiPos, sMakeFolder.length());
+        for (auto i = m_includes.begin(); i < m_includes.end(); ++i) {
+            if ((uiPos = i->find(makeFolder)) != string::npos) {
+                i->erase(uiPos, makeFolder.length());
             }
         }
-        --uiChecks;
+        --checks;
     }
 
     // Program always includes a file named after themselves
-    m_vIncludes.push_back(m_sProjectName);
+    m_includes.push_back(m_projectName);
     return true;
 }

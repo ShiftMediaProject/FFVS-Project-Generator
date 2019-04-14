@@ -38,31 +38,31 @@
 
 bool ProjectGenerator::passAllMake()
 {
-    if ((m_ConfigHelper.m_toolchain.compare("msvc") == 0) || (m_ConfigHelper.m_toolchain.compare("icl") == 0)) {
+    if ((m_configHelper.m_toolchain.compare("msvc") == 0) || (m_configHelper.m_toolchain.compare("icl") == 0)) {
         // Copy the required header files to output directory
-        const bool copy = copyResourceFile(TEMPLATE_COMPAT_ID, m_ConfigHelper.m_solutionDirectory + "compat.h", true);
+        const bool copy = copyResourceFile(TEMPLATE_COMPAT_ID, m_configHelper.m_solutionDirectory + "compat.h", true);
         if (!copy) {
             outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
             return false;
         }
-        copyResourceFile(TEMPLATE_MATH_ID, m_ConfigHelper.m_solutionDirectory + "math.h", true);
-        copyResourceFile(TEMPLATE_UNISTD_ID, m_ConfigHelper.m_solutionDirectory + "unistd.h", true);
+        copyResourceFile(TEMPLATE_MATH_ID, m_configHelper.m_solutionDirectory + "math.h", true);
+        copyResourceFile(TEMPLATE_UNISTD_ID, m_configHelper.m_solutionDirectory + "unistd.h", true);
         string fileName;
-        if (findFile(m_ConfigHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h", fileName)) {
-            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_ConfigHelper.m_solutionDirectory + "stdatomic.h", true);
+        if (findFile(m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h", fileName)) {
+            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_configHelper.m_solutionDirectory + "stdatomic.h", true);
         }
     }
 
     // Loop through each library make file
     vector<string> libraries;
-    m_ConfigHelper.getConfigList("LIBRARY_LIST", libraries);
+    m_configHelper.getConfigList("LIBRARY_LIST", libraries);
     for (const auto& i : libraries) {
         // Check if library is enabled
-        if (m_ConfigHelper.getConfigOption(i)->m_value.compare("1") == 0) {
-            m_sProjectDir = m_ConfigHelper.m_rootDirectory + "lib" + i + "/";
+        if (m_configHelper.getConfigOption(i)->m_value.compare("1") == 0) {
+            m_projectDir = m_configHelper.m_rootDirectory + "lib" + i + "/";
             // Locate the project dir for specified library
             string retFileName;
-            if (!findFile(m_sProjectDir + "MakeFile", retFileName)) {
+            if (!findFile(m_projectDir + "MakeFile", retFileName)) {
                 outputError("Could not locate directory for library (" + i + ")");
                 return false;
             }
@@ -71,15 +71,15 @@ bool ProjectGenerator::passAllMake()
                 return false;
             }
             // Check for any sub directories
-            m_sProjectDir += "x86/";
-            if (findFile(m_sProjectDir + "MakeFile", retFileName)) {
+            m_projectDir += "x86/";
+            if (findFile(m_projectDir + "MakeFile", retFileName)) {
                 // Pass the sub directory
                 if (!passMake()) {
                     return false;
                 }
             }
             // Reset project dir so it does not include additions
-            m_sProjectDir.resize(m_sProjectDir.length() - 4);
+            m_projectDir.resize(m_projectDir.length() - 4);
             // Output the project
             if (!outputProject()) {
                 return false;
@@ -93,7 +93,7 @@ bool ProjectGenerator::passAllMake()
         return false;
     }
 
-    if (m_ConfigHelper.m_onlyDCE) {
+    if (m_configHelper.m_onlyDCE) {
         // Delete no longer needed compilation files
         deleteCreatedFiles();
     }
@@ -104,30 +104,30 @@ void ProjectGenerator::deleteCreatedFiles()
 {
     // Get list of libraries and programs
     vector<string> vLibraries;
-    m_ConfigHelper.getConfigList("LIBRARY_LIST", vLibraries);
+    m_configHelper.getConfigList("LIBRARY_LIST", vLibraries);
     vector<string> vPrograms;
-    m_ConfigHelper.getConfigList("PROGRAM_LIST", vPrograms);
+    m_configHelper.getConfigList("PROGRAM_LIST", vPrograms);
 
     // Delete any previously generated files
     vector<string> vExistingFiles;
-    findFiles(m_ConfigHelper.m_solutionDirectory + "ffmpeg.sln", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "libav.sln", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "compat.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "math.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "unistd.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "stdatomic.h", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "ffmpeg_with_latest_sdk.bat", vExistingFiles, false);
-    findFiles(m_ConfigHelper.m_solutionDirectory + "libav_with_latest_sdk.bat", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "ffmpeg.sln", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "libav.sln", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "compat.h", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "math.h", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "unistd.h", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "stdatomic.h", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "ffmpeg_with_latest_sdk.bat", vExistingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "libav_with_latest_sdk.bat", vExistingFiles, false);
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
         *vitLib = "lib" + *vitLib;
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitLib + ".vcxproj.filters", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitLib + ".def", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitLib + ".vcxproj", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitLib + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitLib + ".def", vExistingFiles, false);
     }
     for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitProg + ".vcxproj", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitProg + ".vcxproj.filters", vExistingFiles, false);
-        findFiles(m_ConfigHelper.m_solutionDirectory + *vitProg + ".def", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitProg + ".vcxproj", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitProg + ".vcxproj.filters", vExistingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + *vitProg + ".def", vExistingFiles, false);
     }
     for (vector<string>::iterator itIt = vExistingFiles.begin(); itIt < vExistingFiles.end(); itIt++) {
         deleteFile(*itIt);
@@ -136,17 +136,17 @@ void ProjectGenerator::deleteCreatedFiles()
     // Check for any created folders
     vector<string> vExistingFolders;
     for (vector<string>::iterator vitLib = vLibraries.begin(); vitLib < vLibraries.end(); vitLib++) {
-        findFolders(m_ConfigHelper.m_solutionDirectory + *vitLib, vExistingFolders, false);
+        findFolders(m_configHelper.m_solutionDirectory + *vitLib, vExistingFolders, false);
     }
     for (vector<string>::iterator vitProg = vPrograms.begin(); vitProg < vPrograms.end(); vitProg++) {
-        findFolders(m_ConfigHelper.m_solutionDirectory + *vitProg, vExistingFolders, false);
+        findFolders(m_configHelper.m_solutionDirectory + *vitProg, vExistingFolders, false);
     }
     for (vector<string>::iterator itIt = vExistingFolders.begin(); itIt < vExistingFolders.end(); itIt++) {
         // Search for any generated files in the directories
         vExistingFiles.resize(0);
         findFiles(*itIt + "/dce_defs.c", vExistingFiles, false);
         findFiles(*itIt + "/*_wrap.c", vExistingFiles, false);
-        if (!m_ConfigHelper.m_usingExistingConfig) {
+        if (!m_configHelper.m_usingExistingConfig) {
             findFiles(*itIt + "/*_list.c", vExistingFiles, false);
         }
         for (vector<string>::iterator itIt2 = vExistingFiles.begin(); itIt2 < vExistingFiles.end(); itIt2++) {
@@ -163,11 +163,11 @@ void ProjectGenerator::errorFunc(bool bCleanupFiles)
 {
     if (bCleanupFiles) {
         // Cleanup any partially created files
-        m_ConfigHelper.deleteCreatedFiles();
+        m_configHelper.deleteCreatedFiles();
         deleteCreatedFiles();
 
         // Delete any temporary file leftovers
-        deleteFolder(sTempDirectory);
+        deleteFolder(m_tempDirectory);
     }
 
     pressKeyToContinue();
@@ -177,8 +177,8 @@ void ProjectGenerator::errorFunc(bool bCleanupFiles)
 bool ProjectGenerator::outputProject()
 {
     // Output the generated files
-    uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2) + 1;
-    m_sProjectName = m_sProjectDir.substr(uiSPos, m_sProjectDir.length() - 1 - uiSPos);
+    uint uiSPos = m_projectDir.rfind('/', m_projectDir.length() - 2) + 1;
+    m_projectName = m_projectDir.substr(uiSPos, m_projectDir.length() - 1 - uiSPos);
 
     // Check all files are correctly located
     if (!checkProjectFiles()) {
@@ -197,7 +197,7 @@ bool ProjectGenerator::outputProject()
         return false;
     }
 
-    if (m_ConfigHelper.m_onlyDCE) {
+    if (m_configHelper.m_onlyDCE) {
         // Exit here to prevent outputting project files
         return true;
     }
@@ -208,7 +208,7 @@ bool ProjectGenerator::outputProject()
     }
 
     // We now have complete list of all the files that we need
-    outputLine("  Generating project file (" + m_sProjectName + ")...");
+    outputLine("  Generating project file (" + m_projectName + ")...");
 
     // Open the input temp project file
     string sProjectFile;
@@ -223,7 +223,7 @@ bool ProjectGenerator::outputProject()
     }
 
     // Remove any winrt configurations if not requested
-    if (!m_ConfigHelper.isConfigOptionEnabled("WINRT") && !m_ConfigHelper.isConfigOptionEnabled("UWP")) {
+    if (!m_configHelper.isConfigOptionEnabled("WINRT") && !m_configHelper.isConfigOptionEnabled("UWP")) {
         outputStripWinRT(sProjectFile);
     }
 
@@ -254,13 +254,13 @@ bool ProjectGenerator::outputProject()
     outputTemplateTags(sProjectFile, sFiltersFile);
 
     // Write output project
-    const string sOutProjectFile = m_ConfigHelper.m_solutionDirectory + m_sProjectName + ".vcxproj";
+    const string sOutProjectFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj";
     if (!writeToFile(sOutProjectFile, sProjectFile, true)) {
         return false;
     }
 
     // Write output filters
-    const string sOutFiltersFile = m_ConfigHelper.m_solutionDirectory + m_sProjectName + ".vcxproj.filters";
+    const string sOutFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj.filters";
     return writeToFile(sOutFiltersFile, sFiltersFile, true);
 }
 
@@ -288,13 +288,13 @@ bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, cons
         return false;
     }
 
-    if (m_ConfigHelper.m_onlyDCE) {
+    if (m_configHelper.m_onlyDCE) {
         // Exit here to prevent outputting project files
         return true;
     }
 
     // We now have complete list of all the files that we need
-    outputLine("  Generating project file (" + m_sProjectName + ")...");
+    outputLine("  Generating project file (" + m_projectName + ")...");
 
     // Open the template program
     string sProgramFile;
@@ -352,23 +352,23 @@ bool ProjectGenerator::outputProgramProject(const string& sDestinationFile, cons
 void ProjectGenerator::outputProjectCleanup()
 {
     // Reset all internal values
-    m_sInLine.clear();
-    m_vIncludes.clear();
-    m_mReplaceIncludes.clear();
-    m_vCPPIncludes.clear();
-    m_vCIncludes.clear();
-    m_vASMIncludes.clear();
-    m_vHIncludes.clear();
-    m_vLibs.clear();
-    m_mUnknowns.clear();
-    m_sProjectDir.clear();
+    m_inLine.clear();
+    m_includes.clear();
+    m_replaceIncludes.clear();
+    m_includesCPP.clear();
+    m_includesC.clear();
+    m_includesASM.clear();
+    m_includesH.clear();
+    m_libs.clear();
+    m_unknowns.clear();
+    m_projectDir.clear();
 }
 
 bool ProjectGenerator::outputSolution()
 {
     // Create program list
     map<string, string> mProgramList;
-    if (!m_ConfigHelper.m_isLibav) {
+    if (!m_configHelper.m_isLibav) {
         mProgramList["ffmpeg"] = "CONFIG_FFMPEG";
         mProgramList["ffplay"] = "CONFIG_FFPLAY";
         mProgramList["ffprobe"] = "CONFIG_FFPROBE";
@@ -382,13 +382,13 @@ bool ProjectGenerator::outputSolution()
     map<string, string>::iterator mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
         // Check if program is enabled
-        if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_value.compare("1") == 0) {
-            m_sProjectDir = m_ConfigHelper.m_rootDirectory;
+        if (m_configHelper.getConfigOptionPrefixed(mitPrograms->second)->m_value.compare("1") == 0) {
+            m_projectDir = m_configHelper.m_rootDirectory;
             // Create project files for program
-            m_sProjectName = mitPrograms->first;
-            const string sDestinationFile = m_ConfigHelper.m_solutionDirectory + mitPrograms->first + ".vcxproj";
+            m_projectName = mitPrograms->first;
+            const string sDestinationFile = m_configHelper.m_solutionDirectory + mitPrograms->first + ".vcxproj";
             const string sDestinationFilterFile =
-                m_ConfigHelper.m_solutionDirectory + mitPrograms->first + ".vcxproj.filters";
+                m_configHelper.m_solutionDirectory + mitPrograms->first + ".vcxproj.filters";
             if (!outputProgramProject(sDestinationFile, sDestinationFilterFile)) {
                 return false;
             }
@@ -397,7 +397,7 @@ bool ProjectGenerator::outputSolution()
         ++mitPrograms;
     }
 
-    if (m_ConfigHelper.m_onlyDCE) {
+    if (m_configHelper.m_onlyDCE) {
         // Don't output solution and just exit early
         return true;
     }
@@ -410,7 +410,7 @@ bool ProjectGenerator::outputSolution()
     }
 
     // Remove any winrt configurations if not requested
-    if (!m_ConfigHelper.isConfigOptionEnabled("winrt") && !m_ConfigHelper.isConfigOptionEnabled("uwp")) {
+    if (!m_configHelper.isConfigOptionEnabled("winrt") && !m_configHelper.isConfigOptionEnabled("uwp")) {
         outputStripWinRTSolution(sSolutionFile);
     }
 
@@ -437,8 +437,8 @@ bool ProjectGenerator::outputSolution()
     const string sFileStart = "Project";
     uint uiPos = sSolutionFile.find(sFileStart) - 2;
 
-    map<string, StaticList>::iterator mitLibraries = m_mProjectLibs.begin();
-    while (mitLibraries != m_mProjectLibs.end()) {
+    map<string, StaticList>::iterator mitLibraries = m_projectLibs.begin();
+    while (mitLibraries != m_projectLibs.end()) {
         // Check if this is a library or a program
         if (mProgramList.find(mitLibraries->first) == mProgramList.end()) {
             // Check if this library has a known key (to lazy to auto generate at this time)
@@ -495,7 +495,7 @@ bool ProjectGenerator::outputSolution()
     mitPrograms = mProgramList.begin();
     while (mitPrograms != mProgramList.end()) {
         // Check if program is enabled
-        if (m_ConfigHelper.getConfigOptionPrefixed(mitPrograms->second)->m_value.compare("1") == 0) {
+        if (m_configHelper.getConfigOptionPrefixed(mitPrograms->second)->m_value.compare("1") == 0) {
             // Add the program to the solution
             sProjectAdd += sProject;
             sProjectAdd += sSolutionKey;
@@ -512,10 +512,10 @@ bool ProjectGenerator::outputSolution()
 
             // Add the dependencies
             sProjectAdd += sDepend;
-            StaticList::iterator mitLibs = m_mProjectLibs[mitPrograms->first].begin();
-            while (mitLibs != m_mProjectLibs[mitPrograms->first].end()) {
+            StaticList::iterator mitLibs = m_projectLibs[mitPrograms->first].begin();
+            while (mitLibs != m_projectLibs[mitPrograms->first].end()) {
                 // Add all project libraries as dependencies
-                if (!m_ConfigHelper.m_isLibav) {
+                if (!m_configHelper.m_isLibav) {
                     sProjectAdd += sSubDepend;
                     sProjectAdd += mKeys[*mitLibs];
                     sProjectAdd += sSubDepend2;
@@ -547,7 +547,7 @@ bool ProjectGenerator::outputSolution()
     }
 
     // Check if winrt builds are enabled
-    bool addWinrt = m_ConfigHelper.isConfigOptionEnabled("winrt") || m_ConfigHelper.isConfigOptionEnabled("uwp");
+    bool addWinrt = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
 
     // Next Add the solution configurations
     string sConfigStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
@@ -655,9 +655,9 @@ bool ProjectGenerator::outputSolution()
     }
 
     // Write output solution
-    string sProjectName = m_ConfigHelper.m_projectName;
+    string sProjectName = m_configHelper.m_projectName;
     transform(sProjectName.begin(), sProjectName.end(), sProjectName.begin(), ::tolower);
-    const string sOutSolutionFile = m_ConfigHelper.m_solutionDirectory + sProjectName + ".sln";
+    const string sOutSolutionFile = m_configHelper.m_solutionDirectory + sProjectName + ".sln";
     if (!writeToFile(sOutSolutionFile, sSolutionFile, true)) {
         return false;
     }
@@ -680,7 +680,7 @@ bool ProjectGenerator::outputSolution()
     }
 
     // Write to output
-    const string sOutBatFile = m_ConfigHelper.m_solutionDirectory + sProjectName + "_with_latest_sdk.bat";
+    const string sOutBatFile = m_configHelper.m_solutionDirectory + sProjectName + "_with_latest_sdk.bat";
     if (!writeToFile(sOutBatFile, sBatFile, true)) {
         return false;
     }
@@ -695,14 +695,14 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     uint uiFindPos = sProjectTemplate.find(sFFSearchTag);
     while (uiFindPos != string::npos) {
         // Replace
-        sProjectTemplate.replace(uiFindPos, sFFSearchTag.length(), m_sProjectName);
+        sProjectTemplate.replace(uiFindPos, sFFSearchTag.length(), m_projectName);
         // Get next
         uiFindPos = sProjectTemplate.find(sFFSearchTag, uiFindPos + 1);
     }
     uint uiFindPosFilt = sFiltersTemplate.find(sFFSearchTag);
     while (uiFindPosFilt != string::npos) {
         // Replace
-        sFiltersTemplate.replace(uiFindPosFilt, sFFSearchTag.length(), m_sProjectName);
+        sFiltersTemplate.replace(uiFindPosFilt, sFFSearchTag.length(), m_projectName);
         // Get next
         uiFindPosFilt = sFiltersTemplate.find(sFFSearchTag, uiFindPosFilt + 1);
     }
@@ -710,7 +710,7 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     // Change all occurrences of template_shin with short project name
     const string sFFShortSearchTag = "template_shin";
     uiFindPos = sProjectTemplate.find(sFFShortSearchTag);
-    string sProjectNameShort = m_sProjectName.substr(3);    // The full name minus the lib prefix
+    string sProjectNameShort = m_projectName.substr(3);    // The full name minus the lib prefix
     while (uiFindPos != string::npos) {
         // Replace
         sProjectTemplate.replace(uiFindPos, sFFShortSearchTag.length(), sProjectNameShort);
@@ -729,7 +729,7 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     string sToolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>";
-    if (m_ConfigHelper.m_toolchain.compare("msvc") != 0) {
+    if (m_configHelper.m_toolchain.compare("msvc") != 0) {
         sToolchain +=
             "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(ICPP_COMPILER14)'!=''\">Intel C++ Compiler XE 14.0</PlatformToolset>\r\n\
@@ -755,11 +755,11 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
         map<string, string> mKeys;
         buildProjectGUIDs(mKeys);
         uiFindPos += sGUID.length();
-        sProjectTemplate.replace(uiFindPos, mKeys[m_sProjectName].length(), mKeys[m_sProjectName]);
+        sProjectTemplate.replace(uiFindPos, mKeys[m_projectName].length(), mKeys[m_projectName]);
     }
 
     // Change all occurrences of template_outdir with configured output directory
-    string sOutDir = m_ConfigHelper.m_outDirectory;
+    string sOutDir = m_configHelper.m_outDirectory;
     replace(sOutDir.begin(), sOutDir.end(), '/', '\\');
     if (sOutDir.at(0) == '.') {
         sOutDir = "$(ProjectDir)" + sOutDir;    // Make any relative paths based on project dir
@@ -774,8 +774,8 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
     }
 
     // Change all occurrences of template_rootdir with configured output directory
-    string sRootDir = m_ConfigHelper.m_rootDirectory;
-    m_ConfigHelper.makeFileProjectRelative(sRootDir, sRootDir);
+    string sRootDir = m_configHelper.m_rootDirectory;
+    m_configHelper.makeFileProjectRelative(sRootDir, sRootDir);
     replace(sRootDir.begin(), sRootDir.end(), '/', '\\');
     const string sFFRootSearchTag = "template_rootdir";
     uiFindPos = sProjectTemplate.find(sFFRootSearchTag);
@@ -788,7 +788,7 @@ void ProjectGenerator::outputTemplateTags(string& sProjectTemplate, string& sFil
 
     // Change all occurrences of template_winver
     uint uiMajor, uiMinor;
-    if (!m_ConfigHelper.getMinWindowsVersion(uiMajor, uiMinor)) {
+    if (!m_configHelper.getMinWindowsVersion(uiMajor, uiMinor)) {
         outputWarning("Could not detect a supported Windows version. Defaults of WinXP will be used instead.");
         uiMajor = 5;
         uiMinor = 1;
@@ -907,7 +907,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
 
             // Add the filters Filter
             string sSourceDir;
-            m_ConfigHelper.makeFileProjectRelative(this->m_ConfigHelper.m_rootDirectory, sSourceDir);
+            m_configHelper.makeFileProjectRelative(this->m_configHelper.m_rootDirectory, sSourceDir);
             uiPos = vitInclude->rfind(sSourceDir);
             uiPos = (uiPos == string::npos) ? 0 : uiPos + sSourceDir.length();
             sTypeFilesFiltTemp += sIncludeClose;
@@ -1008,8 +1008,8 @@ void ProjectGenerator::outputSourceFiles(string& sProjectTemplate, string& sFilt
 
     // Check if there is a resource file
     string sResourceFile;
-    if (findSourceFile(m_sProjectName.substr(3) + "res", ".rc", sResourceFile)) {
-        m_ConfigHelper.makeFileProjectRelative(sResourceFile, sResourceFile);
+    if (findSourceFile(m_projectName.substr(3) + "res", ".rc", sResourceFile)) {
+        m_configHelper.makeFileProjectRelative(sResourceFile, sResourceFile);
         StaticList vResources;
         vResources.push_back(sResourceFile);
         outputSourceFileType(vResources, "ResourceCompile", "Resource", sProjectTemplate, sFilterTemplate,
@@ -1017,22 +1017,22 @@ void ProjectGenerator::outputSourceFiles(string& sProjectTemplate, string& sFilt
     }
 
     // Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
-    if (m_ConfigHelper.isASMEnabled()) {
-        outputSourceFileType(m_vASMIncludes, (m_ConfigHelper.m_useNASM) ? "NASM" : "YASM", "Source", sProjectTemplate,
+    if (m_configHelper.isASMEnabled()) {
+        outputSourceFileType(m_includesASM, (m_configHelper.m_useNASM) ? "NASM" : "YASM", "Source", sProjectTemplate,
             sFilterTemplate, vFoundObjects, vFoundFilters, false);
     }
 
     // Output C files
     outputSourceFileType(
-        m_vCIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
+        m_includesC, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
 
     // Output C++ files
     outputSourceFileType(
-        m_vCPPIncludes, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
+        m_includesCPP, "ClCompile", "Source", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, true);
 
     // Output header files in new item group
     outputSourceFileType(
-        m_vHIncludes, "ClInclude", "Header", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
+        m_includesH, "ClInclude", "Header", sProjectTemplate, sFilterTemplate, vFoundObjects, vFoundFilters, false);
 
     // Add any additional Filters to filters file
     const string sItemGroupEnd = "\r\n  </ItemGroup>";
@@ -1070,16 +1070,16 @@ void ProjectGenerator::outputSourceFiles(string& sProjectTemplate, string& sFilt
 
 bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
 {
-    outputLine("  Generating project exports file (" + m_sProjectName + ")...");
+    outputLine("  Generating project exports file (" + m_projectName + ")...");
     string sExportList;
-    if (!findFile(this->m_sProjectDir + "/*.v", sExportList)) {
-        outputError("Failed finding project exports (" + m_sProjectName + ")");
+    if (!findFile(this->m_projectDir + "/*.v", sExportList)) {
+        outputError("Failed finding project exports (" + m_projectName + ")");
         return false;
     }
 
     // Open the input export file
     string sExportsFile;
-    loadFromFile(this->m_sProjectDir + sExportList, sExportsFile);
+    loadFromFile(this->m_projectDir + sExportList, sExportsFile);
 
     // Search for start of global tag
     string sGlobal = "global:";
@@ -1118,7 +1118,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
 
     // Split each source file into different directories to avoid name clashes
     map<string, StaticList> mDirectoryObjects;
-    for (StaticList::iterator itI = m_vCIncludes.begin(); itI < m_vCIncludes.end(); itI++) {
+    for (StaticList::iterator itI = m_includesC.begin(); itI < m_includesC.end(); itI++) {
         // Several input source files have the same name so we need to explicitly specify an output object file
         // otherwise they will clash
         uint uiPos = itI->rfind("../");
@@ -1128,7 +1128,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         string sFolderName = itI->substr(uiPos, uiPos2);
         mDirectoryObjects[sFolderName].push_back(*itI);
     }
-    for (StaticList::iterator itI = m_vCPPIncludes.begin(); itI < m_vCPPIncludes.end(); itI++) {
+    for (StaticList::iterator itI = m_includesCPP.begin(); itI < m_includesCPP.end(); itI++) {
         // Several input source files have the same name so we need to explicitly specify an output object file
         // otherwise they will clash
         uint uiPos = itI->rfind("../");
@@ -1146,7 +1146,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
     StaticList vSBRFiles;
     StaticList vModuleExports;
     StaticList vModuleDataExports;
-    string sTempFolder = sTempDirectory + m_sProjectName;
+    string sTempFolder = m_tempDirectory + m_projectName;
     findFiles(sTempFolder + "/*.sbr", vSBRFiles);
     for (StaticList::iterator itSBR = vSBRFiles.begin(); itSBR < vSBRFiles.end(); itSBR++) {
         string sSBRFile;
@@ -1260,9 +1260,9 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
     deleteFolder(sTempFolder);
 
     // Check for any exported functions in asm files
-    for (StaticList::iterator itASM = m_vASMIncludes.begin(); itASM < m_vASMIncludes.end(); itASM++) {
+    for (StaticList::iterator itASM = m_includesASM.begin(); itASM < m_includesASM.end(); itASM++) {
         string sASMFile;
-        loadFromFile(m_ConfigHelper.m_solutionDirectory + *itASM, sASMFile);
+        loadFromFile(m_configHelper.m_solutionDirectory + *itASM, sASMFile);
 
         // Search through file for module exports
         for (StaticList::iterator itI = vExportStrings.begin(); itI < vExportStrings.end(); itI++) {
@@ -1317,7 +1317,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& vIncludeDirs)
         sModuleFile += "    " + *itI + " DATA\r\n";
     }
 
-    string sDestinationFile = m_ConfigHelper.m_solutionDirectory + m_sProjectName + ".def";
+    string sDestinationFile = m_configHelper.m_solutionDirectory + m_projectName + ".def";
     if (!writeToFile(sDestinationFile, sModuleFile, true)) {
         return false;
     }
@@ -1337,7 +1337,7 @@ mkdir \"$(OutDir)\"\\include\\";
     const string sCopy = "\r\ncopy ";
     const string sCopyEnd = " \"$(OutDir)\"\\include\\";
     const string sLicense = "\r\nmkdir \"$(OutDir)\"\\licenses";
-    string sLicenseName = m_ConfigHelper.m_projectName;
+    string sLicenseName = m_configHelper.m_projectName;
     transform(sLicenseName.begin(), sLicenseName.end(), sLicenseName.begin(), ::tolower);
     const string sLicenseEnd = " \"$(OutDir)\"\\licenses\\" + sLicenseName + ".txt";
     const string sPrebuild = "\r\n    <PreBuildEvent>\r\n\
@@ -1356,23 +1356,23 @@ del template_rootdirlibavutil\\avconfig.h\r\n\
 if exist template_rootdirlibavutil\\ffversion.h (\r\n\
 del template_rootdirlibavutil\\ffversion.h\r\n\
 )";
-    const string sPrebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_sProjectName + " (\r\n\
+    const string sPrebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_projectName + " (\r\n\
 rd /s /q \"$(OutDir)\"\\include\\" +
-        m_sProjectName + "\r\n\
+        m_projectName + "\r\n\
 cd ../\r\n\
 cd $(ProjectDir)\r\n\
 )";
     const string sPrebuildClose = "</Command>\r\n    </PreBuildEvent>";
     // Get the correct license file
     string sLicenseFile;
-    if (m_ConfigHelper.getConfigOption("nonfree")->m_value.compare("1") == 0) {
+    if (m_configHelper.getConfigOption("nonfree")->m_value.compare("1") == 0) {
         sLicenseFile = "template_rootdirCOPYING.GPLv3";    // Technically this has no license as it is unredistributable
                                                            // but we get the closest thing for now
-    } else if (m_ConfigHelper.getConfigOption("gplv3")->m_value.compare("1") == 0) {
+    } else if (m_configHelper.getConfigOption("gplv3")->m_value.compare("1") == 0) {
         sLicenseFile = "template_rootdirCOPYING.GPLv3";
-    } else if (m_ConfigHelper.getConfigOption("lgplv3")->m_value.compare("1") == 0) {
+    } else if (m_configHelper.getConfigOption("lgplv3")->m_value.compare("1") == 0) {
         sLicenseFile = "template_rootdirCOPYING.LGPLv3";
-    } else if (m_ConfigHelper.getConfigOption("gpl")->m_value.compare("1") == 0) {
+    } else if (m_configHelper.getConfigOption("gpl")->m_value.compare("1") == 0) {
         sLicenseFile = "template_rootdirCOPYING.GPLv2";
     } else {
         sLicenseFile = "template_rootdirCOPYING.LGPLv2.1";
@@ -1381,16 +1381,16 @@ cd $(ProjectDir)\r\n\
     string sAdditional;
     // Add the post build event
     sAdditional += sPostbuild;
-    if (m_vHIncludes.size() > 0) {
+    if (m_includesH.size() > 0) {
         sAdditional += sInclude;
-        sAdditional += m_sProjectName;
-        for (StaticList::iterator vitHeaders = m_vHIncludes.begin(); vitHeaders < m_vHIncludes.end(); vitHeaders++) {
+        sAdditional += m_projectName;
+        for (StaticList::iterator vitHeaders = m_includesH.begin(); vitHeaders < m_includesH.end(); vitHeaders++) {
             sAdditional += sCopy;
             string sHeader = *vitHeaders;
             replace(sHeader.begin(), sHeader.end(), '/', '\\');
             sAdditional += sHeader;
             sAdditional += sCopyEnd;
-            sAdditional += m_sProjectName;
+            sAdditional += m_projectName;
         }
     }
     // Output license
@@ -1401,7 +1401,7 @@ cd $(ProjectDir)\r\n\
     sAdditional += sPostbuildClose;
     // Add the pre build event
     sAdditional += sPrebuild;
-    if (m_vHIncludes.size() > 0) {
+    if (m_includesH.size() > 0) {
         sAdditional += sPrebuildDir;
     }
     sAdditional += sPrebuildClose;
@@ -1492,7 +1492,7 @@ void ProjectGenerator::outputDefines(const StaticList& defines, string& projectT
 
 void ProjectGenerator::outputASMTools(string& sProjectTemplate)
 {
-    if (m_ConfigHelper.isASMEnabled() && (m_vASMIncludes.size() > 0)) {
+    if (m_configHelper.isASMEnabled() && (m_includesASM.size() > 0)) {
         string sASMDefines = "\r\n\
     <NASM>\r\n\
       <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\$(ProjectName)\\x86;%(IncludePaths)</IncludePaths>\r\n\
@@ -1507,7 +1507,7 @@ void ProjectGenerator::outputASMTools(string& sProjectTemplate)
   <ImportGroup Label=\"ExtensionTargets\">\r\n\
     <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.targets\" />\r\n\
   </ImportGroup>";
-        if (!m_ConfigHelper.m_useNASM) {
+        if (!m_configHelper.m_useNASM) {
             // Replace nasm with yasm
             size_t n = 0;
             while ((n = sASMDefines.find("NASM", n)) != string::npos) {
@@ -1545,7 +1545,7 @@ void ProjectGenerator::outputASMTools(string& sProjectTemplate)
 bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProgram)
 {
     // Check current libs list for valid lib names
-    for (StaticList::iterator vitLib = m_vLibs.begin(); vitLib < m_vLibs.end(); ++vitLib) {
+    for (StaticList::iterator vitLib = m_libs.begin(); vitLib < m_libs.end(); ++vitLib) {
         // prepend lib if needed
         if (vitLib->find("lib") != 0) {
             *vitLib = "lib" + *vitLib;
@@ -1553,31 +1553,31 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
     }
 
     // Add additional dependencies based on current config to Libs list
-    buildInterDependencies(m_vLibs);
-    m_mProjectLibs[m_sProjectName] = m_vLibs;    // Backup up current libs for solution
+    buildInterDependencies(m_libs);
+    m_projectLibs[m_projectName] = m_libs;    // Backup up current libs for solution
     StaticList vAddLibs;
-    buildDependencies(m_vLibs, vAddLibs);
+    buildDependencies(m_libs, vAddLibs);
     StaticList vLibsWinRT;
     StaticList vAddLibsWinRT;
-    for (StaticList::iterator vitLib = m_vLibs.begin() + m_mProjectLibs[m_sProjectName].size(); vitLib < m_vLibs.end();
+    for (StaticList::iterator vitLib = m_libs.begin() + m_projectLibs[m_projectName].size(); vitLib < m_libs.end();
          ++vitLib) {
         vLibsWinRT.push_back(*vitLib);
     }
     buildDependenciesWinRT(vLibsWinRT, vAddLibsWinRT);
     // Create list of additional internal dependencies used for static linking (since static libs dont include cross
     // dependency libs in them)
-    StaticList staticLibs = m_mProjectLibs[m_sProjectName];
+    StaticList staticLibs = m_projectLibs[m_projectName];
     for (StaticList::iterator i = staticLibs.begin(); i < staticLibs.end(); ++i) {
         // Get the list of dependency dependencies
         StaticList extraDeps;
-        const map<string, StaticList>::iterator findStatic = m_mProjectLibs.find(*i);
-        if (findStatic != m_mProjectLibs.end()) {
+        const map<string, StaticList>::iterator findStatic = m_projectLibs.find(*i);
+        if (findStatic != m_projectLibs.end()) {
             extraDeps = findStatic->second;
         } else {
-            string backup = m_sProjectName;
-            m_sProjectName = *i;
+            string backup = m_projectName;
+            m_projectName = *i;
             buildInterDependencies(extraDeps);
-            m_sProjectName = backup;
+            m_projectName = backup;
         }
         // Add new dependencies to list
         uint pos = i - staticLibs.begin();
@@ -1590,11 +1590,11 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
         i = staticLibs.begin() + pos;
     }
 
-    if ((m_vLibs.size() > 0) || (vAddLibs.size() > 0)) {
+    if ((m_libs.size() > 0) || (vAddLibs.size() > 0)) {
         // Create list of additional ffmpeg dependencies
         string sAddFFmpegLibs[4];    // debug, release, debugDll, releaseDll
-        for (StaticList::iterator vitLib = m_mProjectLibs[m_sProjectName].begin();
-             vitLib < m_mProjectLibs[m_sProjectName].end(); ++vitLib) {
+        for (StaticList::iterator vitLib = m_projectLibs[m_projectName].begin();
+             vitLib < m_projectLibs[m_projectName].end(); ++vitLib) {
             sAddFFmpegLibs[0] += *vitLib;
             sAddFFmpegLibs[0] += "d.lib;";
             sAddFFmpegLibs[1] += *vitLib;
@@ -1605,8 +1605,8 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
             sAddFFmpegLibs[3] += ".lib;";
         }
         string sAddFFmpegLibsWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
-        for (StaticList::iterator vitLib = m_mProjectLibs[m_sProjectName].begin();
-             vitLib < m_mProjectLibs[m_sProjectName].end(); ++vitLib) {
+        for (StaticList::iterator vitLib = m_projectLibs[m_projectName].begin();
+             vitLib < m_projectLibs[m_projectName].end(); ++vitLib) {
             sAddFFmpegLibsWinRT[0] += *vitLib;
             sAddFFmpegLibsWinRT[0] += "d_winrt.lib;";
             sAddFFmpegLibsWinRT[1] += *vitLib;
@@ -1640,8 +1640,8 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
         }
         // Create List of additional dependencies
         string sAddDeps[4];    // debug, release, debugDll, releaseDll
-        for (StaticList::iterator vitLib = m_vLibs.begin() + m_mProjectLibs[m_sProjectName].size();
-             vitLib < m_vLibs.end(); ++vitLib) {
+        for (StaticList::iterator vitLib = m_libs.begin() + m_projectLibs[m_projectName].size(); vitLib < m_libs.end();
+             ++vitLib) {
             sAddDeps[0] += *vitLib;
             sAddDeps[0] += "d.lib;";
             sAddDeps[1] += *vitLib;
@@ -1674,7 +1674,7 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
             sAddExternDepsWinRT += ".lib;";
         }
         // Check if winrt builds are enabled
-        bool addWinrt = m_ConfigHelper.isConfigOptionEnabled("winrt") || m_ConfigHelper.isConfigOptionEnabled("uwp");
+        bool addWinrt = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
         // Add to Additional Dependencies
         string asLibLink2[2] = {"<Link>", "<Lib>"};
         for (uint uiLinkLib = 0; uiLinkLib < (!bProgram ? 2 : 1); uiLinkLib++) {

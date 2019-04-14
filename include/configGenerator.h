@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _CONFIGGENERATOR_H_
-#define _CONFIGGENERATOR_H_
+#ifndef CONFIGGENERATOR_H
+#define CONFIGGENERATOR_H
 
 #include "helperFunctions.h"
 
@@ -52,9 +52,9 @@ private:
     };
 
     using ValuesList = vector<ConfigPair>;
-    typedef map<string, string> DefaultValuesList;
-    typedef map<string, bool> DependencyList;
-    typedef map<string, vector<string>> OptimisedConfigList;
+    using DefaultValuesList = map<string, string>;
+    using DependencyList = map<string, bool>;
+    using OptimisedConfigList = map<string, vector<string>>;
 
     ValuesList m_fixedConfigValues;
     ValuesList m_configValues;
@@ -260,9 +260,10 @@ private:
 
     /**
      * Update configuration option and perform any dependency option updates as well.
-     * @param option The option to update.
-     * @param enable True to enable, false to disable.
-     * @return True if it succeeds, false if it fails.
+     * @param option    The option to update.
+     * @param enable    True to enable, false to disable.
+     * @param recursive (Optional) True if the function has been called from within itself.
+     * @returns True if it succeeds, false if it fails.
      */
     bool toggleConfigValue(const string& option, bool enable, bool recursive = false);
 

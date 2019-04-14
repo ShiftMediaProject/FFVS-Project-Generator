@@ -23,23 +23,22 @@
 #include <algorithm>
 #include <utility>
 
-bool ProjectGenerator::findSourceFile(const string& sFile, const string& sExtension, string& sRetFileName) const
+bool ProjectGenerator::findSourceFile(const string& file, const string& extension, string& retFileName) const
 {
-    string sFileName;
-    sRetFileName = m_sProjectDir + sFile + sExtension;
-    if (!findFile(sRetFileName, sFileName)) {
+    string fileName;
+    retFileName = m_projectDir + file + extension;
+    if (!findFile(retFileName, fileName)) {
         // Check if this is a built file
-        uint uiSPos = m_sProjectDir.rfind('/', m_sProjectDir.length() - 2);
-        uiSPos = (uiSPos == string::npos) ? 0 : uiSPos + 1;
-        string sProjectName = m_sProjectDir.substr(uiSPos);
-        sProjectName = (m_sProjectDir != "./") ? sProjectName : "";
-        sRetFileName = m_ConfigHelper.m_solutionDirectory + sProjectName + sFile + sExtension;
-        if (!findFile(sRetFileName, sFileName)) {
+        uint pos = m_projectDir.rfind('/', m_projectDir.length() - 2);
+        pos = (pos == string::npos) ? 0 : pos + 1;
+        string projectName = m_projectDir.substr(pos);
+        projectName = (m_projectDir != "./") ? projectName : "";
+        retFileName = m_configHelper.m_solutionDirectory + projectName + file + extension;
+        if (!findFile(retFileName, fileName)) {
             // Check if this file already includes the project folder in its name
-            if (sFile.find(sProjectName) != string::npos) {
-                sRetFileName =
-                    m_sProjectDir + sFile.substr(sFile.find(sProjectName) + sProjectName.length()) + sExtension;
-                return findFile(sRetFileName, sFileName);
+            if (file.find(projectName) != string::npos) {
+                retFileName = m_projectDir + file.substr(file.find(projectName) + projectName.length()) + extension;
+                return findFile(retFileName, fileName);
             }
             return false;
         }
@@ -47,197 +46,196 @@ bool ProjectGenerator::findSourceFile(const string& sFile, const string& sExtens
     return true;
 }
 
-bool ProjectGenerator::findSourceFiles(const string& sFile, const string& sExtension, vector<string>& vRetFiles) const
+bool ProjectGenerator::findSourceFiles(const string& file, const string& extension, vector<string>& retFiles) const
 {
-    string sFileName = m_sProjectDir + sFile + sExtension;
-    return findFiles(sFileName, vRetFiles);
+    const string fileName = m_projectDir + file + extension;
+    return findFiles(fileName, retFiles);
 }
 
 bool ProjectGenerator::checkProjectFiles()
 {
     // Check that all headers are correct
-    for (auto& m_vHInclude : m_vHIncludes) {
-        string sRetFileName;
-        if (!findSourceFile(m_vHInclude, ".h", sRetFileName)) {
-            outputError("Could not find input header file for object (" + m_vHInclude + ")");
+    for (auto& include : m_includesH) {
+        string retFileName;
+        if (!findSourceFile(include, ".h", retFileName)) {
+            outputError("Could not find input header file for object (" + include + ")");
             return false;
         }
         // Update the entry with the found file with complete path
-        m_ConfigHelper.makeFileProjectRelative(sRetFileName, m_vHInclude);
+        m_configHelper.makeFileProjectRelative(retFileName, include);
     }
 
     // Check that all C Source are correct
-    for (auto& m_vCInclude : m_vCIncludes) {
-        string sRetFileName;
-        if (!findSourceFile(m_vCInclude, ".c", sRetFileName)) {
-            outputError("Could not find input C source file for object (" + m_vCInclude + ")");
+    for (auto& include : m_includesC) {
+        string retFileName;
+        if (!findSourceFile(include, ".c", retFileName)) {
+            outputError("Could not find input C source file for object (" + include + ")");
             return false;
         }
         // Update the entry with the found file with complete path
-        m_ConfigHelper.makeFileProjectRelative(sRetFileName, m_vCInclude);
+        m_configHelper.makeFileProjectRelative(retFileName, include);
     }
 
     // Check that all CPP Source are correct
-    for (auto& m_vCPPInclude : m_vCPPIncludes) {
-        string sRetFileName;
-        if (!findSourceFile(m_vCPPInclude, ".cpp", sRetFileName)) {
-            outputError("Could not find input C++ source file for object (" + m_vCPPInclude + ")");
+    for (auto& include : m_includesCPP) {
+        string retFileName;
+        if (!findSourceFile(include, ".cpp", retFileName)) {
+            outputError("Could not find input C++ source file for object (" + include + ")");
             return false;
         }
         // Update the entry with the found file with complete path
-        m_ConfigHelper.makeFileProjectRelative(sRetFileName, m_vCPPInclude);
+        m_configHelper.makeFileProjectRelative(retFileName, include);
     }
 
     // Check that all ASM Source are correct
-    for (auto& m_vASMInclude : m_vASMIncludes) {
-        string sRetFileName;
-        if (!findSourceFile(m_vASMInclude, ".asm", sRetFileName)) {
-            outputError("Could not find input ASM source file for object (" + m_vASMInclude + ")");
+    for (auto& include : m_includesASM) {
+        string retFileName;
+        if (!findSourceFile(include, ".asm", retFileName)) {
+            outputError("Could not find input ASM source file for object (" + include + ")");
             return false;
         }
         // Update the entry with the found file with complete path
-        m_ConfigHelper.makeFileProjectRelative(sRetFileName, m_vASMInclude);
+        m_configHelper.makeFileProjectRelative(retFileName, include);
     }
 
     // Check the output Unknown Includes and find there corresponding file
-    if (!findProjectFiles(m_vIncludes, m_vCIncludes, m_vCPPIncludes, m_vASMIncludes, m_vHIncludes)) {
+    if (!findProjectFiles(m_includes, m_includesC, m_includesCPP, m_includesASM, m_includesH)) {
         return false;
     }
 
-    if (m_ConfigHelper.m_onlyDCE) {
+    if (m_configHelper.m_onlyDCE) {
         // Don't need to check for replace files
         return true;
     }
 
     // Check all source files associated with replaced config values
-    StaticList vReplaceIncludes, vReplaceCPPIncludes, vReplaceCIncludes, vReplaceASMIncludes;
-    for (auto& m_mReplaceInclude : m_mReplaceIncludes) {
-        vReplaceIncludes.push_back(m_mReplaceInclude.first);
+    StaticList replaceIncludes, replaceCPPIncludes, replaceCIncludes, replaceASMIncludes;
+    for (auto& include : m_replaceIncludes) {
+        replaceIncludes.push_back(include.first);
     }
-    if (!findProjectFiles(
-            vReplaceIncludes, vReplaceCIncludes, vReplaceCPPIncludes, vReplaceASMIncludes, m_vHIncludes)) {
+    if (!findProjectFiles(replaceIncludes, replaceCIncludes, replaceCPPIncludes, replaceASMIncludes, m_includesH)) {
         return false;
     }
     // Need to create local files for any replace objects
-    if (!createReplaceFiles(vReplaceCIncludes, m_vCIncludes)) {
+    if (!createReplaceFiles(replaceCIncludes, m_includesC)) {
         return false;
     }
-    if (!createReplaceFiles(vReplaceCPPIncludes, m_vCPPIncludes)) {
+    if (!createReplaceFiles(replaceCPPIncludes, m_includesCPP)) {
         return false;
     }
-    if (!createReplaceFiles(vReplaceASMIncludes, m_vASMIncludes)) {
+    if (!createReplaceFiles(replaceASMIncludes, m_includesASM)) {
         return false;
     }
     return true;
 }
 
-bool ProjectGenerator::createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes)
+bool ProjectGenerator::createReplaceFiles(const StaticList& replaceIncludes, StaticList& existingIncludes)
 {
-    for (const auto& vReplaceInclude : vReplaceIncludes) {
+    for (const auto& replaceInclude : replaceIncludes) {
         // Check hasnt already been included as a fixed object
-        if (find(vExistingIncludes.begin(), vExistingIncludes.end(), vReplaceInclude) != vExistingIncludes.end()) {
+        if (find(existingIncludes.begin(), existingIncludes.end(), replaceInclude) != existingIncludes.end()) {
             // skip this item
             continue;
         }
         // Convert file to format required to search ReplaceIncludes
-        uint uiExtPos = vReplaceInclude.rfind('.');
-        uint uiCutPos = vReplaceInclude.rfind('/') + 1;
-        string sFilename = vReplaceInclude.substr(uiCutPos, uiExtPos - uiCutPos);
-        string sExtension = vReplaceInclude.substr(uiExtPos);
-        string sOutFile = m_ConfigHelper.m_solutionDirectory + m_sProjectName + "/" + sFilename + "_wrap" + sExtension;
-        string sNewOutFile;
-        m_ConfigHelper.makeFileProjectRelative(sOutFile, sNewOutFile);
+        const uint extPos = replaceInclude.rfind('.');
+        const uint cutPos = replaceInclude.rfind('/') + 1;
+        string filename = replaceInclude.substr(cutPos, extPos - cutPos);
+        string extension = replaceInclude.substr(extPos);
+        string outFile = m_configHelper.m_solutionDirectory + m_projectName + "/" + filename + "_wrap" + extension;
+        string newOutFile;
+        m_configHelper.makeFileProjectRelative(outFile, newOutFile);
         // Check hasnt already been included as a wrapped object
-        if (find(vExistingIncludes.begin(), vExistingIncludes.end(), sNewOutFile) != vExistingIncludes.end()) {
+        if (find(existingIncludes.begin(), existingIncludes.end(), newOutFile) != existingIncludes.end()) {
             // skip this item
-            outputInfo(sNewOutFile);
+            outputInfo(newOutFile);
             continue;
         }
         // Find the file in the original list
-        string sOrigName;
-        for (auto& m_mReplaceInclude : m_mReplaceIncludes) {
-            if (m_mReplaceInclude.first.find(sFilename) != string::npos) {
-                sOrigName = m_mReplaceInclude.first;
+        string origName;
+        for (auto& include : m_replaceIncludes) {
+            if (include.first.find(filename) != string::npos) {
+                origName = include.first;
                 break;
             }
         }
-        if (sOrigName.length() == 0) {
-            outputError("Could not find original file name for source file (" + sFilename + ")");
+        if (origName.length() == 0) {
+            outputError("Could not find original file name for source file (" + filename + ")");
             return false;
         }
         // Get the files dynamic config requirement
-        string sIdents;
-        for (auto itIdents = m_mReplaceIncludes[sOrigName].begin(); itIdents < m_mReplaceIncludes[sOrigName].end();
-             ++itIdents) {
-            sIdents += *itIdents;
-            if ((itIdents + 1) < m_mReplaceIncludes[sOrigName].end()) {
-                sIdents += " || ";
+        string idents;
+        for (auto include = m_replaceIncludes[origName].begin(); include < m_replaceIncludes[origName].end();
+             ++include) {
+            idents += *include;
+            if ((include + 1) < m_replaceIncludes[origName].end()) {
+                idents += " || ";
             }
         }
         // Create new file to wrap input object
-        string sPrettyFile = "../" + vReplaceInclude;
-        string sNewFile = getCopywriteHeader(sFilename + sExtension + " file wrapper for " + m_sProjectName);
-        sNewFile += "\n\
+        string prettyFile = "../" + replaceInclude;
+        string newFile = getCopywriteHeader(filename + extension + " file wrapper for " + m_projectName);
+        newFile += "\n\
 \n\
 #include \"config.h\"\n\
-#if " + sIdents +
+#if " + idents +
             "\n\
 #   include \"" +
-            sPrettyFile + "\"\n\
+            prettyFile + "\"\n\
 #endif";
         // Write output project
-        if (!makeDirectory(m_ConfigHelper.m_solutionDirectory + m_sProjectName)) {
-            outputError("Failed creating local " + m_sProjectName + " directory");
+        if (!makeDirectory(m_configHelper.m_solutionDirectory + m_projectName)) {
+            outputError("Failed creating local " + m_projectName + " directory");
             return false;
         }
-        if (!writeToFile(sOutFile, sNewFile)) {
+        if (!writeToFile(outFile, newFile)) {
             return false;
         }
         // Add the new file to list of objects
-        vExistingIncludes.push_back(sNewOutFile);
+        existingIncludes.push_back(newOutFile);
     }
     return true;
 }
 
-bool ProjectGenerator::findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes,
-    StaticList& vASMIncludes, StaticList& vHIncludes) const
+bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
+    StaticList& includesASM, StaticList& includesH) const
 {
-    for (const auto& vInclude : vIncludes) {
-        string sRetFileName;
-        if (findSourceFile(vInclude, ".c", sRetFileName)) {
+    for (const auto& include : includes) {
+        string retFileName;
+        if (findSourceFile(include, ".c", retFileName)) {
             // Found a C File to include
-            if (find(vCIncludes.begin(), vCIncludes.end(), sRetFileName) != vCIncludes.end()) {
+            if (find(includesC.begin(), includesC.end(), retFileName) != includesC.end()) {
                 // skip this item
                 continue;
             }
-            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
-            vCIncludes.push_back(sRetFileName);
-        } else if (findSourceFile(vInclude, ".cpp", sRetFileName)) {
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            includesC.push_back(retFileName);
+        } else if (findSourceFile(include, ".cpp", retFileName)) {
             // Found a C++ File to include
-            if (find(vCPPIncludes.begin(), vCPPIncludes.end(), sRetFileName) != vCPPIncludes.end()) {
+            if (find(includesCPP.begin(), includesCPP.end(), retFileName) != includesCPP.end()) {
                 // skip this item
                 continue;
             }
-            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
-            vCPPIncludes.push_back(sRetFileName);
-        } else if (findSourceFile(vInclude, ".asm", sRetFileName)) {
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            includesCPP.push_back(retFileName);
+        } else if (findSourceFile(include, ".asm", retFileName)) {
             // Found a ASM File to include
-            if (find(vASMIncludes.begin(), vASMIncludes.end(), sRetFileName) != vASMIncludes.end()) {
+            if (find(includesASM.begin(), includesASM.end(), retFileName) != includesASM.end()) {
                 // skip this item
                 continue;
             }
-            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
-            vASMIncludes.push_back(sRetFileName);
-        } else if (findSourceFile(vInclude, ".h", sRetFileName)) {
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            includesASM.push_back(retFileName);
+        } else if (findSourceFile(include, ".h", retFileName)) {
             // Found a H File to include
-            if (find(vHIncludes.begin(), vHIncludes.end(), sRetFileName) != vHIncludes.end()) {
+            if (find(includesH.begin(), includesH.end(), retFileName) != includesH.end()) {
                 // skip this item
                 continue;
             }
-            m_ConfigHelper.makeFileProjectRelative(sRetFileName, sRetFileName);
-            vHIncludes.push_back(sRetFileName);
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            includesH.push_back(retFileName);
         } else {
-            outputError("Could not find valid source file for object (" + vInclude + ")");
+            outputError("Could not find valid source file for object (" + include + ")");
             return false;
         }
     }

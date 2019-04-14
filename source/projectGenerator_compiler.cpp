@@ -39,12 +39,12 @@ bool ProjectGenerator::runMSVC(
     const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_ConfigHelper.m_outDirectory;
-    m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
+    string sOutDir = m_configHelper.m_outDirectory;
+    m_configHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_solutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_rootDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_solutionDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_rootDirectory);
     string sCLExtra;
     for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
         string sIncludeDir = *vitIt;
@@ -67,7 +67,7 @@ bool ProjectGenerator::runMSVC(
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
-    string sTempFolder = sTempDirectory + m_sProjectName;
+    string sTempFolder = m_tempDirectory + m_projectName;
 
     // Use Microsoft compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "@echo off\nsetlocal enabledelayedexpansion\nset CALLDIR=%CD%\n";
@@ -129,7 +129,7 @@ echo fatal error : An installed version of Visual Studio could not be detected. 
 exit /b 1\n\
 :MSVCVarsDone\n\
 popd\n";
-    sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > nul 2>&1\n";
+    sCLLaunchBat += "mkdir \"" + m_tempDirectory + "\" > nul 2>&1\n";
     sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > nul 2>&1\n";
     for (auto& mDirectoryObject : mDirectoryObjects) {
         const uint uiRowSize = 32;
@@ -157,7 +157,7 @@ popd\n";
             uint uiStartPos = uiTotalPos;
             for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, mDirectoryObject.second.size()); uiTotalPos++) {
                 if (iRunType == 0) {
-                    m_ConfigHelper.makeFileGeneratorRelative(
+                    m_configHelper.makeFileGeneratorRelative(
                         mDirectoryObject.second[uiTotalPos], mDirectoryObject.second[uiTotalPos]);
                 }
                 sCLLaunchBat += " \"" + mDirectoryObject.second[uiTotalPos] + "\"";
@@ -176,7 +176,7 @@ popd\n";
     if (iRunType == 1) {
         sCLLaunchBat += "del /F /S /Q *.i >nul 2>&1\n";
     }
-    sCLLaunchBat += "rmdir /S /Q " + sTempDirectory + "\nexit /b 1";
+    sCLLaunchBat += "rmdir /S /Q " + m_tempDirectory + "\nexit /b 1";
     if (!writeToFile("ffvs_compile.bat", sCLLaunchBat)) {
         return false;
     }
@@ -238,7 +238,7 @@ popd\n";
         }
         // Remove the compile files
         deleteFile("ffvs_compile.bat");
-        deleteFolder(sTempDirectory);
+        deleteFolder(m_tempDirectory);
         return false;
     }
 
@@ -251,12 +251,12 @@ bool ProjectGenerator::runGCC(
     const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_ConfigHelper.m_outDirectory;
-    m_ConfigHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
+    string sOutDir = m_configHelper.m_outDirectory;
+    m_configHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
     vector<string> vIncludeDirs2 = vIncludeDirs;
     vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_solutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_ConfigHelper.m_rootDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_solutionDirectory);
+    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_rootDirectory);
     string sCLExtra;
     for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
         string sIncludeDir = *vitIt;
@@ -279,7 +279,7 @@ bool ProjectGenerator::runGCC(
         }
         sCLExtra += " /I\"" + sIncludeDir + '\"';
     }
-    string sTempFolder = sTempDirectory + m_sProjectName;
+    string sTempFolder = m_tempDirectory + m_projectName;
 
     // Use GNU compiler to pass the test file and retrieve declarations
     string sCLLaunchBat = "#!/bin/bash\n";
@@ -287,8 +287,8 @@ bool ProjectGenerator::runGCC(
     if (iRunType == 1) {
         sCLLaunchBat += "rm -rf *.i > /dev/null 2>&1\n";
     }
-    sCLLaunchBat += "rm -rf " + sTempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
-    sCLLaunchBat += "mkdir \"" + sTempDirectory + "\" > /dev/null 2>&1\n";
+    sCLLaunchBat += "rm -rf " + m_tempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
+    sCLLaunchBat += "mkdir \"" + m_tempDirectory + "\" > /dev/null 2>&1\n";
     sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > /dev/null 2>&1\n";
     for (auto& mDirectoryObject : mDirectoryObjects) {
         string sDirName = sTempFolder + "/" + mDirectoryObject.first;
@@ -306,7 +306,7 @@ bool ProjectGenerator::runGCC(
             sRuntype = "-E -P";
         }
         // Check if gcc or mingw
-        if (m_ConfigHelper.m_toolchain.find("mingw") != string::npos) {
+        if (m_configHelper.m_toolchain.find("mingw") != string::npos) {
             sCLExtra += R"(-D"WIN32" -D"_WINDOWS")";
         }
 
@@ -315,7 +315,7 @@ bool ProjectGenerator::runGCC(
             sCLLaunchBat += "gcc ";
             sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
             if (iRunType == 0) {
-                m_ConfigHelper.makeFileGeneratorRelative(*vitJ, *vitJ);
+                m_configHelper.makeFileGeneratorRelative(*vitJ, *vitJ);
             }
             sCLLaunchBat += " \"" + *vitJ + "\"";
             if (iRunType == 0) {
@@ -339,7 +339,7 @@ bool ProjectGenerator::runGCC(
         outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
         // Remove the compilation files
         deleteFile("ffvs_compile.sh");
-        deleteFolder(sTempDirectory);
+        deleteFolder(m_tempDirectory);
         return false;
     }
 

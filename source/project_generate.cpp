@@ -26,16 +26,16 @@ int main(const int argc, char** argv)
     outputLine("Project generator (this may take several minutes, please wait)...");
     // Pass the input configuration
     ProjectGenerator projectGenerator;
-    if (!projectGenerator.m_ConfigHelper.passConfig(argc, argv)) {
+    if (!projectGenerator.m_configHelper.passConfig(argc, argv)) {
         projectGenerator.errorFunc(false);
     }
 
     // Delete any previously generated files
-    projectGenerator.m_ConfigHelper.deleteCreatedFiles();
+    projectGenerator.m_configHelper.deleteCreatedFiles();
     projectGenerator.deleteCreatedFiles();
 
     // Output config.h and avutil.h
-    if (!projectGenerator.m_ConfigHelper.outputConfig()) {
+    if (!projectGenerator.m_configHelper.outputConfig()) {
         projectGenerator.errorFunc();
     }
 

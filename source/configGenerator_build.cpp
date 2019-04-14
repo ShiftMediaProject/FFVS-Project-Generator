@@ -1023,7 +1023,7 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisab
 #define CHECKFORCEDENABLES(Opt)                             \
     {                                                       \
         if (getConfigOption(Opt) != m_configValues.end()) { \
-            forceEnable.push_back(Opt);                     \
+            forceEnable.emplace_back(Opt);                  \
         }                                                   \
     }
 

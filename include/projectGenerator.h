@@ -30,24 +30,26 @@ class ProjectGenerator
 {
 private:
     using StaticList = vector<string>;
-    typedef map<string, StaticList> UnknownList;
-    ifstream m_ifInputFile;
-    string m_sInLine;
-    StaticList m_vIncludes;
-    StaticList m_vCPPIncludes;
-    StaticList m_vCIncludes;
-    StaticList m_vASMIncludes;
-    StaticList m_vHIncludes;
-    UnknownList m_mReplaceIncludes;
-    StaticList m_vLibs;
-    UnknownList m_mUnknowns;
-    string m_sProjectName;
-    string m_sProjectDir;
+    using UnknownList = map<string, StaticList>;
+    ifstream m_inputFile;
+    string m_inLine;
+    StaticList m_includes;
+    StaticList m_includesCPP;
+    StaticList m_includesC;
+    StaticList m_includesASM;
+    StaticList m_includesH;
+    UnknownList m_replaceIncludes;
+    StaticList m_libs;
+    UnknownList m_unknowns;
+    string m_projectName;
+    string m_projectDir;
 
-    map<string, StaticList> m_mProjectLibs;
+    map<string, StaticList> m_projectLibs;
+
+    const string m_tempDirectory = "FFVSTemp/";
 
 public:
-    ConfigGenerator m_ConfigHelper;
+    ConfigGenerator m_configHelper;
 
     /**
      * Checks all found Makefiles based on current configuration and generates project files and a solution files as
@@ -89,17 +91,17 @@ private:
      */
     bool outputSolution();
 
-    bool passStaticIncludeObject(uint& uiStartPos, uint& uiEndPos, StaticList& vStaticIncludes);
+    bool passStaticIncludeObject(uint& startPos, uint& endPos, StaticList& staticIncludes);
 
-    bool passStaticIncludeLine(uint uiStartPos, StaticList& vStaticIncludes);
+    bool passStaticIncludeLine(uint startPos, StaticList& staticIncludes);
 
-    bool passStaticInclude(uint uiILength, StaticList& vStaticIncludes);
+    bool passStaticInclude(uint length, StaticList& staticIncludes);
 
-    bool passDynamicIncludeObject(uint& uiStartPos, uint& uiEndPos, string& sIdent, StaticList& vIncludes);
+    bool passDynamicIncludeObject(uint& startPos, uint& endPos, string& ident, StaticList& includes);
 
-    bool passDynamicIncludeLine(uint uiStartPos, string& sIdent, StaticList& vIncludes);
+    bool passDynamicIncludeLine(uint startPos, string& ident, StaticList& includes);
 
-    bool passDynamicInclude(uint uiILength, StaticList& vIncludes);
+    bool passDynamicInclude(uint length, StaticList& includes);
 
     /**
      * Pass a static source include line from current makefile.
@@ -115,17 +117,17 @@ private:
 
     /**
      * Pass a static asm include line from current makefile.
-     * @param uiOffset The offset to start passing (used to separate old yasm and x86asm).
+     * @param offset The offset to start passing (used to separate old yasm and x86asm).
      * @return True if it succeeds, false if it fails.
      */
-    bool passASMInclude(uint uiOffset);
+    bool passASMInclude(uint offset);
 
     /**
      * Pass a dynamic asm include line from current makefile.
-     * @param uiOffset The offset to start passing (used to separate old yasm and x86asm).
+     * @param offset The offset to start passing (used to separate old yasm and x86asm).
      * @return True if it succeeds, false if it fails.
      */
-    bool passDASMInclude(uint uiOffset);
+    bool passDASMInclude(uint offset);
 
     /**
      * Pass a static mmx include line from current makefile.
@@ -143,7 +145,7 @@ private:
      * Pass a static header include line from current makefile.
      * @return True if it succeeds, false if it fails.
      */
-    bool passHInclude(uint uiCutPos = 7);
+    bool passHInclude(uint cutPos = 7);
 
     /**
      * Pass a dynamic header include line from current makefile.
@@ -189,21 +191,21 @@ private:
 
     /**
      * Searches for the first source file.
-     * @param       sFile        The file name.
-     * @param       sExtension   The file extension.
-     * @param [out] sRetFileName Filename of the found file.
+     * @param       file        The file name.
+     * @param       extension   The file extension.
+     * @param [out] retFileName Filename of the found file.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFile(const string& sFile, const string& sExtension, string& sRetFileName) const;
+    bool findSourceFile(const string& file, const string& extension, string& retFileName) const;
 
     /**
      * Searches for matching source files.
-     * @param          sFile      The file name.
-     * @param          sExtension The file extension.
-     * @param [in,out] vRetFiles  The returned list of matching files.
+     * @param          file      The file name.
+     * @param          extension The file extension.
+     * @param [in,out] retFiles  The returned list of matching files.
      * @return True if it succeeds, false if it fails.
      */
-    bool findSourceFiles(const string& sFile, const string& sExtension, vector<string>& vRetFiles) const;
+    bool findSourceFiles(const string& file, const string& extension, vector<string>& retFiles) const;
 
     void buildInterDependenciesHelper(const StaticList& vConfigOptions, const StaticList& vAddDeps, StaticList& vLibs);
 
@@ -245,10 +247,10 @@ private:
 
     bool checkProjectFiles();
 
-    bool createReplaceFiles(const StaticList& vReplaceIncludes, StaticList& vExistingIncludes);
+    bool createReplaceFiles(const StaticList& replaceIncludes, StaticList& existingIncludes);
 
-    bool findProjectFiles(const StaticList& vIncludes, StaticList& vCIncludes, StaticList& vCPPIncludes,
-        StaticList& vASMIncludes, StaticList& vHIncludes) const;
+    bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
+        StaticList& includesASM, StaticList& includesH) const;
 
     void outputTemplateTags(string& sProjectTemplate, string& sFiltersTemplate) const;
 
@@ -357,15 +359,14 @@ private:
      * @param          sFileName           Filename of the file currently being searched.
      * @param [in,out] mFoundDCEUsage      The return list of found DCE functions.
      * @param [out]    bRequiresPreProcess The file requires pre processing.
-     * @param [in,out] vUsedFunctions      The return list of found functions not in DCE.
+     * @param [in,out] vNonDCEUsage        The return list of found functions not in DCE.
      */
     void outputProjectDCEFindFunctions(const string& sFile, const string& sFileName,
         map<string, DCEParams>& mFoundDCEUsage, bool& bRequiresPreProcess, set<string>& vNonDCEUsage) const;
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.
-     * @param [in,out] sDefine   The pre-processor define string.
-     * @param          mReserved Pre-generated list of reserved configure values.
+     * @param [in,out] sDefine The pre-processor define string.
      */
     void outputProgramDCEsResolveDefine(string& sDefine);
 
@@ -396,8 +397,6 @@ private:
      * @param [out] sRetDefine The returned combined define.
      */
     static void outputProgramDCEsCombineDefine(const string& sDefine, const string& sDefine2, string& sRetDefine);
-
-    const string sTempDirectory = "FFVSTemp/";
 };
 
 #endif

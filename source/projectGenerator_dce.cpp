@@ -31,18 +31,18 @@ const string asDCETags[] = {"ARCH_", "HAVE_", "CONFIG_", "EXTERNAL_", "INTERNAL_
 
 bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
 {
-    outputLine("  Generating missing DCE symbols (" + m_sProjectName + ")...");
+    outputLine("  Generating missing DCE symbols (" + m_projectName + ")...");
     // Create list of source files to scan
 #if !FORCEALLDCE
-    StaticList vSearchFiles = m_vCIncludes;
-    vSearchFiles.insert(vSearchFiles.end(), m_vCPPIncludes.begin(), m_vCPPIncludes.end());
-    vSearchFiles.insert(vSearchFiles.end(), m_vHIncludes.begin(), m_vHIncludes.end());
+    StaticList vSearchFiles = m_includesC;
+    vSearchFiles.insert(vSearchFiles.end(), m_includesCPP.begin(), m_includesCPP.end());
+    vSearchFiles.insert(vSearchFiles.end(), m_includesH.begin(), m_includesH.end());
 #else
     StaticList vSearchFiles;
-    bool bRecurse = (m_sProjectDir.compare(this->m_ConfigHelper.m_rootDirectory) != 0);
-    findFiles(m_sProjectDir + "*.h", vSearchFiles, bRecurse);
-    findFiles(m_sProjectDir + "*.c", vSearchFiles, bRecurse);
-    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, bRecurse);
+    bool bRecurse = (m_projectDir.compare(this->m_configHelper.m_rootDirectory) != 0);
+    findFiles(m_projectDir + "*.h", vSearchFiles, bRecurse);
+    findFiles(m_projectDir + "*.c", vSearchFiles, bRecurse);
+    findFiles(m_projectDir + "*.cpp", vSearchFiles, bRecurse);
 #endif
     // Ensure we can add extra items to the list without needing reallocs
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
@@ -56,7 +56,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
     // Search through each included file
     for (auto itFile = vSearchFiles.begin(); itFile < vSearchFiles.end(); ++itFile) {
         // Open the input file
-        m_ConfigHelper.makeFileGeneratorRelative(*itFile, *itFile);
+        m_configHelper.makeFileGeneratorRelative(*itFile, *itFile);
         string sFile;
         if (!loadFromFile(*itFile, sFile)) {
             return false;
@@ -78,19 +78,19 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 uiFindPos += 2;
                 string sTemplateFile = sFile.substr(uiFindPos2, uiFindPos - uiFindPos2);
                 // check if file contains current project
-                uint uiProjName = sTemplateFile.find(m_sProjectName);
+                uint uiProjName = sTemplateFile.find(m_projectName);
                 if (uiProjName != string::npos) {
-                    sTemplateFile = sTemplateFile.substr(uiProjName + m_sProjectName.length() + 1);
+                    sTemplateFile = sTemplateFile.substr(uiProjName + m_projectName.length() + 1);
                 }
                 string sFound;
                 string sBack = sTemplateFile;
-                sTemplateFile = m_sProjectDir + sBack;
+                sTemplateFile = m_projectDir + sBack;
                 if (!findFile(sTemplateFile, sFound)) {
-                    sTemplateFile = (m_ConfigHelper.m_rootDirectory.length() > 0) ?
-                        m_ConfigHelper.m_rootDirectory + '/' + sBack :
+                    sTemplateFile = (m_configHelper.m_rootDirectory.length() > 0) ?
+                        m_configHelper.m_rootDirectory + '/' + sBack :
                         sBack;
                     if (!findFile(sTemplateFile, sFound)) {
-                        sTemplateFile = m_ConfigHelper.m_solutionDirectory + m_sProjectName + '/' + sBack;
+                        sTemplateFile = m_configHelper.m_solutionDirectory + m_projectName + '/' + sBack;
                         if (!findFile(sTemplateFile, sFound)) {
                             sTemplateFile = itFile->substr(0, itFile->rfind('/') + 1) + sBack;
                             if (!findFile(sTemplateFile, sFound)) {
@@ -102,7 +102,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 }
                 // Add the file to the list
                 if (find(vSearchFiles.begin(), vSearchFiles.end(), sTemplateFile) == vSearchFiles.end()) {
-                    m_ConfigHelper.makeFileProjectRelative(sTemplateFile, sTemplateFile);
+                    m_configHelper.makeFileProjectRelative(sTemplateFile, sTemplateFile);
                     vSearchFiles.push_back(sTemplateFile);
                 }
             }
@@ -112,11 +112,11 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
     }
 #if !FORCEALLDCE
     // Get a list of all files in current project directory (including subdirectories)
-    bool bRecurse = (m_sProjectDir != this->m_ConfigHelper.m_rootDirectory);
+    bool bRecurse = (m_projectDir != this->m_configHelper.m_rootDirectory);
     vSearchFiles.resize(0);
-    findFiles(m_sProjectDir + "*.h", vSearchFiles, bRecurse);
-    findFiles(m_sProjectDir + "*.c", vSearchFiles, bRecurse);
-    findFiles(m_sProjectDir + "*.cpp", vSearchFiles, bRecurse);
+    findFiles(m_projectDir + "*.h", vSearchFiles, bRecurse);
+    findFiles(m_projectDir + "*.c", vSearchFiles, bRecurse);
+    findFiles(m_projectDir + "*.cpp", vSearchFiles, bRecurse);
     // Ensure we can add extra items to the list without needing reallocs
     if (vSearchFiles.capacity() < vSearchFiles.size() + 250) {
         vSearchFiles.reserve(vSearchFiles.size() + 250);
@@ -151,7 +151,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 if (outputProjectDCEsFindDeclarations(sFile, itDCE->first, *itFile, sReturn, bIsFunc)) {
                     // Get the declaration file
                     string sFileName;
-                    makePathsRelative(*itFile, m_ConfigHelper.m_rootDirectory, sFileName);
+                    makePathsRelative(*itFile, m_configHelper.m_rootDirectory, sFileName);
                     if (sFileName.at(0) == '.') {
                         sFileName = sFileName.substr(2);
                     }
@@ -180,8 +180,8 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
     // Check if we failed to find any functions
     if (!mFoundDCEUsage.empty()) {
         vector<string> vIncludeDirs2 = vIncludeDirs;
-        string sTempFolder = sTempDirectory + m_sProjectName;
-        if (!makeDirectory(sTempDirectory) || !makeDirectory(sTempFolder)) {
+        string sTempFolder = m_tempDirectory + m_projectName;
+        if (!makeDirectory(m_tempDirectory) || !makeDirectory(sTempFolder)) {
             outputError("Failed to create temporary working directory (" + sTempFolder + ")");
             return false;
         }
@@ -189,11 +189,11 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         map<string, vector<DCEParams>> mFunctionFiles;
         // Remove project dir from start of file
         string sProjectDirCut, sFile;
-        makePathsRelative(m_sProjectDir, m_ConfigHelper.m_rootDirectory, sProjectDirCut);
+        makePathsRelative(m_projectDir, m_configHelper.m_rootDirectory, sProjectDirCut);
         sProjectDirCut = (sProjectDirCut.find('.') == 0) ? sProjectDirCut.substr(2) : sProjectDirCut;
         for (auto& itDCE : mFoundDCEUsage) {
             // Make source file relative to root
-            makePathsRelative(itDCE.second.sFile, m_ConfigHelper.m_rootDirectory, sFile);
+            makePathsRelative(itDCE.second.sFile, m_configHelper.m_rootDirectory, sFile);
             sFile = (sFile.find('.') == 0) ? sFile.substr(2) : sFile;
             uint uiPos = (sProjectDirCut.length() > 0) ? sFile.find(sProjectDirCut) : string::npos;
             uiPos = (uiPos == string::npos) ? 0 : uiPos + sProjectDirCut.length();
@@ -219,14 +219,14 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
             // Get subdirectory
             string sSubFolder;
             if (mFunctionFile.first.find('/', sTempFolder.length() + 1) != string::npos) {
-                sSubFolder = m_sProjectDir +
+                sSubFolder = m_projectDir +
                     mFunctionFile.first.substr(
                         sTempFolder.length() + 1, mFunctionFile.first.rfind('/') - sTempFolder.length() - 1);
                 if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), sSubFolder) == vIncludeDirs2.end()) {
                     // Need to add subdirectory to include list
                     vIncludeDirs2.push_back(sSubFolder);
                 }
-                sSubFolder = sSubFolder.substr(m_sProjectDir.length());
+                sSubFolder = sSubFolder.substr(m_projectDir.length());
             }
             mDirectoryObjects[sSubFolder].push_back(mFunctionFile.first);
             // Modify existing tags so that they are still valid after preprocessing
@@ -251,8 +251,8 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
             }
         }
         // Add current directory to include list (must be done last to ensure correct include order)
-        if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), m_sProjectDir) == vIncludeDirs2.end()) {
-            vIncludeDirs2.push_back(m_sProjectDir);
+        if (find(vIncludeDirs2.begin(), vIncludeDirs2.end(), m_projectDir) == vIncludeDirs2.end()) {
+            vIncludeDirs2.push_back(m_projectDir);
         }
         if (!runCompiler(vIncludeDirs2, mDirectoryObjects, 1)) {
             return false;
@@ -313,7 +313,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                             sFile, itDCE2->sFile, mFunctionFile.first, sReturn, bIsFunc)) {
                         // Get the declaration file
                         string sFileName;
-                        makePathsRelative(mFunctionFile.first, m_ConfigHelper.m_rootDirectory, sFileName);
+                        makePathsRelative(mFunctionFile.first, m_configHelper.m_rootDirectory, sFileName);
                         if (sFileName.at(0) == '.') {
                             sFileName = sFileName.substr(2);
                         }
@@ -338,7 +338,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         }
 
         // Delete the created temp files
-        deleteFolder(sTempDirectory);
+        deleteFolder(m_tempDirectory);
     }
 
     // Get any required hard coded values
@@ -497,12 +497,12 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
             bool enabled = false;
 #if !FORCEALLDCE
             bUsePreProc = (itDCE->second.sDefine.length() > 1) && (itDCE->second.sDefine != "0");
-            auto ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(itDCE->second.sDefine);
-            if (ConfigOpt == m_ConfigHelper.m_configValues.end()) {
+            auto ConfigOpt = m_configHelper.getConfigOptionPrefixed(itDCE->second.sDefine);
+            if (ConfigOpt == m_configHelper.m_configValues.end()) {
                 // This config option doesn't exist so it potentially requires the header file to be included first
             } else {
-                bool bReserved = (m_ConfigHelper.m_replaceList.find(ConfigOpt->m_prefix + ConfigOpt->m_option) !=
-                    m_ConfigHelper.m_replaceList.end());
+                bool bReserved = (m_configHelper.m_replaceList.find(ConfigOpt->m_prefix + ConfigOpt->m_option) !=
+                    m_configHelper.m_replaceList.end());
                 if (!bReserved) {
                     enabled = (ConfigOpt->m_value == "1");
                 }
@@ -530,7 +530,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
                 }
             }
         }
-        string sFinalDCEOutFile = getCopywriteHeader(m_sProjectName + " DCE definitions") + '\n';
+        string sFinalDCEOutFile = getCopywriteHeader(m_projectName + " DCE definitions") + '\n';
         sFinalDCEOutFile += "\n#include \"config.h\"\n#include \"stdint.h\"\n\n";
         // Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and
         // h264pred.h)
@@ -547,10 +547,10 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& vIncludeDirs)
         sFinalDCEOutFile += '\n' + sDCEOutFile;
 
         // Output the new file
-        string sOutName = m_ConfigHelper.m_solutionDirectory + '/' + m_sProjectName + '/' + "dce_defs.c";
+        string sOutName = m_configHelper.m_solutionDirectory + '/' + m_projectName + '/' + "dce_defs.c";
         writeToFile(sOutName, sFinalDCEOutFile);
-        m_ConfigHelper.makeFileProjectRelative(sOutName, sOutName);
-        m_vCIncludes.push_back(sOutName);
+        m_configHelper.makeFileProjectRelative(sOutName, sOutName);
+        m_includesC.push_back(sOutName);
     }
     return true;
 }
@@ -560,8 +560,8 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& sFile, const 
 {
     const string asDCETags2[] = {"if (", "if(", "if ((", "if(("};
     StaticList vFuncIdents = {"ff_"};
-    if ((m_sProjectName == "ffmpeg") || (m_sProjectName == "ffplay") || (m_sProjectName == "ffprobe") ||
-        (m_sProjectName == "avconv") || (m_sProjectName == "avplay") || (m_sProjectName == "avprobe")) {
+    if ((m_projectName == "ffmpeg") || (m_projectName == "ffplay") || (m_projectName == "ffprobe") ||
+        (m_projectName == "avconv") || (m_projectName == "avplay") || (m_projectName == "avprobe")) {
         vFuncIdents.push_back("avcodec_");
         vFuncIdents.push_back("avdevice_");
         vFuncIdents.push_back("avfilter_");
@@ -573,25 +573,25 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& sFile, const 
         vFuncIdents.push_back("swri_");
         vFuncIdents.push_back("swresample_");
         vFuncIdents.push_back("swscale_");
-    } else if (m_sProjectName == "libavcodec") {
+    } else if (m_projectName == "libavcodec") {
         vFuncIdents.push_back("avcodec_");
-    } else if (m_sProjectName == "libavdevice") {
+    } else if (m_projectName == "libavdevice") {
         vFuncIdents.push_back("avdevice_");
-    } else if (m_sProjectName == "libavfilter") {
+    } else if (m_projectName == "libavfilter") {
         vFuncIdents.push_back("avfilter_");
-    } else if (m_sProjectName == "libavformat") {
+    } else if (m_projectName == "libavformat") {
         vFuncIdents.push_back("avformat_");
-    } else if (m_sProjectName == "libavutil") {
+    } else if (m_projectName == "libavutil") {
         vFuncIdents.push_back("avutil_");
         vFuncIdents.push_back("av_");
-    } else if (m_sProjectName == "libavresample") {
+    } else if (m_projectName == "libavresample") {
         vFuncIdents.push_back("avresample_");
-    } else if (m_sProjectName == "libpostproc") {
+    } else if (m_projectName == "libpostproc") {
         vFuncIdents.push_back("postproc_");
-    } else if (m_sProjectName == "libswresample") {
+    } else if (m_projectName == "libswresample") {
         vFuncIdents.push_back("swri_");
         vFuncIdents.push_back("swresample_");
-    } else if (m_sProjectName == "libswscale") {
+    } else if (m_projectName == "libswscale") {
         vFuncIdents.push_back("swscale_");
     }
     struct InternalDCEParams
@@ -917,10 +917,10 @@ void ProjectGenerator::outputProgramDCEsResolveDefine(string& sDefine)
         uint uiDiv = sDefine.find_first_of(g_preProcessor, uiStartTag);
         string sTag = sDefine.substr(uiStartTag, uiDiv - uiStartTag);
         // Check if tag is enabled
-        auto ConfigOpt = m_ConfigHelper.getConfigOptionPrefixed(sTag);
-        if ((ConfigOpt == m_ConfigHelper.m_configValues.end()) ||
-            (m_ConfigHelper.m_replaceList.find(ConfigOpt->m_prefix + ConfigOpt->m_option) !=
-                m_ConfigHelper.m_replaceList.end())) {
+        auto ConfigOpt = m_configHelper.getConfigOptionPrefixed(sTag);
+        if ((ConfigOpt == m_configHelper.m_configValues.end()) ||
+            (m_configHelper.m_replaceList.find(ConfigOpt->m_prefix + ConfigOpt->m_option) !=
+                m_configHelper.m_replaceList.end())) {
             // This config option doesn't exist but it is potentially included in its corresponding header file
             // Or this is a reserved value
         } else {
