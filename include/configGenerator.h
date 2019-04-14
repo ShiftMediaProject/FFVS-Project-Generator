@@ -169,7 +169,7 @@ private:
      * @param          optionLower The enabled option (in lower case).
      * @param [in,out] forceEnable The forced enable options.
      */
-    void buildForcedEnables(string optionLower, vector<string>& forceEnable);
+    void buildForcedEnables(const string& optionLower, vector<string>& forceEnable);
 
     /**
      * Creates a list of config options that must be forced to be disabled if the specified option is disabled.

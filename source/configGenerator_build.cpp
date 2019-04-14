@@ -183,11 +183,11 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("struct_sockaddr_in6", true);
     fastToggleConfigValue("struct_sockaddr_storage", true);
     fastToggleConfigValue("unistd_h", true);
-    fastToggleConfigValue("uwp", true);
+    fastToggleConfigValue("uwp", false);
     fastToggleConfigValue("VirtualAlloc", true);
     fastToggleConfigValue("windows_h", true);
     fastToggleConfigValue("winsock2_h", true);
-    fastToggleConfigValue("winrt", true);
+    fastToggleConfigValue("winrt", false);
     fastToggleConfigValue("wglgetprocaddress", true);
 
     fastToggleConfigValue("aligned_stack", true);
@@ -518,23 +518,15 @@ void ConfigGenerator::buildReplaceValues(
 #else\n\
 #   define HAVE_OPENCL_D3D11 0\n\
 #endif";
+    replaceValues["HAVE_GETPROCESSAFFINITYMASK"] = "#if defined(NTDDI_WIN10_RS3)\n\
+#   define HAVE_GETPROCESSAFFINITYMASK 1\n\
+#else\n\
+#   define HAVE_GETPROCESSAFFINITYMASK 0\n\
+#endif";
 
     // Build values specific for WinRT builds
-    replaceValues["HAVE_UWP"] =
-        "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
-#   define HAVE_UWP 1\n\
-#else\n\
-#   define HAVE_UWP 0\n\
-#endif";
-    replaceValues["HAVE_WINRT"] =
-        "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
-#   define HAVE_WINRT 1\n\
-#else\n\
-#   define HAVE_WINRT 0\n\
-#endif";
-
-    bool winrt = isConfigOptionValid("WINRT");
-    bool uwp = isConfigOptionValid("UWP");
+    bool winrt = isConfigOptionEnabled("winrt");
+    bool uwp = isConfigOptionEnabled("uwp");
     string winrtDefine;
     if (winrt) {
         winrtDefine += "!HAVE_WINRT";
@@ -545,164 +537,174 @@ void ConfigGenerator::buildReplaceValues(
         }
         winrtDefine += "!HAVE_UWP";
     }
-    replaceValues["HAVE_GETPROCESSAFFINITYMASK"] = "#if defined(NTDDI_WIN10_RS3)\n\
-#   define HAVE_GETPROCESSAFFINITYMASK 1\n\
+
+    if (winrt || uwp) {
+        replaceValues["HAVE_UWP"] =
+            "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+#   define HAVE_UWP 1\n\
 #else\n\
-#   define HAVE_GETPROCESSAFFINITYMASK 0\n\
+#   define HAVE_UWP 0\n\
 #endif";
-    replaceValues["HAVE_LOADLIBRARY"] = "#if " + winrtDefine + "\n\
+        replaceValues["HAVE_WINRT"] =
+            "#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)\n\
+#   define HAVE_WINRT 1\n\
+#else\n\
+#   define HAVE_WINRT 0\n\
+#endif";
+        replaceValues["HAVE_LOADLIBRARY"] = "#if " + winrtDefine + "\n\
 #   define HAVE_LOADLIBRARY 1\n\
 #else\n\
 #   define HAVE_LOADLIBRARY 0\n\
 #endif";
-    replaceValues["HAVE_MAPVIEWOFFILE"] = "#if " + winrtDefine + "\n\
+        replaceValues["HAVE_MAPVIEWOFFILE"] = "#if " + winrtDefine + "\n\
 #   define HAVE_MAPVIEWOFFILE 1\n\
 #else\n\
 #   define HAVE_MAPVIEWOFFILE 0\n\
 #endif";
-    replaceValues["HAVE_SETCONSOLETEXTATTRIBUTE"] = "#if " + winrtDefine + "\n\
+        replaceValues["HAVE_SETCONSOLETEXTATTRIBUTE"] = "#if " + winrtDefine + "\n\
 #   define HAVE_SETCONSOLETEXTATTRIBUTE 1\n\
 #else\n\
 #   define HAVE_SETCONSOLETEXTATTRIBUTE 0\n\
 #endif";
-    replaceValues["HAVE_SETCONSOLECTRLHANDLER"] = "#if " + winrtDefine + "\n\
+        replaceValues["HAVE_SETCONSOLECTRLHANDLER"] = "#if " + winrtDefine + "\n\
 #   define HAVE_SETCONSOLECTRLHANDLER 1\n\
 #else\n\
 #   define HAVE_SETCONSOLECTRLHANDLER 0\n\
 #endif";
-    replaceValues["HAVE_VIRTUALALLOC"] = "#if " + winrtDefine + "\n\
+        replaceValues["HAVE_VIRTUALALLOC"] = "#if " + winrtDefine + "\n\
 #   define HAVE_VIRTUALALLOC 1\n\
 #else\n\
 #   define HAVE_VIRTUALALLOC 0\n\
 #endif";
 
-    auto opt = getConfigOptionPrefixed("CONFIG_AVISYNTH");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
+        auto opt = getConfigOptionPrefixed("CONFIG_AVISYNTH");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_AVISYNTH"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AVISYNTH 1\n\
 #else\n\
 #   define CONFIG_AVISYNTH 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_LIBMFX");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_LIBMFX");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_LIBMFX"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_LIBMFX 1\n\
 #else\n\
 #   define CONFIG_LIBMFX 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_AMF");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_AMF");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_AMF"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_AMF 1\n\
 #else\n\
 #   define CONFIG_AMF 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_CUDA");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_CUDA");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_CUDA"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUDA 1\n\
 #else\n\
 #   define CONFIG_CUDA 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_CUVID");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_CUVID");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_CUVID"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_CUVID 1\n\
 #else\n\
 #   define CONFIG_CUVID 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_DECKLINK");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_DECKLINK");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_DECKLINK"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DECKLINK 1\n\
 #else\n\
 #   define CONFIG_DECKLINK 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_DXVA2");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_DXVA2");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_DXVA2"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_DXVA2 1\n\
 #else\n\
 #   define CONFIG_DXVA2 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_FFNVCODEC");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_FFNVCODEC");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_FFNVCODEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_FFNVCODEC 1\n\
 #else\n\
 #   define CONFIG_FFNVCODEC 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_NVDEC");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_NVDEC");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_NVDEC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVDEC 1\n\
 #else\n\
 #   define CONFIG_NVDEC 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_NVENC");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_NVENC");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_NVENC"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_NVENC 1\n\
 #else\n\
 #   define CONFIG_NVENC 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_SCHANNEL");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_SCHANNEL");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_SCHANNEL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_SCHANNEL 1\n\
 #else\n\
 #   define CONFIG_SCHANNEL 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_DSHOW_INDEV");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
-#   define CONFIG_NVENC 1\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_DSHOW_INDEV");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_DSHOW_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_DSHOW_INDEV 1\n\
 #else\n\
-#   define CONFIG_NVENC 0\n\
+#   define CONFIG_DSHOW_INDEV 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_GDIGRAB_INDEV");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
-#   define CONFIG_NVENC 1\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_GDIGRAB_INDEV");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_GDIGRAB_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_GDIGRAB_INDEV 1\n\
 #else\n\
-#   define CONFIG_NVENC 0\n\
+#   define CONFIG_GDIGRAB_INDEV 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_VFWCAP_INDEV");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
-#   define CONFIG_NVENC 1\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_VFWCAP_INDEV");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_VFWCAP_INDEV"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_VFWCAP_INDEV 1\n\
 #else\n\
-#   define CONFIG_NVENC 0\n\
+#   define CONFIG_VFWCAP_INDEV 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_OPENGL");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_OPENGL");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_OPENGL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENGL 1\n\
 #else\n\
 #   define CONFIG_OPENGL 0\n\
 #endif";
-    }
-    opt = getConfigOptionPrefixed("CONFIG_OPENAL");
-    if ((opt != m_configValues.end()) && opt->m_value == "1") {
-        replaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
+        }
+        opt = getConfigOptionPrefixed("CONFIG_OPENAL");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_OPENAL"] = "#if " + winrtDefine + "\n\
 #   define CONFIG_OPENAL 1\n\
 #else\n\
 #   define CONFIG_OPENAL 0\n\
 #endif";
+        }
     }
 
     // Build replace values for all x86 inline asm
@@ -896,8 +898,8 @@ void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
     reservedItems.emplace_back("small");
     reservedItems.emplace_back("lto");
     reservedItems.emplace_back("pic");
-    reservedItems.emplace_back("uwp");
-    reservedItems.emplace_back("winrt");
+    // reservedItems.emplace_back("uwp");
+    // reservedItems.emplace_back("winrt");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies)
@@ -1025,7 +1027,7 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisab
         }                                                   \
     }
 
-void ConfigGenerator::buildForcedEnables(string optionLower, vector<string>& forceEnable)
+void ConfigGenerator::buildForcedEnables(const string& optionLower, vector<string>& forceEnable)
 {
     if (optionLower == "fontconfig") {
         CHECKFORCEDENABLES("libfontconfig");
@@ -1040,7 +1042,7 @@ void ConfigGenerator::buildForcedEnables(string optionLower, vector<string>& for
     } else if (optionLower == "sdl") {
         fastToggleConfigValue("sdl2", true);    // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "sdl2") {
-        fastToggleConfigValue("sdl", true);    // must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl", true);
     } else if (optionLower == "libvorbis") {
         CHECKFORCEDENABLES("libvorbisenc");
     } else if (optionLower == "opencl") {
@@ -1050,6 +1052,10 @@ void ConfigGenerator::buildForcedEnables(string optionLower, vector<string>& for
         CHECKFORCEDENABLES("cuda");
     } else if (optionLower == "cuda") {
         CHECKFORCEDENABLES("ffnvcodec");
+    } else if (optionLower == "winrt") {
+        fastToggleConfigValue("uwp", true);    // must use fastToggle to prevent infinite cycle
+    } else if (optionLower == "uwp") {
+        fastToggleConfigValue("winrt", true);
     }
 }
 
@@ -1058,7 +1064,11 @@ void ConfigGenerator::buildForcedDisables(const string& optionLower, vector<stri
     if (optionLower == "sdl") {
         fastToggleConfigValue("sdl2", false);    // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "sdl2") {
-        fastToggleConfigValue("sdl", false);    // must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl", false);
+    } else if (optionLower == "winrt") {
+        fastToggleConfigValue("uwp", false);
+    } else if (optionLower == "uwp") {
+        fastToggleConfigValue("winrt", false);
     } else {
         // Currently disable values are exact opposite of the corresponding enable ones
         buildForcedEnables(optionLower, forceDisable);

@@ -222,6 +222,11 @@ bool ProjectGenerator::outputProject()
         return false;
     }
 
+    // Remove any winrt configurations if not requested
+    if (!m_ConfigHelper.isConfigOptionEnabled("WINRT") && !m_ConfigHelper.isConfigOptionEnabled("UWP")) {
+        outputStripWinRT(sProjectFile);
+    }
+
     // Add all project source files
     outputSourceFiles(sProjectFile, sFiltersFile);
 
@@ -404,6 +409,11 @@ bool ProjectGenerator::outputSolution()
         return false;
     }
 
+    // Remove any winrt configurations if not requested
+    if (!m_ConfigHelper.isConfigOptionEnabled("winrt") && !m_ConfigHelper.isConfigOptionEnabled("uwp")) {
+        outputStripWinRTSolution(sSolutionFile);
+    }
+
     map<string, string> mKeys;
     buildProjectGUIDs(mKeys);
     string sSolutionKey = "8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942";
@@ -536,6 +546,9 @@ bool ProjectGenerator::outputSolution()
         uiPos += sProjectAdd.length();
     }
 
+    // Check if winrt builds are enabled
+    bool addWinrt = m_ConfigHelper.isConfigOptionEnabled("winrt") || m_ConfigHelper.isConfigOptionEnabled("uwp");
+
     // Next Add the solution configurations
     string sConfigStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
     uiPos = sSolutionFile.find(sConfigStart) + sConfigStart.length();
@@ -552,60 +565,67 @@ bool ProjectGenerator::outputSolution()
     for (vector<string>::iterator vitIt = vAddedKeys.begin(); vitIt < vAddedKeys.end(); vitIt++) {
         // loop over build configs
         for (uint uiI = 0; uiI < 7; uiI++) {
-            // loop over build archs
-            for (uint uiJ = 0; uiJ < 2; uiJ++) {
-                // loop over build types
-                for (uint uiK = 0; uiK < 2; uiK++) {
-                    sAddPlatform += sConfigPlatform;
-                    sAddPlatform += *vitIt;
-                    sAddPlatform += sConfigPlatform2;
-                    sAddPlatform += aBuildConfigs[uiI];
-                    sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchsSol[uiJ];
-                    sAddPlatform += aBuildTypes[uiK];
-                    sAddPlatform += aBuildConfigs[uiI];
-                    sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchs[uiJ];
+            // Skip winrt configs if not enabled
+            if ((aBuildConfigs[uiI].find("WinRT") == string::npos) || addWinrt) {
+                // loop over build archs
+                for (uint uiJ = 0; uiJ < 2; uiJ++) {
+                    // loop over build types
+                    for (uint uiK = 0; uiK < 2; uiK++) {
+                        sAddPlatform += sConfigPlatform;
+                        sAddPlatform += *vitIt;
+                        sAddPlatform += sConfigPlatform2;
+                        sAddPlatform += aBuildConfigs[uiI];
+                        sAddPlatform += sConfigPlatform3;
+                        sAddPlatform += aBuildArchsSol[uiJ];
+                        sAddPlatform += aBuildTypes[uiK];
+                        sAddPlatform += aBuildConfigs[uiI];
+                        sAddPlatform += sConfigPlatform3;
+                        sAddPlatform += aBuildArchs[uiJ];
+                    }
                 }
             }
         }
     }
+
     // Add the program keys
     for (vector<string>::iterator vitIt = vAddedPrograms.begin(); vitIt < vAddedPrograms.end(); vitIt++) {
-        // loop over build configs
+        // Loop over build configs
         for (uint uiI = 0; uiI < sizeof(aBuildConfigs) / sizeof(aBuildConfigs[0]); uiI++) {
-            // loop over build archs
-            for (uint uiJ = 0; uiJ < sizeof(aBuildArchsSol) / sizeof(aBuildArchsSol[0]); uiJ++) {
-                // loop over build types
-                for (uint uiK = 0; uiK < sizeof(aBuildTypes) / sizeof(aBuildTypes[0]); uiK++) {
-                    if ((uiK == 1) && (uiI != 4)) {
-                        // We dont build programs by default except for Release config
-                        continue;
-                    }
-                    sAddPlatform += sConfigPlatform;
-                    sAddPlatform += *vitIt;
-                    sAddPlatform += sConfigPlatform2;
-                    sAddPlatform += aBuildConfigs[uiI];
-                    sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchsSol[uiJ];
-                    sAddPlatform += aBuildTypes[uiK];
-                    if (uiI == 2) {
-                        sAddPlatform += aBuildConfigs[1];
-                    } else if (uiI == 3) {
-                        sAddPlatform += aBuildConfigs[0];
-                    } else if (uiI == 6) {
-                        sAddPlatform += aBuildConfigs[5];
-                    } else if (uiI == 7) {
-                        sAddPlatform += aBuildConfigs[5];
-                    } else if (uiI == 8) {
-                        sAddPlatform += aBuildConfigs[5];
-                    } else if (uiI == 9) {
-                        sAddPlatform += aBuildConfigs[4];
-                    } else {
+            // Skip winrt configs if not enabled
+            if ((aBuildConfigs[uiI].find("WinRT") == string::npos) || addWinrt) {
+                // Loop over build archs
+                for (uint uiJ = 0; uiJ < sizeof(aBuildArchsSol) / sizeof(aBuildArchsSol[0]); uiJ++) {
+                    // Loop over build types
+                    for (uint uiK = 0; uiK < sizeof(aBuildTypes) / sizeof(aBuildTypes[0]); uiK++) {
+                        if ((uiK == 1) && (uiI != 4)) {
+                            // We dont build programs by default except for Release config
+                            continue;
+                        }
+                        sAddPlatform += sConfigPlatform;
+                        sAddPlatform += *vitIt;
+                        sAddPlatform += sConfigPlatform2;
                         sAddPlatform += aBuildConfigs[uiI];
+                        sAddPlatform += sConfigPlatform3;
+                        sAddPlatform += aBuildArchsSol[uiJ];
+                        sAddPlatform += aBuildTypes[uiK];
+                        if (uiI == 2) {
+                            sAddPlatform += aBuildConfigs[1];
+                        } else if (uiI == 3) {
+                            sAddPlatform += aBuildConfigs[0];
+                        } else if (uiI == 6) {
+                            sAddPlatform += aBuildConfigs[5];
+                        } else if (uiI == 7) {
+                            sAddPlatform += aBuildConfigs[5];
+                        } else if (uiI == 8) {
+                            sAddPlatform += aBuildConfigs[5];
+                        } else if (uiI == 9) {
+                            sAddPlatform += aBuildConfigs[4];
+                        } else {
+                            sAddPlatform += aBuildConfigs[uiI];
+                        }
+                        sAddPlatform += sConfigPlatform3;
+                        sAddPlatform += aBuildArchs[uiJ];
                     }
-                    sAddPlatform += sConfigPlatform3;
-                    sAddPlatform += aBuildArchs[uiJ];
                 }
             }
         }
@@ -1516,11 +1536,9 @@ void ProjectGenerator::outputASMTools(string& sProjectTemplate)
         uiFindPos = sProjectTemplate.find(sFindProps) + sFindProps.length();
         // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add asm props
         sProjectTemplate.insert(uiFindPos, sASMProps);
-        uiFindPos += sASMProps.length();
         uiFindPos = sProjectTemplate.find(sFindTargets) + sFindTargets.length();
         // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
         sProjectTemplate.insert(uiFindPos, sASMTargets);
-        uiFindPos += sASMTargets.length();
     }
 }
 
@@ -1655,6 +1673,8 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
             sAddExternDepsWinRT += *vitLib;
             sAddExternDepsWinRT += ".lib;";
         }
+        // Check if winrt builds are enabled
+        bool addWinrt = m_ConfigHelper.isConfigOptionEnabled("winrt") || m_ConfigHelper.isConfigOptionEnabled("uwp");
         // Add to Additional Dependencies
         string asLibLink2[2] = {"<Link>", "<Lib>"};
         for (uint uiLinkLib = 0; uiLinkLib < (!bProgram ? 2 : 1); uiLinkLib++) {
@@ -1681,7 +1701,7 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
                     // Loop over x32/x64
                     for (uint uiArch = 0; uiArch < 2; uiArch++) {
                         // Loop over any WinRT configs
-                        for (uint uiWin = 0; uiWin < (!bProgram ? 2 : 1); uiWin++) {
+                        for (uint uiWin = 0; uiWin < ((!bProgram && addWinrt) ? 2 : 1); uiWin++) {
                             uiFindPos = sProjectTemplate.find("%(AdditionalDependencies)", uiFindPos);
                             if (uiFindPos == string::npos) {
                                 outputError("Failed finding %(AdditionalDependencies) in template.");
@@ -1731,4 +1751,66 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
         }
     }
     return true;
+}
+
+void ProjectGenerator::outputStripWinRT(string& sProjectTemplate)
+{
+    // Search through template for all instances of WinRT
+    const string search = "WinRT";
+    uint found = sProjectTemplate.find(search);
+    while (found != string::npos) {
+        // Skip erroneous detections
+        if (sProjectTemplate[found + search.length()] == '>') {
+            // Find next occurence
+            found = sProjectTemplate.find(search, found + 1);
+            continue;
+        }
+        // Backward search for start of section
+        uint startPos = sProjectTemplate.rfind('<', found);
+        startPos = sProjectTemplate.find_last_of(g_endLine, startPos - 1) + 1;
+        // Loop from start until we find the end tag for that section
+        uint sectionCount = 1;
+        uint endPos = found;
+        while (true) {
+            endPos = sProjectTemplate.find_first_of("</", endPos + 1);
+            if (sProjectTemplate[endPos] == '<') {
+                ++sectionCount;
+            } else {
+                if (sProjectTemplate[endPos + 1] == '>') {
+                    --sectionCount;
+                } else if (sProjectTemplate[endPos - 1] == '<') {
+                    sectionCount -= 2;
+                }
+                if (sectionCount == 0) {
+                    // Move to end of closing tag
+                    endPos = sProjectTemplate.find('>', endPos + 1);
+                    break;
+                }
+            }
+        }
+        // Remove the found section
+        sProjectTemplate.erase(startPos, endPos - startPos + 1);
+        // Cleanup any left over empty lines
+        while (g_endLine.find(sProjectTemplate[startPos]) != string::npos) {
+            sProjectTemplate.erase(startPos, 1);
+        }
+        // Find next occurence
+        found = sProjectTemplate.find(search, startPos);
+    }
+}
+
+void ProjectGenerator::outputStripWinRTSolution(string& sSolutionFile)
+{
+    // Search through template for all instances of WinRT
+    const string search = "WinRT";
+    uint found = sSolutionFile.find(search);
+    while (found != string::npos) {
+        // Remove the entire line
+        const uint start = sSolutionFile.find_last_of(g_endLine, found - 1);
+        const uint end = sSolutionFile.find_first_of(g_endLine, start + 1);
+        sSolutionFile.erase(start, end - start + 1);
+
+        // Find next occurence
+        found = sSolutionFile.find(search, found);
+    }
 }

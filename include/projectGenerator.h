@@ -332,6 +332,18 @@ private:
     bool outputDependencyLibs(string& sProjectTemplate, bool bProgram = false);
 
     /**
+     * Removes any WinRT/UWP configurations from the output project template.
+     * @param [in,out] sProjectTemplate The project template.
+     */
+    static void outputStripWinRT(string& sProjectTemplate);
+
+    /**
+     * Removes any WinRT/UWP configurations from the output solution template.
+     * @param [in,out] sSolutionFile The solution template.
+     */
+    static void outputStripWinRTSolution(string& sSolutionFile);
+
+    /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
      * file is then created and added to the project that contains hull definitions for any missing functions.
      * @param vIncludeDirs The list of current directories to look for included files.
