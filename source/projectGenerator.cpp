@@ -1566,31 +1566,6 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
         vLibsWinRT.push_back(*vitLib);
     }
     buildDependenciesWinRT(vLibsWinRT, vAddLibsWinRT);
-    // Create list of additional internal dependencies used for static linking (since static libs dont include cross
-    // dependency libs in them)
-    StaticList staticLibs = m_projectLibs[m_projectName];
-    for (StaticList::iterator i = staticLibs.begin(); i < staticLibs.end(); ++i) {
-        // Get the list of dependency dependencies
-        StaticList extraDeps;
-        const map<string, StaticList>::iterator findStatic = m_projectLibs.find(*i);
-        if (findStatic != m_projectLibs.end()) {
-            extraDeps = findStatic->second;
-        } else {
-            string backup = m_projectName;
-            m_projectName = *i;
-            buildInterDependencies(extraDeps);
-            m_projectName = backup;
-        }
-        // Add new dependencies to list
-        uint pos = i - staticLibs.begin();
-        for (StaticList::iterator j = extraDeps.begin(); j < extraDeps.end(); ++j) {
-            if (find(staticLibs.begin(), staticLibs.end(), *j) == staticLibs.end()) {
-                staticLibs.push_back(*j);
-            }
-        }
-        // Update iterator in case of memory changes
-        i = staticLibs.begin() + pos;
-    }
 
     if ((m_libs.size() > 0) || (vAddLibs.size() > 0)) {
         // Create list of additional ffmpeg dependencies
@@ -1617,28 +1592,6 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
             sAddFFmpegLibsWinRT[2] += "d_winrt.lib;";
             sAddFFmpegLibsWinRT[3] += vitLib->substr(3);
             sAddFFmpegLibsWinRT[3] += "_winrt.lib;";
-        }
-        string sAddFFmpegLibsStatic[4];    // debug, release, debugDll, releaseDll
-        for (StaticList::iterator vitLib = staticLibs.begin(); vitLib < staticLibs.end(); ++vitLib) {
-            sAddFFmpegLibsStatic[0] += *vitLib;
-            sAddFFmpegLibsStatic[0] += "d.lib;";
-            sAddFFmpegLibsStatic[1] += *vitLib;
-            sAddFFmpegLibsStatic[1] += ".lib;";
-            sAddFFmpegLibsStatic[2] += vitLib->substr(3);
-            sAddFFmpegLibsStatic[2] += "d.lib;";
-            sAddFFmpegLibsStatic[3] += vitLib->substr(3);
-            sAddFFmpegLibsStatic[3] += ".lib;";
-        }
-        string sAddFFmpegLibsStaticWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
-        for (StaticList::iterator vitLib = staticLibs.begin(); vitLib < staticLibs.end(); ++vitLib) {
-            sAddFFmpegLibsStaticWinRT[0] += *vitLib;
-            sAddFFmpegLibsStaticWinRT[0] += "d_winrt.lib;";
-            sAddFFmpegLibsStaticWinRT[1] += *vitLib;
-            sAddFFmpegLibsStaticWinRT[1] += "_winrt.lib;";
-            sAddFFmpegLibsStaticWinRT[2] += vitLib->substr(3);
-            sAddFFmpegLibsStaticWinRT[2] += "d_winrt.lib;";
-            sAddFFmpegLibsStaticWinRT[3] += vitLib->substr(3);
-            sAddFFmpegLibsStaticWinRT[3] += "_winrt.lib;";
         }
         // Create List of additional dependencies
         string sAddDeps[4];    // debug, release, debugDll, releaseDll
@@ -1711,8 +1664,7 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
                             }
                             // Add in ffmpeg inter-dependencies
                             uint uiAddIndex = uiDebugRelease;
-                            if ((uiLinkLib == 0) &&
-                                (((!bProgram) && (uiConf < 1)) || (bProgram && (uiConf % 2 != 0)))) {
+                            if ((uiLinkLib == 0) && (!bProgram || (uiConf % 2 != 0))) {
                                 // Use DLL libs
                                 uiAddIndex += 2;
                             }
@@ -1720,21 +1672,19 @@ bool ProjectGenerator::outputDependencyLibs(string& sProjectTemplate, bool bProg
                             // If the dependency is actually for one of the ffmpeg libs then we can ignore it in
                             // static linking mode as this just causes unnecessary code bloat
                             if (uiLinkLib == 0) {
-                                if ((!bProgram && (uiConf == 1)) || (bProgram && (uiConf % 2 == 0))) {
-                                    if (uiWin == 0) {
-                                        sAddString = sAddFFmpegLibsStatic[uiAddIndex];
-                                    } else {
-                                        sAddString = sAddFFmpegLibsStaticWinRT[uiAddIndex];
-                                    }
+                                if (uiWin == 0) {
+                                    sAddString = sAddFFmpegLibs[uiAddIndex];
                                 } else {
-                                    if (uiWin == 0) {
-                                        sAddString = sAddFFmpegLibs[uiAddIndex];
-                                    } else {
-                                        sAddString = sAddFFmpegLibsWinRT[uiAddIndex];
-                                    }
+                                    sAddString = sAddFFmpegLibsWinRT[uiAddIndex];
                                 }
                             }
-                            // Add to output
+                            // Add in normal dependencies
+                            uiAddIndex = uiDebugRelease;
+                            if ((uiLinkLib == 0) &&
+                                (((!bProgram) && (uiConf < 1)) || (bProgram && (uiConf % 2 != 0)))) {
+                                // Use DLL libs
+                                uiAddIndex += 2;
+                            }
                             if (uiWin == 0) {
                                 sAddString += sAddDeps[uiAddIndex];
                                 sAddString += sAddExternDeps;
