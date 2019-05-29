@@ -274,6 +274,8 @@ private:
      */
     ValuesList::iterator getConfigOption(const string& option);
 
+    ValuesList::const_iterator getConfigOption(const string& option) const;
+
     /**
      * Gets configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) included.
      * @param option The options name.
@@ -281,32 +283,34 @@ private:
      */
     ValuesList::iterator getConfigOptionPrefixed(const string& option);
 
+    ValuesList::const_iterator getConfigOptionPrefixed(const string& option) const;
+
     /**
      * Queries if a configuration option is enabled.
      * @param option The option.
      * @return True if the configuration option is enabled, false if not.
      */
-    bool isConfigOptionEnabled(const string& option);
+    bool isConfigOptionEnabled(const string& option) const;
 
     /**
      * Queries if a configuration option exists.
      * @param option The option.
      * @return True if the configuration option is valid, false if not.
      */
-    bool isConfigOptionValid(const string& option);
+    bool isConfigOptionValid(const string& option) const;
 
     /**
      * Queries if a configuration option with prefix (i.e. HAVE_, CONFIG_ etc.) exists.
      * @param option The option.
      * @return True if the configuration option is valid, false if not.
      */
-    bool isConfigOptionValidPrefixed(const string& option);
+    bool isConfigOptionValidPrefixed(const string& option) const;
 
     /**
      * Queries if assembly is enabled.
      * @return True if asm is enabled, false if not.
      */
-    bool isASMEnabled();
+    bool isASMEnabled() const;
 
     /**
      * Gets minimum supported windows version from config file.

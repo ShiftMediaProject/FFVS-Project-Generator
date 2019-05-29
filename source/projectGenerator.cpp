@@ -880,8 +880,9 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
     const string sSource = sFilterType + " Files";
     const string sFilterEnd = "</Filter>";
     const string sExcludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
-    const string aBuildConfigsStatic[3] = {"Release", "ReleaseLTO", "Debug"};
-    const string aBuildConfigsShared[4] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "DebugDLLStaticDeps"};
+    const string aBuildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
+    const string aBuildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
+        "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
     const string sExcludeConfigEnd = "'\">true</ExcludedFromBuild>";
 
     if (vFileList.size() > 0) {
@@ -933,10 +934,13 @@ void ProjectGenerator::outputSourceFileType(StaticList& vFileList, const string&
                 uint uiConfigs = 0;
                 if (bStaticOnly) {
                     p_Configs = aBuildConfigsShared;
-                    uiConfigs = 4;
+                    uiConfigs = sizeof(aBuildConfigsShared) / sizeof(aBuildConfigsShared[0]);
                 } else {
                     p_Configs = aBuildConfigsStatic;
-                    uiConfigs = 3;
+                    uiConfigs = sizeof(aBuildConfigsStatic) / sizeof(aBuildConfigsStatic[0]);
+                }
+                if (!m_configHelper.isConfigOptionEnabled("WINRT") && !m_configHelper.isConfigOptionEnabled("UWP")) {
+                    uiConfigs /= 2;
                 }
                 for (uint uiI = 0; uiI < uiConfigs; uiI++) {
                     sTypeFilesTemp += sExcludeConfig;

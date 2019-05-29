@@ -1684,6 +1684,21 @@ ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOption(const str
     return values;
 }
 
+vector<ConfigGenerator::ConfigPair>::const_iterator ConfigGenerator::getConfigOption(const string& option) const
+{
+    // Ensure it is in upper case
+    string optionUpper = option;
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
+    // Find in internal list
+    auto values = m_configValues.begin();
+    for (; values < m_configValues.end(); ++values) {
+        if (values->m_option == optionUpper) {
+            return values;
+        }
+    }
+    return values;
+}
+
 ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(const string& option)
 {
     // Ensure it is in upper case
@@ -1699,25 +1714,40 @@ ConfigGenerator::ValuesList::iterator ConfigGenerator::getConfigOptionPrefixed(c
     return values;
 }
 
-bool ConfigGenerator::isConfigOptionEnabled(const string& option)
+ConfigGenerator::ValuesList::const_iterator ConfigGenerator::getConfigOptionPrefixed(const string& option) const
 {
-    const ValuesList::iterator opt = getConfigOption(option);
+    // Ensure it is in upper case
+    string optionUpper = option;
+    transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
+    // Find in internal list
+    auto values = m_configValues.begin();
+    for (; values < m_configValues.end(); ++values) {
+        if (optionUpper == values->m_prefix + values->m_option) {
+            return values;
+        }
+    }
+    return values;
+}
+
+bool ConfigGenerator::isConfigOptionEnabled(const string& option) const
+{
+    const auto opt = getConfigOption(option);
     return (opt != m_configValues.end()) && (opt->m_value == "1");
 }
 
-bool ConfigGenerator::isConfigOptionValid(const string& option)
+bool ConfigGenerator::isConfigOptionValid(const string& option) const
 {
-    const ValuesList::iterator opt = getConfigOption(option);
+    const auto opt = getConfigOption(option);
     return opt != m_configValues.end();
 }
 
-bool ConfigGenerator::isConfigOptionValidPrefixed(const string& option)
+bool ConfigGenerator::isConfigOptionValidPrefixed(const string& option) const
 {
-    const ValuesList::iterator opt = getConfigOptionPrefixed(option);
+    const auto opt = getConfigOptionPrefixed(option);
     return opt != m_configValues.end();
 }
 
-bool ConfigGenerator::isASMEnabled()
+bool ConfigGenerator::isASMEnabled() const
 {
     return isConfigOptionValidPrefixed("HAVE_X86ASM") || isConfigOptionValidPrefixed("HAVE_YASM");
 }
