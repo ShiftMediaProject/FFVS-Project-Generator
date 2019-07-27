@@ -179,6 +179,8 @@ void ProjectGenerator::buildDependencies(StaticList& vLibs, StaticList& vAddLibs
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
                     vAddLibs.push_back("cuda");    // Add the additional required libs
                 }
+            } else if (*vitLib == "cuda_sdk" || *vitLib == "cuda_nvcc") {
+                // Doesn't require any additional libs
             } else if (*vitLib == "cuvid") {
                 string sFileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
