@@ -160,14 +160,9 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
             ident = ident.substr(1);
             compare = "0";
         }
-        endPos = m_inLine.find_first_of(". \t", startPos);
-        if ((endPos != string::npos) && (m_inLine.at(endPos) == '.')) {
-            // Skip any ./ or ../
-            const uint endPos2 = m_inLine.find_first_not_of(".\\", endPos + 1);
-            if ((endPos2 != string::npos) && (endPos2 > endPos + 1)) {
-                endPos = m_inLine.find_first_of(". \t", endPos2 + 1);
-            }
-        }
+        startPos = m_inLine.find_first_not_of(".\\/", startPos);    // Skip any ./ or ../
+        endPos = m_inLine.find_first_of(" \t", startPos);
+        endPos = m_inLine.rfind('.', endPos);    // Include any additional extensions
         // Add the found string to internal storage
         const string tag = m_inLine.substr(startPos, endPos - startPos);
         // Check if object already included in internal list

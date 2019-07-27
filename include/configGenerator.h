@@ -313,6 +313,12 @@ private:
     bool isASMEnabled() const;
 
     /**
+     * Queries if cuda is enabled.
+     * @returns True if cuda is enabled, false if not.
+     */
+    bool isCUDAEnabled() const;
+
+    /**
      * Gets minimum supported windows version from config file.
      * @param [out] major The version number major.
      * @param [out] minor The version number minor.

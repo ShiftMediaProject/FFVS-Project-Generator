@@ -1751,6 +1751,11 @@ bool ConfigGenerator::isASMEnabled() const
     return isConfigOptionValidPrefixed("HAVE_X86ASM") || isConfigOptionValidPrefixed("HAVE_YASM");
 }
 
+bool ConfigGenerator::isCUDAEnabled() const
+{
+    return isConfigOptionValidPrefixed("CONFIG_CUDA_NVCC") || isConfigOptionValidPrefixed("CONFIG_CUDA_SDK");
+}
+
 bool ConfigGenerator::getMinWindowsVersion(uint& major, uint& minor) const
 {
     const string search = "cppflags -D_WIN32_WINNT=0x";

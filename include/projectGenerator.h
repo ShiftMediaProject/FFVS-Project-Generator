@@ -38,6 +38,7 @@ private:
     StaticList m_includesC;
     StaticList m_includesASM;
     StaticList m_includesH;
+    StaticList m_includesCU;
     UnknownList m_replaceIncludes;
     StaticList m_libs;
     UnknownList m_unknowns;
@@ -251,7 +252,7 @@ private:
     bool createReplaceFiles(const StaticList& replaceIncludes, StaticList& existingIncludes);
 
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
-        StaticList& includesASM, StaticList& includesH) const;
+        StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const;
 
     void outputTemplateTags(string& projectTemplate, string& filtersTemplate) const;
 
@@ -330,6 +331,12 @@ private:
      * @param [in,out] projectTemplate The project template.
      */
     void outputASMTools(string& projectTemplate) const;
+
+    /**
+     * Output cuda tools to project template.
+     * @param [in,out] projectTemplate The project template.
+     */
+    void outputCUDATools(string& projectTemplate) const;
 
     bool outputDependencyLibs(string& projectTemplate, bool program = false);
 

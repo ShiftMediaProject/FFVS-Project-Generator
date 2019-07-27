@@ -236,6 +236,9 @@ bool ProjectGenerator::outputProject()
     // Add ASM requirements
     outputASMTools(projectFile);
 
+    // Add CUDA requirements
+    outputCUDATools(projectFile);
+
     // Add the dependency libraries
     if (!outputDependencyLibs(projectFile)) {
         return false;
@@ -317,6 +320,9 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     // Add ASM requirements
     outputASMTools(programFile);
 
+    // Add CUDA requirements
+    outputCUDATools(programFile);
+
     // Add the dependency libraries
     if (!outputDependencyLibs(programFile, true)) {
         return false;
@@ -359,6 +365,7 @@ void ProjectGenerator::outputProjectCleanup()
     m_includesC.clear();
     m_includesASM.clear();
     m_includesH.clear();
+    m_includesCU.clear();
     m_libs.clear();
     m_unknowns.clear();
     m_projectDir.clear();
@@ -999,9 +1006,13 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     }
 
     // Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
-    if (m_configHelper.isASMEnabled()) {
-        outputSourceFileType(m_includesASM, (m_configHelper.m_useNASM) ? "NASM" : "YASM", "Source", projectTemplate,
-            filterTemplate, foundObjects, foundFilters, false);
+    if (!m_includesASM.empty()) {
+        if (m_configHelper.isASMEnabled()) {
+            outputSourceFileType(m_includesASM, (m_configHelper.m_useNASM) ? "NASM" : "YASM", "Source", projectTemplate,
+                filterTemplate, foundObjects, foundFilters, false);
+        } else {
+            outputError("Assembly files found in project but assembly is disabled");
+        }
     }
 
     // Output C files
@@ -1011,6 +1022,18 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output C++ files
     outputSourceFileType(
         m_includesCPP, "ClCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters, true);
+
+    // Output CUDA files
+    if (!m_includesCU.empty()) {
+        if (m_configHelper.isCUDAEnabled()) {
+            // outputSourceFileType(
+            //    m_includesCU, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
+            //    true);
+            outputError("CUDA files detected in project. CUDA compilation is not currently supported");
+        } else {
+            outputError("CUDA files found in project but CUDA is disabled");
+        }
+    }
 
     // Output header files in new item group
     outputSourceFileType(
@@ -1516,6 +1539,13 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
         findPos = projectTemplate.find(findTargets) + findTargets.length();
         // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
         projectTemplate.insert(findPos, targetsASM);
+    }
+}
+
+void ProjectGenerator::outputCUDATools(string& projectTemplate) const
+{
+    if (m_configHelper.isCUDAEnabled() && (m_includesCU.size() > 0)) {
+        // TODO: Add cuda tools
     }
 }
 

@@ -401,6 +401,8 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
         (m_configHelper.isConfigOptionEnabled("nvenc") && (m_projectName == "libavcodec")) ||
         (m_configHelper.isConfigOptionEnabled("cuvid") &&
             ((m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv")));
+    projectDeps["cuda_sdk"] = (m_projectName == "libavfilter");
+    projectDeps["cuda_nvcc"] = (m_projectName == "libavfilter");
     projectDeps["cuvid"] =
         (m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv");
     projectDeps["d3d11va"] = false;    // supplied by windows sdk
