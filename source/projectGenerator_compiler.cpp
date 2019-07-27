@@ -24,54 +24,53 @@
 #include <utility>
 
 bool ProjectGenerator::runCompiler(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
+    const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, const int runType) const
 {
 #ifdef _MSC_VER
     // If compiled by msvc then only msvc builds are supported
-    return runMSVC(vIncludeDirs, mDirectoryObjects, iRunType);
+    return runMSVC(includeDirs, directoryObjects, runType);
 #else
     // Otherwise only gcc and mingw are supported
-    return runGCC(vIncludeDirs, mDirectoryObjects, iRunType);
+    return runGCC(includeDirs, directoryObjects, runType);
 #endif
 }
 
 bool ProjectGenerator::runMSVC(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
+    const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, int runType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_configHelper.m_outDirectory;
-    m_configHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
-    vector<string> vIncludeDirs2 = vIncludeDirs;
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_solutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_rootDirectory);
-    string sCLExtra;
-    for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
-        string sIncludeDir = *vitIt;
-        uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 9, sOutDir);
+    string outDir = m_configHelper.m_outDirectory;
+    m_configHelper.makeFileGeneratorRelative(outDir, outDir);
+    vector<string> includeDirs2 = includeDirs;
+    includeDirs2.insert(includeDirs2.begin(), outDir + "include/");
+    includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_solutionDirectory);
+    includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_rootDirectory);
+    string extraCl;
+    for (auto& i : includeDirs2) {
+        uint findPos2 = i.find("$(OutDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 9, outDir);
         }
-        uiFindPos2 = sIncludeDir.find("$(");
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 2, "%");
+        findPos2 = i.find("$(");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 2, "%");
         }
-        uiFindPos2 = sIncludeDir.find(')');
-        if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 1, "%");
+        findPos2 = i.find(')');
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 1, "%");
         }
-        if (sIncludeDir.length() == 0) {
-            sIncludeDir = "./";
-        } else if ((sIncludeDir.find(':') == string::npos) && (sIncludeDir.find_first_of("./%") != 0)) {
-            sIncludeDir.insert(0, "./");
+        if (i.length() == 0) {
+            i = "./";
+        } else if ((i.find(':') == string::npos) && (i.find_first_of("./%") != 0)) {
+            i.insert(0, "./");
         }
-        sCLExtra += " /I\"" + sIncludeDir + '\"';
+        extraCl += " /I\"" + i + '\"';
     }
-    string sTempFolder = m_tempDirectory + m_projectName;
+    string tempFolder = m_tempDirectory + m_projectName;
 
     // Use Microsoft compiler to pass the test file and retrieve declarations
-    string sCLLaunchBat = "@echo off\nsetlocal enabledelayedexpansion\nset CALLDIR=%CD%\n";
-    sCLLaunchBat += "if \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" (\n\
+    string launchBat = "@echo off\nsetlocal enabledelayedexpansion\nset CALLDIR=%CD%\n";
+    launchBat += "if \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" (\n\
     set SYSARCH=64\n\
 ) else if \"%PROCESSOR_ARCHITECTURE%\"==\"x86\" (\n\
     if \"%PROCESSOR_ARCHITEW6432%\"==\"AMD64\" (\n\
@@ -129,96 +128,94 @@ echo fatal error : An installed version of Visual Studio could not be detected. 
 exit /b 1\n\
 :MSVCVarsDone\n\
 popd\n";
-    sCLLaunchBat += "mkdir \"" + m_tempDirectory + "\" > nul 2>&1\n";
-    sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > nul 2>&1\n";
-    for (auto& mDirectoryObject : mDirectoryObjects) {
-        const uint uiRowSize = 32;
-        uint uiNumCLCalls = static_cast<uint>(
-            ceilf(static_cast<float>(mDirectoryObject.second.size()) / static_cast<float>(uiRowSize)));
-        uint uiTotalPos = 0;
-        string sDirName = sTempFolder + "/" + mDirectoryObject.first;
-        if (mDirectoryObject.first.length() > 0) {
+    launchBat += "mkdir \"" + m_tempDirectory + "\" > nul 2>&1\n";
+    launchBat += "mkdir \"" + tempFolder + "\" > nul 2>&1\n";
+    for (auto& j : directoryObjects) {
+        const uint rowSize = 32;
+        uint numClCalls = static_cast<uint>(ceilf(static_cast<float>(j.second.size()) / static_cast<float>(rowSize)));
+        uint totalPos = 0;
+        string dirName = tempFolder + "/" + j.first;
+        if (j.first.length() > 0) {
             // Need to make output directory so compile doesn't fail outputting
-            sCLLaunchBat += "mkdir \"" + sDirName + "\" > nul 2>&1\n";
+            launchBat += "mkdir \"" + dirName + "\" > nul 2>&1\n";
         }
-        string sRuntype;
+        string runCommands;
         // Check type of compiler call
-        if (iRunType == 0) {
-            sRuntype = "/FR\"" + sDirName + "/\"" + " /Fo\"" + sDirName + "/\"";
-        } else if (iRunType == 1) {
-            sRuntype = "/EP /P";
+        if (runType == 0) {
+            runCommands = "/FR\"" + dirName + "/\"" + " /Fo\"" + dirName + "/\"";
+        } else if (runType == 1) {
+            runCommands = "/EP /P";
         }
 
         // Split calls into groups of 50 to prevent batch file length limit
-        for (uint uiI = 0; uiI < uiNumCLCalls; uiI++) {
-            sCLLaunchBat += "cl.exe ";
-            sCLLaunchBat += sCLExtra + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /FI"compat.h" )" +
-                sRuntype + " /c /MP /w /nologo";
-            uint uiStartPos = uiTotalPos;
-            for (uiTotalPos; uiTotalPos < min(uiStartPos + uiRowSize, mDirectoryObject.second.size()); uiTotalPos++) {
-                if (iRunType == 0) {
-                    m_configHelper.makeFileGeneratorRelative(
-                        mDirectoryObject.second[uiTotalPos], mDirectoryObject.second[uiTotalPos]);
+        for (uint i = 0; i < numClCalls; i++) {
+            launchBat += "cl.exe ";
+            launchBat += extraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /FI"compat.h" )" +
+                runCommands + " /c /MP /w /nologo";
+            uint uiStartPos = totalPos;
+            for (; totalPos < min(uiStartPos + rowSize, j.second.size()); totalPos++) {
+                if (runType == 0) {
+                    m_configHelper.makeFileGeneratorRelative(j.second[totalPos], j.second[totalPos]);
                 }
-                sCLLaunchBat += " \"" + mDirectoryObject.second[uiTotalPos] + "\"";
+                launchBat += " \"" + j.second[totalPos] + "\"";
             }
-            sCLLaunchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
+            launchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
-        if (iRunType == 1) {
-            sCLLaunchBat += "move *.i " + sDirName + "/ >nul 2>&1\n";
+        if (runType == 1) {
+            launchBat += "move *.i " + dirName + "/ >nul 2>&1\n";
         }
     }
-    if (iRunType == 0) {
-        sCLLaunchBat += "del /F /S /Q *.obj >nul 2>&1\n";
+    if (runType == 0) {
+        launchBat += "del /F /S /Q *.obj >nul 2>&1\n";
     }
-    sCLLaunchBat += "del ffvs_log.txt >nul 2>&1\n";
-    sCLLaunchBat += "exit /b 0\n:exitFail\n";
-    if (iRunType == 1) {
-        sCLLaunchBat += "del /F /S /Q *.i >nul 2>&1\n";
+    launchBat += "del ffvs_log.txt >nul 2>&1\n";
+    launchBat += "exit /b 0\n:exitFail\n";
+    if (runType == 1) {
+        launchBat += "del /F /S /Q *.i >nul 2>&1\n";
     }
-    sCLLaunchBat += "rmdir /S /Q " + m_tempDirectory + "\nexit /b 1";
-    if (!writeToFile("ffvs_compile.bat", sCLLaunchBat)) {
+    launchBat += "rmdir /S /Q " + m_tempDirectory + "\nexit /b 1";
+    if (!writeToFile("ffvs_compile.bat", launchBat)) {
         return false;
     }
 
     if (0 != system("ffvs_compile.bat")) {
         outputError("Errors detected during compilation :-");
-        string sTestOutput;
-        if (loadFromFile("ffvs_log.txt", sTestOutput)) {
+        string testOutput;
+        if (loadFromFile("ffvs_log.txt", testOutput)) {
             // Output errors from ffvs_log.txt
-            bool bError = false;
-            bool bMissingVS = false;
-            bool bMissingDeps = false;
-            uint uiFindPos = sTestOutput.find(" error ");
-            while (uiFindPos != string::npos) {
+            bool error = false;
+            bool missingVs = false;
+            bool missingDeps = false;
+            uint findPos = testOutput.find(" error ");
+            while (findPos != string::npos) {
                 // find end of line
-                uint uiFindPos2 = sTestOutput.find_first_of("\n(", uiFindPos + 1);
-                string sTemp = sTestOutput.substr(uiFindPos + 1, uiFindPos2 - uiFindPos - 1);
-                outputError(sTemp, false);
-                uiFindPos = sTestOutput.find(" error ", uiFindPos2 + 1);
+                uint findPos2 = testOutput.find_first_of("\n(", findPos + 1);
+                string temp = testOutput.substr(findPos + 1, findPos2 - findPos - 1);
+                outputError(temp, false);
+                findPos = testOutput.find(" error ", findPos2 + 1);
                 // Check what type of error was found
-                if (!bMissingDeps && (sTemp.find("open include file") != string::npos)) {
-                    bMissingDeps = true;
-                } else if (!bMissingVS && (sTemp.find("Visual Studio could not be detected") != string::npos)) {
-                    bMissingVS = true;
+                if (!missingDeps && (temp.find("open include file") != string::npos)) {
+                    missingDeps = true;
+                } else if (!missingVs && (temp.find("Visual Studio could not be detected") != string::npos)) {
+                    missingVs = true;
                 } else {
-                    bError = true;
+                    error = true;
                 }
             }
-            uiFindPos = sTestOutput.find("internal or external command");
-            if (uiFindPos != string::npos) {
-                uint uiFindPos2 = sTestOutput.find('\n', uiFindPos + 1);
-                uiFindPos = sTestOutput.rfind('\n', uiFindPos);
-                uiFindPos = (uiFindPos == string::npos) ? 0 : uiFindPos;
-                outputError(sTestOutput.substr(uiFindPos, uiFindPos2 - uiFindPos), false);
-                bMissingVS = true;
+            findPos = testOutput.find("internal or external command");
+            if (findPos != string::npos) {
+                uint findPos2 = testOutput.find('\n', findPos + 1);
+                findPos = testOutput.rfind('\n', findPos);
+                findPos = (findPos == string::npos) ? 0 : findPos;
+                outputError(testOutput.substr(findPos, findPos2 - findPos), false);
+                missingVs = true;
             }
-            if (bMissingVS) {
+            if (missingVs) {
                 outputError(
                     "Based on the above error(s) Visual Studio is not installed correctly on the host system.", false);
                 outputError("Install a compatible version of Visual Studio before trying again.", false);
                 deleteFile("ffvs_log.txt");
-            } else if (bMissingDeps) {
+            } else if (missingDeps) {
                 outputError(
                     "Based on the above error(s) there are files required for dependency libraries that are not available",
                     false);
@@ -232,7 +229,7 @@ popd\n";
                 outputError(
                     "  Removing the offending configuration option can also be used to remove the error.", false);
                 deleteFile("ffvs_log.txt");
-            } else if (bError) {
+            } else if (error) {
                 outputError("Unknown error detected. See ffvs_log.txt for further details.", false);
             }
         }
@@ -248,90 +245,89 @@ popd\n";
 }
 
 bool ProjectGenerator::runGCC(
-    const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const
+    const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, int runType) const
 {
     // Create a test file to read in definitions
-    string sOutDir = m_configHelper.m_outDirectory;
-    m_configHelper.makeFileGeneratorRelative(sOutDir, sOutDir);
-    vector<string> vIncludeDirs2 = vIncludeDirs;
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), sOutDir + "include/");
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_solutionDirectory);
-    vIncludeDirs2.insert(vIncludeDirs2.begin(), m_configHelper.m_rootDirectory);
-    string sCLExtra;
-    for (auto vitIt = vIncludeDirs2.cbegin(); vitIt < vIncludeDirs2.cend(); ++vitIt) {
-        string sIncludeDir = *vitIt;
-        uint uiFindPos2 = sIncludeDir.find("$(OutDir)");
+    string outDir = m_configHelper.m_outDirectory;
+    m_configHelper.makeFileGeneratorRelative(outDir, outDir);
+    vector<string> includeDirs2 = includeDirs;
+    includeDirs2.insert(includeDirs2.begin(), outDir + "include/");
+    includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_solutionDirectory);
+    includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_rootDirectory);
+    string extraCl;
+    for (auto& i : includeDirs2) {
+        uint uiFindPos2 = i.find("$(OutDir)");
         if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 9, sOutDir);
+            i.replace(uiFindPos2, 9, outDir);
         }
-        uiFindPos2 = sIncludeDir.find("$(");
+        uiFindPos2 = i.find("$(");
         if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 2, "%");
+            i.replace(uiFindPos2, 2, "%");
         }
-        uiFindPos2 = sIncludeDir.find(')');
+        uiFindPos2 = i.find(')');
         if (uiFindPos2 != string::npos) {
-            sIncludeDir.replace(uiFindPos2, 1, "%");
+            i.replace(uiFindPos2, 1, "%");
         }
-        if (sIncludeDir.length() == 0) {
-            sIncludeDir = "./";
-        } else if (sIncludeDir.find_first_of("./%") != 0) {
-            sIncludeDir = "./" + sIncludeDir;
+        if (i.length() == 0) {
+            i = "./";
+        } else if (i.find_first_of("./%") != 0) {
+            i = "./" + i;
         }
-        sCLExtra += " /I\"" + sIncludeDir + '\"';
+        extraCl += " /I\"" + i + '\"';
     }
-    string sTempFolder = m_tempDirectory + m_projectName;
+    string tempFolder = m_tempDirectory + m_projectName;
 
     // Use GNU compiler to pass the test file and retrieve declarations
-    string sCLLaunchBat = "#!/bin/bash\n";
-    sCLLaunchBat += "exitFail() {\n";
-    if (iRunType == 1) {
-        sCLLaunchBat += "rm -rf *.i > /dev/null 2>&1\n";
+    string launchBat = "#!/bin/bash\n";
+    launchBat += "exitFail() {\n";
+    if (runType == 1) {
+        launchBat += "rm -rf *.i > /dev/null 2>&1\n";
     }
-    sCLLaunchBat += "rm -rf " + m_tempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
-    sCLLaunchBat += "mkdir \"" + m_tempDirectory + "\" > /dev/null 2>&1\n";
-    sCLLaunchBat += "mkdir \"" + sTempFolder + "\" > /dev/null 2>&1\n";
-    for (auto& mDirectoryObject : mDirectoryObjects) {
-        string sDirName = sTempFolder + "/" + mDirectoryObject.first;
-        if (mDirectoryObject.first.length() > 0) {
+    launchBat += "rm -rf " + m_tempDirectory + " > /dev/null 2>&1\nexit 1\n}\n";
+    launchBat += "mkdir \"" + m_tempDirectory + "\" > /dev/null 2>&1\n";
+    launchBat += "mkdir \"" + tempFolder + "\" > /dev/null 2>&1\n";
+    for (auto& i : directoryObjects) {
+        string dirName = tempFolder + "/" + i.first;
+        if (i.first.length() > 0) {
             // Need to make output directory so compile doesn't fail outputting
-            sCLLaunchBat += "mkdir \"" + sDirName + "\" > /dev/null 2>&1\n";
+            launchBat += "mkdir \"" + dirName + "\" > /dev/null 2>&1\n";
         }
-        string sRuntype;
+        string runCommands;
         // Check type of compiler call
-        if (iRunType == 0) {
+        if (runType == 0) {
             outputError("Generation of definitions is not supported using gcc.");
             return false;
         }
-        if (iRunType == 1) {
-            sRuntype = "-E -P";
+        if (runType == 1) {
+            runCommands = "-E -P";
         }
         // Check if gcc or mingw
         if (m_configHelper.m_toolchain.find("mingw") != string::npos) {
-            sCLExtra += R"(-D"WIN32" -D"_WINDOWS")";
+            extraCl += R"(-D"WIN32" -D"_WINDOWS")";
         }
 
         // Split calls as gcc outputs a single file at a time
-        for (auto vitJ = mDirectoryObject.second.begin(); vitJ < mDirectoryObject.second.end(); ++vitJ) {
-            sCLLaunchBat += "gcc ";
-            sCLLaunchBat += sCLExtra + " -D_DEBUG " + sRuntype + " -c -w";
-            if (iRunType == 0) {
-                m_configHelper.makeFileGeneratorRelative(*vitJ, *vitJ);
+        for (auto& j : i.second) {
+            launchBat += "gcc ";
+            launchBat += extraCl + " -D_DEBUG " + runCommands + " -c -w";
+            if (runType == 0) {
+                m_configHelper.makeFileGeneratorRelative(j, j);
             }
-            sCLLaunchBat += " \"" + *vitJ + "\"";
-            if (iRunType == 0) {
-                sCLLaunchBat += " -o " + *vitJ + ".o";
-            } else if (iRunType == 1) {
-                sCLLaunchBat += " -o " + *vitJ + ".i";
+            launchBat += " \"" + j + "\"";
+            if (runType == 0) {
+                launchBat += " -o " + j + ".o";
+            } else if (runType == 1) {
+                launchBat += " -o " + j + ".i";
             }
-            sCLLaunchBat += " > ffvs_log.txt 2>&1\nif (( $? )); then\nexitFail\nfi\n";
+            launchBat += " > ffvs_log.txt 2>&1\nif (( $? )); then\nexitFail\nfi\n";
         }
     }
-    if (iRunType == 0) {
-        sCLLaunchBat += "rm -rf *.o > /dev/null 2>&1\n";
+    if (runType == 0) {
+        launchBat += "rm -rf *.o > /dev/null 2>&1\n";
     }
-    sCLLaunchBat += "rm ffvs_log.txt > /dev/null 2>&1\n";
-    sCLLaunchBat += "exit 0\n";
-    if (!writeToFile("ffvs_compile.sh", sCLLaunchBat)) {
+    launchBat += "rm ffvs_log.txt > /dev/null 2>&1\n";
+    launchBat += "exit 0\n";
+    if (!writeToFile("ffvs_compile.sh", launchBat)) {
         return false;
     }
     if (0 != system("ffvs_compile.sh")) {

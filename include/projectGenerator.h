@@ -63,9 +63,9 @@ public:
 
     /**
      * Error function to cleanly exit.
-     * @param bCleanupFiles (Optional) True to delete created files.
+     * @param cleanupFiles (Optional) True to delete created files.
      */
-    void errorFunc(bool bCleanupFiles = true);
+    void errorFunc(bool cleanupFiles = true);
 
 private:
     /**
@@ -76,11 +76,11 @@ private:
 
     /**
      * Output a project file for a program (ffplay etc.).
-     * @param sDestinationFile       Destination project file.
-     * @param sDestinationFilterFile Destination project filter file.
+     * @param destinationFile       Destination project file.
+     * @param destinationFilterFile Destination project filter file.
      * @return True if it succeeds, false if it fails.
      */
-    bool outputProgramProject(const string& sDestinationFile, const string& sDestinationFilterFile);
+    bool outputProgramProject(const string& destinationFile, const string& destinationFilterFile);
 
     /** Cleans up any used variables after a project file has been created. */
     void outputProjectCleanup();
@@ -207,43 +207,44 @@ private:
      */
     bool findSourceFiles(const string& file, const string& extension, vector<string>& retFiles) const;
 
-    void buildInterDependenciesHelper(const StaticList& vConfigOptions, const StaticList& vAddDeps, StaticList& vLibs);
+    void buildInterDependenciesHelper(
+        const StaticList& configOptions, const StaticList& addDeps, StaticList& libs) const;
 
-    void buildInterDependencies(StaticList& vLibs);
+    void buildInterDependencies(StaticList& libs);
 
-    void buildDependencies(StaticList& vLibs, StaticList& vAddLibs);
+    void buildDependencies(StaticList& libs, StaticList& addLibs);
 
     /**
      * Updates existing library dependency lists by adding/removing those required/unavailable by WinRT.
-     * @param [in,out] vLibs    The project dependency libs.
-     * @param [in,out] vAddLibs The windows dependency libs.
+     * @param [in,out] libs    The project dependency libs.
+     * @param [in,out] addLibs The windows dependency libs.
      */
-    void buildDependenciesWinRT(StaticList& vLibs, StaticList& vAddLibs);
+    void buildDependenciesWinRT(StaticList& libs, StaticList& addLibs);
 
     void buildDependencyValues(
-        StaticList& vIncludeDirs, StaticList& vLib32Dirs, StaticList& vLib64Dirs, StaticList& vDefines);
+        StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs, StaticList& defines) const;
 
-    void buildProjectDependencies(map<string, bool>& mProjectDeps);
+    void buildProjectDependencies(map<string, bool>& projectDeps) const;
 
-    void buildProjectGUIDs(map<string, string>& mKeys) const;
+    void buildProjectGUIDs(map<string, string>& keys) const;
 
     struct DCEParams
     {
-        string sDefine;
-        string sFile;
+        string define;
+        string file;
 
-        bool operator==(const string& sCompare) const
+        bool operator==(const string& compare) const
         {
-            return (sFile == sCompare);
+            return (file == compare);
         }
     };
 
     /**
      * Builds project specific DCE functions and variables that are not automatically detected.
-     * @param [out] mDCEDefinitions The return list of built DCE functions.
-     * @param [out] mDCEVariables   The return list of built DCE variables.
+     * @param [out] definitionsDCE The return list of built DCE functions.
+     * @param [out] variablesDCE   The return list of built DCE variables.
      */
-    void buildProjectDCEs(map<string, DCEParams>& mDCEDefinitions, map<string, DCEParams>& mDCEVariables) const;
+    void buildProjectDCEs(map<string, DCEParams>& definitionsDCE, map<string, DCEParams>& variablesDCE) const;
 
     bool checkProjectFiles();
 
@@ -252,151 +253,150 @@ private:
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
         StaticList& includesASM, StaticList& includesH) const;
 
-    void outputTemplateTags(string& sProjectTemplate, string& sFiltersTemplate) const;
+    void outputTemplateTags(string& projectTemplate, string& filtersTemplate) const;
 
-    void outputSourceFileType(StaticList& vFileList, const string& sType, const string& sFilterType,
-        string& sProjectTemplate, string& sFilterTemplate, StaticList& vFoundObjects, set<string>& vFoundFilters,
-        bool bCheckExisting, bool bStaticOnly = false, bool bSharedOnly = false) const;
+    void outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
+        string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,
+        bool checkExisting, bool staticOnly = false, bool sharedOnly = false) const;
 
-    void outputSourceFiles(string& sProjectTemplate, string& sFilterTemplate);
+    void outputSourceFiles(string& projectTemplate, string& filterTemplate);
 
-    bool outputProjectExports(const StaticList& vIncludeDirs);
+    bool outputProjectExports(const StaticList& includeDirs);
 
     /**
      * Executes a batch script to perform operations using a compiler based on current configuration.
-     * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
-     *                                   within it.
-     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file,
-     * 1=pre-process to .i file).
-     * @return True if it succeeds, false if it fails.
+     * @param          includeDirs      The list of current directories to look for included files.
+     * @param [in,out] directoryObjects A list of subdirectories with each one containing a vector of files contained
+     *   within it.
+     * @param          runType          The type of operation to run on input files (0=generate an sbr file, 1=pre-
+     *  process to .i file).
+     * @returns True if it succeeds, false if it fails.
      */
     bool runCompiler(
-        const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
+        const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, int runType) const;
 
     /**
      * Executes a batch script to perform operations using the msvc compiler.
-     * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
-     *                                   within it.
-     * @param          iRunType          The type of operation to run on input files (0=generate an sbr file,
-     * 1=pre-process to .i file).
-     * @return True if it succeeds, false if it fails.
+     * @param          includeDirs      The list of current directories to look for included files.
+     * @param [in,out] directoryObjects A list of subdirectories with each one containing a vector of files contained
+     *   within it.
+     * @param          runType          The type of operation to run on input files (0=generate an sbr file, 1=pre-
+     *  process to .i file).
+     * @returns True if it succeeds, false if it fails.
      */
-    bool runMSVC(
-        const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
+    bool runMSVC(const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, int runType) const;
 
     /**
      * Executes a bash script to perform operations using the gcc compiler.
-     * @param          vIncludeDirs      The list of current directories to look for included files.
-     * @param [in,out] mDirectoryObjects A list of subdirectories with each one containing a vector of files contained
-     *                                   within it.
-     * @param          iRunType          The type of operation to run on input files (1=pre-process to .i file).
-     * @return True if it succeeds, false if it fails.
+     * @param          includeDirs      The list of current directories to look for included files.
+     * @param [in,out] directoryObjects A list of subdirectories with each one containing a vector of files contained
+     *   within it.
+     * @param          runType          The type of operation to run on input files (1=pre-process to .i file).
+     * @returns True if it succeeds, false if it fails.
      */
-    bool runGCC(const vector<string>& vIncludeDirs, map<string, vector<string>>& mDirectoryObjects, int iRunType) const;
+    bool runGCC(const vector<string>& includeDirs, map<string, vector<string>>& directoryObjects, int runType) const;
 
     /**
      * Output additional build events to the project.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param [in,out] projectTemplate The project template.
      */
-    void outputBuildEvents(string& sProjectTemplate);
+    void outputBuildEvents(string& projectTemplate);
 
     /**
      * Output additional include search directories to project.
-     * @param          vIncludeDirs     The include dirs.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param          includeDirs     The include dirs.
+     * @param [in,out] projectTemplate The project template.
      */
-    static void outputIncludeDirs(const StaticList& vIncludeDirs, string& sProjectTemplate);
+    static void outputIncludeDirs(const StaticList& includeDirs, string& projectTemplate);
 
     /**
      * Output additional library search directories to project.
-     * @param          vLib32Dirs       The library 32b dirs.
-     * @param          vLib64Dirs       The library 64b dirs.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param          lib32Dirs       The library 32b dirs.
+     * @param          lib64Dirs       The library 64b dirs.
+     * @param [in,out] projectTemplate The project template.
      */
-    static void outputLibDirs(const StaticList& vLib32Dirs, const StaticList& vLib64Dirs, string& sProjectTemplate);
+    static void outputLibDirs(const StaticList& lib32Dirs, const StaticList& lib64Dirs, string& projectTemplate);
 
     /**
      * Output additional defines to the project.
      * @param          defines         The defines.
      * @param [in,out] projectTemplate The project template.
      */
-    void outputDefines(const StaticList& defines, string& projectTemplate);
+    static void outputDefines(const StaticList& defines, string& projectTemplate);
 
     /**
      * Output asm tools to project template.
      * @remark Either yasm or nasm tools will be used based on current configuration.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param [in,out] projectTemplate The project template.
      */
-    void outputASMTools(string& sProjectTemplate);
+    void outputASMTools(string& projectTemplate) const;
 
-    bool outputDependencyLibs(string& sProjectTemplate, bool bProgram = false);
+    bool outputDependencyLibs(string& projectTemplate, bool program = false);
 
     /**
      * Removes any WinRT/UWP configurations from the output project template.
-     * @param [in,out] sProjectTemplate The project template.
+     * @param [in,out] projectTemplate The project template.
      */
-    static void outputStripWinRT(string& sProjectTemplate);
+    static void outputStripWinRT(string& projectTemplate);
 
     /**
      * Removes any WinRT/UWP configurations from the output solution template.
-     * @param [in,out] sSolutionFile The solution template.
+     * @param [in,out] solutionFile The solution template.
      */
-    static void outputStripWinRTSolution(string& sSolutionFile);
+    static void outputStripWinRTSolution(string& solutionFile);
 
     /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new
      * file is then created and added to the project that contains hull definitions for any missing functions.
-     * @param vIncludeDirs The list of current directories to look for included files.
+     * @param includeDirs The list of current directories to look for included files.
      * @return True if it succeeds, false if it fails.
      */
-    bool outputProjectDCE(const StaticList& vIncludeDirs);
+    bool outputProjectDCE(const StaticList& includeDirs);
 
     /**
      * Passes an input file and looks for any function usage within a block of code eliminated by DCE.
-     * @param          sFile               The loaded file to search for DCE usage in.
-     * @param          sFileName           Filename of the file currently being searched.
-     * @param [in,out] mFoundDCEUsage      The return list of found DCE functions.
-     * @param [out]    bRequiresPreProcess The file requires pre processing.
-     * @param [in,out] vNonDCEUsage        The return list of found functions not in DCE.
+     * @param          file               The loaded file to search for DCE usage in.
+     * @param          fileName           Filename of the file currently being searched.
+     * @param [in,out] foundDCEUsage      The return list of found DCE functions.
+     * @param [out]    requiresPreProcess The file requires pre processing.
+     * @param [in,out] nonDCEUsage        The return list of found functions not in DCE.
      */
-    void outputProjectDCEFindFunctions(const string& sFile, const string& sFileName,
-        map<string, DCEParams>& mFoundDCEUsage, bool& bRequiresPreProcess, set<string>& vNonDCEUsage) const;
+    void outputProjectDCEFindFunctions(const string& file, const string& fileName,
+        map<string, DCEParams>& foundDCEUsage, bool& requiresPreProcess, set<string>& nonDCEUsage) const;
 
     /**
      * Resolves a pre-processor define conditional string by replacing with current configuration settings.
-     * @param [in,out] sDefine The pre-processor define string.
+     * @param [in,out] define The pre-processor define string.
      */
-    void outputProgramDCEsResolveDefine(string& sDefine);
+    void outputProgramDCEsResolveDefine(string& define);
 
     /**
      * Find any declaration of a specified function. Can also find a definition of the function if no declaration as
      * found first.
-     * @param       sFile           The loaded file to search for function in.
-     * @param       sFunction       The name of the function to search for.
-     * @param       sFileName       Filename of the file being searched through.
-     * @param [out] sRetDeclaration Returns the complete declaration for the found function.
-     * @param [out] bIsFunction     Returns if the found declaration was actually for a function or an incorrectly
+     * @param       file           The loaded file to search for function in.
+     * @param       function       The name of the function to search for.
+     * @param       fileName       Filename of the file being searched through.
+     * @param [out] retDeclaration Returns the complete declaration for the found function.
+     * @param [out] isFunction     Returns if the found declaration was actually for a function or an incorrectly
      *                              identified table/array declaration.
      * @return True if it succeeds finding the function, false if it fails.
      */
-    static bool outputProjectDCEsFindDeclarations(const string& sFile, const string& sFunction, const string& sFileName,
-        string& sRetDeclaration, bool& bIsFunction);
+    static bool outputProjectDCEsFindDeclarations(
+        const string& file, const string& function, const string& fileName, string& retDeclaration, bool& isFunction);
 
     /**
      * Cleans a pre-processor define conditional string to remove any invalid values.
-     * @param [in,out] sDefine The pre-processor define string to clean.
+     * @param [in,out] define The pre-processor define string to clean.
      */
-    static void outputProjectDCECleanDefine(string& sDefine);
+    static void outputProjectDCECleanDefine(string& define);
 
     /**
      * Combines 2 pre-processor define conditional strings.
-     * @param       sDefine    The first define.
-     * @param       sDefine2   The second define.
-     * @param [out] sRetDefine The returned combined define.
+     * @param       define    The first define.
+     * @param       define2   The second define.
+     * @param [out] retDefine The returned combined define.
      */
-    static void outputProgramDCEsCombineDefine(const string& sDefine, const string& sDefine2, string& sRetDefine);
+    static void outputProgramDCEsCombineDefine(const string& define, const string& define2, string& retDefine);
 };
 
 #endif

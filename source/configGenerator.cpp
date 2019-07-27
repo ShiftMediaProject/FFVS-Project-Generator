@@ -704,18 +704,16 @@ bool ConfigGenerator::passCurrentValues()
     OptimisedConfigList optimisedDisables;
     buildOptimisedDisables(optimisedDisables);
     // Check everything that is disabled based on current configuration
-    OptimisedConfigList::iterator disable = optimisedDisables.begin();
     bool disabledOpt = false;
-    for (; disable != optimisedDisables.end(); ++disable) {
+    for (const auto& i : optimisedDisables) {
         // Check if optimised value is valid for current configuration
-        ValuesList::iterator disableOpt = getConfigOption(disable->first);
+        auto disableOpt = getConfigOption(i.first);
         if (disableOpt != m_configValues.end()) {
             if (disableOpt->m_value == "1") {
                 // Disable unneeded items
-                vector<string>::iterator options = disable->second.begin();
-                for (; options < disable->second.end(); ++options) {
+                for (const auto& j : i.second) {
                     disabledOpt = true;
-                    toggleConfigValue(*options, false);
+                    toggleConfigValue(j, false);
                 }
             }
         }
@@ -723,6 +721,7 @@ bool ConfigGenerator::passCurrentValues()
     // It may be possible that the above optimisation pass disables some dependencies of other options.
     // If this happens then a full recheck is performed
     if (disabledOpt) {
+        option = m_configValues.begin();
         for (; option < m_configValues.end(); ++option) {
             if (!passDependencyCheck(option)) {
                 return false;
@@ -1294,7 +1293,7 @@ bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& p
     }
 
     // Find the search pattern in the file
-    string startSearch = "extern ";
+    const string startSearch = "extern ";
     uint start = findFile.find(startSearch);
     while (start != string::npos) {
         start += startSearch.length();
