@@ -27,3 +27,4 @@
 *.ilk
 [Bb]in/*
 !smp_*
+*Caches/
