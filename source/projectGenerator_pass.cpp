@@ -362,135 +362,166 @@ bool ProjectGenerator::passDLibUnknown()
 
 bool ProjectGenerator::passMake()
 {
-    const string makeFile = m_projectDir + "MakeFile";
-    outputLine("  Generating from Makefile (" + makeFile + ")...");
-    // Open the input Makefile
-    m_inputFile.open(makeFile);
-    if (m_inputFile.is_open()) {
-        // Read each line in the MakeFile
-        while (getline(m_inputFile, m_inLine)) {
-            // Check what information is included in the current line
-            if (m_inLine.substr(0, 4) == "OBJS") {
-                // Found some c includes
-                if (m_inLine.at(4) == '-') {
-                    // Found some dynamic c includes
-                    if (!passDCInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                } else {
-                    // Found some static c includes
-                    if (!passCInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                }
-            } else if ((m_inLine.substr(0, 11) == "X86ASM-OBJS") || (m_inLine.substr(0, 9) == "YASM-OBJS")) {
-                // Found some YASM includes
-                const uint offset = (m_inLine.at(0) == 'X') ? 2 : 0;
-                if (m_inLine.at(9 + offset) == '-') {
-                    // Found some dynamic ASM includes
-                    if (!passDASMInclude(offset)) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                } else {
-                    // Found some static ASM includes
-                    if (!passASMInclude(offset)) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                }
-            } else if (m_inLine.substr(0, 8) == "MMX-OBJS") {
-                // Found some ASM includes
-                if (m_inLine.at(8) == '-') {
-                    // Found some dynamic MMX includes
-                    if (!passDMMXInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                } else {
-                    // Found some static MMX includes
-                    if (!passMMXInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                }
-            } else if (m_inLine.substr(0, 7) == "HEADERS") {
-                // Found some headers
-                if (m_inLine.at(7) == '-') {
-                    // Found some dynamic headers
-                    if (!passDHInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                } else {
-                    // Found some static headers
-                    if (!passHInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                }
-            } else if (m_inLine.find("BUILT_HEADERS") == 0) {
-                // Found some static built headers
-                if (!passHInclude(13)) {
-                    m_inputFile.close();
-                    return false;
-                }
-            } else if (m_inLine.substr(0, 6) == "FFLIBS") {
-                // Found some libs
-                if (m_inLine.at(6) == '-') {
-                    // Found some dynamic libs
-                    if (!passDLibInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                } else {
-                    // Found some static libs
-                    if (!passLibInclude()) {
-                        m_inputFile.close();
-                        return false;
-                    }
-                }
-            } else if (m_inLine.find("-OBJS-$") != string::npos) {
-                // Found unknown
-                if (!passDUnknown()) {
-                    m_inputFile.close();
-                    return false;
-                }
-            } else if (m_inLine.find("LIBS-$") != string::npos) {
-                // Found Lib unknown
-                if (!passDLibUnknown()) {
-                    m_inputFile.close();
-                    return false;
-                }
-            } else if (m_inLine.substr(0, 5) == "ifdef") {
-                // Check for configuration value
-                const uint startPos = m_inLine.find_first_not_of(" \t", 5);
-                uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
-                endPos = (endPos == string::npos) ? endPos : endPos - startPos;
-                string config = m_inLine.substr(startPos, endPos);
-                // Check if the config option is correct
-                auto option = m_configHelper.getConfigOptionPrefixed(config);
-                if (option == m_configHelper.m_configValues.end()) {
-                    outputInfo("Unknown ifdef configuration option (" + config + ")");
-                    return false;
-                }
-                if (option->m_value != "1") {
-                    // Skip everything between the ifdefs
-                    while (getline(m_inputFile, m_inLine)) {
-                        if ((m_inLine.substr(0, 5) == "endif") || (m_inLine.substr(0, 4) == "else")) {
-                            break;
+    const string mainFile = m_projectDir + "MakeFile";
+    vector<string> makeFiles{mainFile};
+    while (!makeFiles.empty()) {
+        const string makeFile = makeFiles.back();
+        makeFiles.pop_back();
+        outputLine("  Generating from Makefile (" + makeFile + ")...");
+        // Open the input Makefile
+        m_inputFile.open(makeFile);
+        if (m_inputFile.is_open()) {
+            // Read each line in the MakeFile
+            while (getline(m_inputFile, m_inLine)) {
+                // Check what information is included in the current line
+                if (m_inLine.substr(0, 4) == "OBJS") {
+                    // Found some c includes
+                    if (m_inLine.at(4) == '-') {
+                        // Found some dynamic c includes
+                        if (!passDCInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static c includes
+                        if (!passCInclude()) {
+                            m_inputFile.close();
+                            return false;
                         }
                     }
+                } else if ((m_inLine.substr(0, 11) == "X86ASM-OBJS") || (m_inLine.substr(0, 9) == "YASM-OBJS")) {
+                    // Found some YASM includes
+                    const uint offset = (m_inLine.at(0) == 'X') ? 2 : 0;
+                    if (m_inLine.at(9 + offset) == '-') {
+                        // Found some dynamic ASM includes
+                        if (!passDASMInclude(offset)) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static ASM includes
+                        if (!passASMInclude(offset)) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.substr(0, 8) == "MMX-OBJS") {
+                    // Found some ASM includes
+                    if (m_inLine.at(8) == '-') {
+                        // Found some dynamic MMX includes
+                        if (!passDMMXInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static MMX includes
+                        if (!passMMXInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.substr(0, 7) == "HEADERS") {
+                    // Found some headers
+                    if (m_inLine.at(7) == '-') {
+                        // Found some dynamic headers
+                        if (!passDHInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static headers
+                        if (!passHInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.find("BUILT_HEADERS") == 0) {
+                    // Found some static built headers
+                    if (!passHInclude(13)) {
+                        m_inputFile.close();
+                        return false;
+                    }
+                } else if (m_inLine.substr(0, 6) == "FFLIBS") {
+                    // Found some libs
+                    if (m_inLine.at(6) == '-') {
+                        // Found some dynamic libs
+                        if (!passDLibInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static libs
+                        if (!passLibInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.find("-OBJS-$") != string::npos) {
+                    // Found unknown
+                    if (!passDUnknown()) {
+                        m_inputFile.close();
+                        return false;
+                    }
+                } else if (m_inLine.find("LIBS-$") != string::npos) {
+                    // Found Lib unknown
+                    if (!passDLibUnknown()) {
+                        m_inputFile.close();
+                        return false;
+                    }
+                } else if (m_inLine.substr(0, 5) == "ifdef") {
+                    // Check for configuration value
+                    const uint startPos = m_inLine.find_first_not_of(" \t", 5);
+                    uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
+                    endPos = (endPos == string::npos) ? endPos : endPos - startPos;
+                    string config = m_inLine.substr(startPos, endPos);
+                    // Check if the config option is correct
+                    auto option = m_configHelper.getConfigOptionPrefixed(config);
+                    if (option == m_configHelper.m_configValues.end()) {
+                        outputInfo("Unknown ifdef configuration option (" + config + ")");
+                        return false;
+                    }
+                    if (option->m_value != "1") {
+                        // Skip everything between the ifdefs
+                        while (getline(m_inputFile, m_inLine)) {
+                            if ((m_inLine.substr(0, 5) == "endif") || (m_inLine.substr(0, 4) == "else")) {
+                                break;
+                            }
+                        }
+                    }
+                } else if (m_inLine.substr(0, 7) == "include") {
+                    // Need to append the included file to makefile list
+                    uint startPos = m_inLine.find_first_not_of(" \t", 7);
+                    uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
+                    endPos = (endPos == string::npos) ? endPos : endPos - startPos;
+                    string newMake = m_inLine.substr(startPos, endPos);
+                    // Perform token substitution
+                    startPos = newMake.find('$');
+                    while (startPos != string::npos) {
+                        endPos = newMake.find(')', startPos + 1);
+                        if (endPos == string::npos) {
+                            outputInfo("Invalid token (" + newMake + ")");
+                            return false;
+                        }
+                        ++endPos;
+                        string token = newMake.substr(startPos, endPos - startPos);
+                        if (token == "$(SRC_PATH)") {
+                            newMake.replace(startPos, endPos - startPos, m_configHelper.m_rootDirectory);
+                        } else {
+                            outputInfo("Unknown token (" + token + ")");
+                            return false;
+                        }
+                        startPos = newMake.find('$', startPos);
+                    }
+                    makeFiles.push_back(newMake);
                 }
             }
+            m_inputFile.close();
+        } else {
+            outputError("Could not open open MakeFile (" + makeFile + ")");
+            return false;
         }
-        m_inputFile.close();
-        return true;
     }
-    outputError("Could not open open MakeFile (" + makeFile + ")");
-    return false;
+    return true;
 }
 
 bool ProjectGenerator::passProgramMake()
