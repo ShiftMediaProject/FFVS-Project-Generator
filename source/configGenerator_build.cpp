@@ -285,7 +285,7 @@ bool ConfigGenerator::buildDefaultValues()
                     enable = false;
                 } else if (i == "crystalhd") {
                     enable = false;
-                } else if (i == "cuda") {
+                } else if (i == "cuda" || i == "cuda_llvm") {
                     enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
                     if (!enable) {
                         makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
