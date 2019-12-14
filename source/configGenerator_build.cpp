@@ -287,7 +287,7 @@ bool ConfigGenerator::buildDefaultValues()
                     enable = false;
                 } else if (i == "crystalhd") {
                     enable = false;
-                } else if (i == "cuda" || i == "cuda_llvm") {
+                } else if (i == "cuda") {
                     enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
                     if (!enable) {
                         makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
@@ -346,6 +346,9 @@ bool ConfigGenerator::buildDefaultValues()
                     enable = false;
                 } else if (i == "videotoolbox") {
                     enable = false;
+                } else if (i == "cuda_llvm" || i == "cuda_nvcc") {
+                    // Not currently supported
+                    enable = false;
                 } else {
                     // This is an unknown option
                     outputInfo("Found unknown auto detected option " + i);
@@ -397,7 +400,7 @@ bool ConfigGenerator::buildForcedValues()
     fastToggleConfigValue("libdrm", false);
     fastToggleConfigValue("libv4l2", false);
 
-    // values that are not correctly handled by configure
+    // Values that are not correctly handled by configure
     fastToggleConfigValue("coreimage_filter", false);
     fastToggleConfigValue("coreimagesrc_filter", false);
 
