@@ -977,6 +977,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     if (!isConfigOptionValid("atomics_native")) {
         additionalDependencies["atomics_native"] = true;
     }
+    additionalDependencies["MFX_CODEC_VP9"] = isConfigOptionEnabled("libmfx");
 }
 
 void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisables)
