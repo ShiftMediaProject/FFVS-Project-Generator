@@ -148,6 +148,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("flt_lim", true);
     fastToggleConfigValue("getaddrinfo", true);
     fastToggleConfigValue("getopt", false);
+    fastToggleConfigValue("GetModuleHandle", true);
     fastToggleConfigValue("GetProcessAffinityMask", true);
     fastToggleConfigValue("GetProcessMemoryInfo", true);
     fastToggleConfigValue("GetProcessTimes", true);
@@ -171,6 +172,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("rsync_contimeout", true);
     fastToggleConfigValue("SetConsoleTextAttribute", true);
     fastToggleConfigValue("SetConsoleCtrlHandler", true);
+    fastToggleConfigValue("SetDllDirectory", true);
     fastToggleConfigValue("setmode", true);
     fastToggleConfigValue("Sleep", true);
     fastToggleConfigValue("CONDITION_VARIABLE_Ptr", true);
@@ -551,6 +553,11 @@ void ConfigGenerator::buildReplaceValues(
 #else\n\
 #   define HAVE_WINRT 0\n\
 #endif";
+        replaceValues["HAVE_GETMODULEHANDLE"] = "#if " + winrtDefine + "\n\
+#   define HAVE_GETMODULEHANDLE 1\n\
+#else\n\
+#   define HAVE_GETMODULEHANDLE 0\n\
+#endif";
         replaceValues["HAVE_LOADLIBRARY"] = "#if " + winrtDefine + "\n\
 #   define HAVE_LOADLIBRARY 1\n\
 #else\n\
@@ -570,6 +577,11 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_SETCONSOLECTRLHANDLER 1\n\
 #else\n\
 #   define HAVE_SETCONSOLECTRLHANDLER 0\n\
+#endif";
+        replaceValues["HAVE_SETDLLDIRECTORY"] = "#if " + winrtDefine + "\n\
+#   define HAVE_SETDLLDIRECTORY 1\n\
+#else\n\
+#   define HAVE_SETDLLDIRECTORY 0\n\
 #endif";
         replaceValues["HAVE_VIRTUALALLOC"] = "#if " + winrtDefine + "\n\
 #   define HAVE_VIRTUALALLOC 1\n\
