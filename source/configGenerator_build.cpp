@@ -151,6 +151,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("GetModuleHandle", true);
     fastToggleConfigValue("GetProcessAffinityMask", true);
     fastToggleConfigValue("GetProcessMemoryInfo", true);
+    fastToggleConfigValue("GetStdHandle", true);
     fastToggleConfigValue("GetProcessTimes", true);
     fastToggleConfigValue("GetSystemTimeAsFileTime", true);
     fastToggleConfigValue("io_h", true);
