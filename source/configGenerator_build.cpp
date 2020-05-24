@@ -267,6 +267,8 @@ bool ConfigGenerator::buildDefaultValues()
                 } else if (i == "lzma") {
                     makeFileGeneratorRelative(m_outDirectory + "include/lzma.h", sFileName);
                     enable = findFile(sFileName, sFileName);
+                } else if (i == "mediafoundation") {
+                    enable = true;
                 } else if (i == "schannel") {
                     enable = true;
                 } else if (i == "sdl2") {
@@ -939,6 +941,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["linux_videodev_h"] = false;
     additionalDependencies["linux_videodev2_h"] = false;
     additionalDependencies["LoadLibrary"] = true;
+    additionalDependencies["MFCreateAlignedMemoryBuffer"] = true;
+    additionalDependencies["mftransform_h"] = true;
     additionalDependencies["parisc64"] = false;
     additionalDependencies["DXVA2_ConfigPictureDecode"] = true;
     additionalDependencies["snd_pcm_htimestamp"] = false;

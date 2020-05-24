@@ -189,6 +189,10 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 }
             } else if ((i == "nvdec") || (i == "nvenc")) {
                 // Doesn't need any additional libs
+            } else if (i == "mediafoundation") {
+                addLibs.push_back("mfplat");
+                addLibs.push_back("mfuuid");
+                addLibs.push_back("strmiids");
             } else if (i == "schannel") {
                 addLibs.push_back("Secur32");    // Add the additional required libs
             } else if (i == "sdl") {
@@ -482,6 +486,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libzmq"] = (m_projectName == "libavfilter");
     projectDeps["libzvbi"] = (m_projectName == "libavcodec");
     projectDeps["lzma"] = (m_projectName == "libavcodec");
+    projectDeps["mediafoundation"] = (m_projectName == "libavcodec");
     projectDeps["nvdec"] = (m_projectName == "libavcodec");
     projectDeps["nvenc"] = (m_projectName == "libavcodec");
     projectDeps["openal"] = (m_projectName == "libavdevice");
