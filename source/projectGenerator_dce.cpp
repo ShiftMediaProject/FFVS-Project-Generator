@@ -208,8 +208,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
             }
             // Copy file to local working directory
             if (!copyFile(i.second.file, file)) {
-                outputError(
-                    "Failed to copy dce file (" + i.second.file + ") to temporary directory (" + file + ")");
+                outputError("Failed to copy dce file (" + i.second.file + ") to temporary directory (" + file + ")");
                 return false;
             }
             functionFiles[file].push_back({i.second.define, i.first});
@@ -221,8 +220,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
             string subFolder;
             if (i.first.find('/', tempFolder.length() + 1) != string::npos) {
                 subFolder = m_projectDir +
-                    i.first.substr(
-                        tempFolder.length() + 1, i.first.rfind('/') - tempFolder.length() - 1);
+                    i.first.substr(tempFolder.length() + 1, i.first.rfind('/') - tempFolder.length() - 1);
                 if (find(includeDirs2.begin(), includeDirs2.end(), subFolder) == includeDirs2.end()) {
                     // Need to add subdirectory to include list
                     includeDirs2.push_back(subFolder);
@@ -298,8 +296,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
 #endif
             for (auto& j : newDCEUsage) {
                 // Add the file to the list
-                if (find(i.second.begin(), i.second.end(), j.first) ==
-                    i.second.end()) {
+                if (find(i.second.begin(), i.second.end(), j.first) == i.second.end()) {
                     i.second.push_back({j.second.define, j.first});
                     foundDCEUsage[j.first] = j.second;
                 }
@@ -402,8 +399,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
         string outFile;
         // Loop through all functions
         for (auto& i : foundDCEFunctions) {
-            bool usePreProc =
-                (i.second.define.length() > 1) && (i.second.define != "0");
+            bool usePreProc = (i.second.define.length() > 1) && (i.second.define != "0");
             if (usePreProc) {
                 outFile += "#if !(" + i.second.define + ")\n";
             }
@@ -433,7 +429,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                 string param = function.substr(pos + 1, pos2 - pos);
                 if (param.back() == '*') {
                     needsName = true;
-                } else {
+                } else if (!param.empty()) {
                     // Split parameter string up and ensure there are at least a type and a name
                     istringstream ss(param);
                     vector<string> tokens{istream_iterator<string>{ss}, istream_iterator<string>{}};
@@ -568,6 +564,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
         funcIdents.push_back("swri_");
         funcIdents.push_back("swresample_");
         funcIdents.push_back("swscale_");
+        funcIdents.push_back("rgb2rgb_");
     } else if (m_projectName == "libavcodec") {
         funcIdents.push_back("avcodec_");
     } else if (m_projectName == "libavdevice") {
@@ -588,6 +585,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
         funcIdents.push_back("swresample_");
     } else if (m_projectName == "libswscale") {
         funcIdents.push_back("swscale_");
+        funcIdents.push_back("rgb2rgb_");
     }
     struct InternalDCEParams
     {
