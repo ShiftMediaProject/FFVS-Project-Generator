@@ -1485,7 +1485,7 @@ void ProjectGenerator::outputDefines(const StaticList& defines, string& projectT
             projectTemplate.insert(findPos, defines2);
             findPos += defines2.length();
             // Get next
-            findPos = projectTemplate.find(defines2, findPos + 1);
+            findPos = projectTemplate.find(addDefines, findPos + 1);
         }
     }
 }

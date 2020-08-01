@@ -304,6 +304,7 @@ void ProjectGenerator::buildDependencyValues(
             } else if (i.first == "libfribidi") {
                 includeDirs.push_back("$(OutDir)/include/fribidi");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
+                defines.push_back("FRIBIDI_LIB_STATIC");
             } else if (i.first == "libxml2") {
                 includeDirs.push_back("$(OutDir)/include/libxml2");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
