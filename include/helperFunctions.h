@@ -202,9 +202,9 @@ void outputError(const string& message, bool header = true);
 
 enum Verbosity
 {
-    VERBOSITY_INFO,       // Info+Warning+Error
-    VERBOSITY_WARNING,    // Warning+Error
-    VERBOSITY_ERROR,      // Error
+    VERBOSITY_INFO,    // Info+Warning+Error
+    VERBOSITY_WARNING, // Warning+Error
+    VERBOSITY_ERROR,   // Error
 };
 
 /**
@@ -218,7 +218,7 @@ const string g_whiteSpace = " \t" + g_endLine;
 const string g_operators = "+-*/=<>;()[]{}!^%|&~\'\"#?:";
 const string g_nonName = g_operators + g_whiteSpace;
 const string g_preProcessor = "&|()!=";
-};    // namespace project_generate
+}; // namespace project_generate
 
 using namespace project_generate;
 

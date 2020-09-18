@@ -646,4 +646,4 @@ void setOutputVerbosity(const Verbosity verbose)
 {
     s_outputVerbosity = verbose;
 }
-};    // namespace project_generate
+}; // namespace project_generate

@@ -160,9 +160,9 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
             ident = ident.substr(1);
             compare = "0";
         }
-        startPos = m_inLine.find_first_not_of(".\\/", startPos);    // Skip any ./ or ../
+        startPos = m_inLine.find_first_not_of(".\\/", startPos); // Skip any ./ or ../
         endPos = m_inLine.find_first_of(" \t", startPos);
-        endPos = m_inLine.rfind('.', endPos);    // Include any additional extensions
+        endPos = m_inLine.rfind('.', endPos); // Include any additional extensions
         // Add the found string to internal storage
         const string tag = m_inLine.substr(startPos, endPos - startPos);
         // Check if object already included in internal list
@@ -308,7 +308,7 @@ bool ProjectGenerator::passDUnknown()
     uint startPos = m_inLine.find("$(");
     const uint endPos = m_inLine.find(')', startPos);
     const string prefix = m_inLine.substr(0, startPos) + "yes";
-    startPos += 2;    // Skip the $(
+    startPos += 2; // Skip the $(
     string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
     startPos = m_inLine.find_first_not_of("+= \t", endPos + 1);
@@ -337,7 +337,7 @@ bool ProjectGenerator::passDLibUnknown()
     uint startPos = m_inLine.find("$(");
     const uint endPos = m_inLine.find(')', startPos);
     const string prefix = m_inLine.substr(0, startPos) + "yes";
-    startPos += 2;    // Skip the $(
+    startPos += 2; // Skip the $(
     string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
     startPos = m_inLine.find_first_not_of("+= \t", endPos + 1);

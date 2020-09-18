@@ -701,7 +701,7 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, string& filte
     // Change all occurrences of template_shin with short project name
     const string shortSearchTag = "template_shin";
     findPos = projectTemplate.find(shortSearchTag);
-    string projectNameShort = m_projectName.substr(3);    // The full name minus the lib prefix
+    string projectNameShort = m_projectName.substr(3); // The full name minus the lib prefix
     while (findPos != string::npos) {
         // Replace
         projectTemplate.replace(findPos, shortSearchTag.length(), projectNameShort);
@@ -755,7 +755,7 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, string& filte
     string outDir = m_configHelper.m_outDirectory;
     replace(outDir.begin(), outDir.end(), '/', '\\');
     if (outDir.at(0) == '.') {
-        outDir = "$(ProjectDir)" + outDir;    // Make any relative paths based on project dir
+        outDir = "$(ProjectDir)" + outDir; // Make any relative paths based on project dir
     }
     const string outSearchTag = "template_outdir";
     findPos = projectTemplate.find(outSearchTag);
@@ -978,7 +978,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& 
 
         // After </ItemGroup> add the item groups for each of the include types
         string endTag =
-            "</ItemGroup>";    // Uses independent string to sItemGroupEnd to avoid line ending errors due to \r\n
+            "</ItemGroup>"; // Uses independent string to sItemGroupEnd to avoid line ending errors due to \r\n
         uint findPos = projectTemplate.rfind(endTag);
         findPos += endTag.length();
         uint findPosFilt = filterTemplate.rfind(endTag);
@@ -1055,7 +1055,7 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // get start position in file
     uint findPosFilt = filterTemplate.find("</ItemGroup>");
     findPosFilt = filterTemplate.find_last_not_of(g_whiteSpace, findPosFilt - 1) +
-        1;    // handle potential differences in line endings
+        1; // handle potential differences in line endings
     uint currentKey = 0;
     string addFilters;
     for (const auto& i : foundFilters) {
@@ -1097,7 +1097,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs)
         findPos = exportsFile.find('#');
         while (findPos != string::npos) {
             // find end of line
-            findPos2 = exportsFile.find(10, findPos + 1);    // 10 is line feed
+            findPos2 = exportsFile.find(10, findPos + 1); // 10 is line feed
             exportsFile.erase(findPos, findPos2 - findPos + 1);
             findPos = exportsFile.find('#', findPos + 1);
         }
@@ -1367,8 +1367,8 @@ cd $(ProjectDir)\r\n\
     // Get the correct license file
     string licenseFile;
     if (m_configHelper.isConfigOptionEnabled("nonfree")) {
-        licenseFile = "template_rootdirCOPYING.GPLv3";    // Technically this has no license as it is unredistributable
-                                                          // but we get the closest thing for now
+        licenseFile = "template_rootdirCOPYING.GPLv3"; // Technically this has no license as it is unredistributable
+                                                       // but we get the closest thing for now
     } else if (m_configHelper.isConfigOptionEnabled("gplv3")) {
         licenseFile = "template_rootdirCOPYING.GPLv3";
     } else if (m_configHelper.isConfigOptionEnabled("lgplv3")) {
@@ -1432,8 +1432,8 @@ void ProjectGenerator::outputIncludeDirs(const StaticList& includeDirs, string& 
         uint findPos = projectTemplate.find(addIncludeDir);
         while (findPos != string::npos) {
             // Add to output
-            findPos += addIncludeDir.length();    // Must be added first so that it is before $(IncludePath) as
-                                                  // otherwise there are errors
+            findPos += addIncludeDir.length(); // Must be added first so that it is before $(IncludePath) as
+                                               // otherwise there are errors
             projectTemplate.insert(findPos, addInclude);
             findPos += addInclude.length();
             // Get next
@@ -1456,7 +1456,7 @@ void ProjectGenerator::outputLibDirs(const StaticList& lib32Dirs, const StaticLi
         replace(addLibs[0].begin(), addLibs[0].end(), '/', '\\');
         replace(addLibs[1].begin(), addLibs[1].end(), '/', '\\');
         const string addLibDir = "<AdditionalLibraryDirectories>";
-        uint arch32Or64 = 0;    // start with 32 (assumes projects are ordered 32 then 64 recursive)
+        uint arch32Or64 = 0; // start with 32 (assumes projects are ordered 32 then 64 recursive)
         uint findPos = projectTemplate.find(addLibDir);
         while (findPos != string::npos) {
             // Add to output
@@ -1561,7 +1561,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
 
     // Add additional dependencies based on current config to Libs list
     buildInterDependencies(m_libs);
-    m_projectLibs[m_projectName] = m_libs;    // Backup up current libs for solution
+    m_projectLibs[m_projectName] = m_libs; // Backup up current libs for solution
     StaticList addLibs;
     buildDependencies(m_libs, addLibs);
     StaticList libsWinRT;
@@ -1573,7 +1573,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
 
     if ((m_libs.size() > 0) || (addLibs.size() > 0)) {
         // Create list of additional ffmpeg dependencies
-        string addFFmpegLibs[4];    // debug, release, debugDll, releaseDll
+        string addFFmpegLibs[4]; // debug, release, debugDll, releaseDll
         for (const auto& i : m_projectLibs[m_projectName]) {
             addFFmpegLibs[0] += i;
             addFFmpegLibs[0] += "d.lib;";
@@ -1584,7 +1584,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
             addFFmpegLibs[3] += i.substr(3);
             addFFmpegLibs[3] += ".lib;";
         }
-        string addFFmpegLibsWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
+        string addFFmpegLibsWinRT[4]; // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
         for (const auto& i : m_projectLibs[m_projectName]) {
             addFFmpegLibsWinRT[0] += i;
             addFFmpegLibsWinRT[0] += "d_winrt.lib;";
@@ -1596,7 +1596,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
             addFFmpegLibsWinRT[3] += "_winrt.lib;";
         }
         // Create List of additional dependencies
-        string addDeps[4];    // debug, release, debugDll, releaseDll
+        string addDeps[4]; // debug, release, debugDll, releaseDll
         for (auto i = m_libs.begin() + m_projectLibs[m_projectName].size(); i < m_libs.end(); ++i) {
             addDeps[0] += *i;
             addDeps[0] += "d.lib;";
@@ -1607,7 +1607,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
             addDeps[3] += i->substr(3);
             addDeps[3] += ".lib;";
         }
-        string addDepsWinRT[4];    // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
+        string addDepsWinRT[4]; // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
         for (const auto& i : libsWinRT) {
             addDepsWinRT[0] += i;
             addDepsWinRT[0] += "d_winrt.lib;";
