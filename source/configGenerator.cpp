@@ -243,7 +243,7 @@ bool ConfigGenerator::passConfigureFile()
     }
     // Mark the end of the config list. Any elements added after this are considered temporary and should not be
     // exported
-    m_configValuesEnd = m_configValues.size();    // must be uint in case of realloc
+    m_configValuesEnd = m_configValues.size(); // must be uint in case of realloc
     return true;
 }
 
@@ -477,7 +477,7 @@ bool ConfigGenerator::changeConfig(const string& option)
         string option2 = option.substr(7);
         string optionList = option2;
         if (optionList.back() == 's') {
-            optionList = optionList.substr(0, optionList.length() - 1);    // Remove the trailing s
+            optionList = optionList.substr(0, optionList.length() - 1); // Remove the trailing s
         }
         transform(optionList.begin(), optionList.end(), optionList.begin(), ::toupper);
         optionList += "_LIST";
@@ -623,7 +623,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                 getConfigList("COMPONENT_LIST", list);
                 if (find(list.begin(), list.end(), option2) != list.end()) {
                     // This is a component
-                    string option3 = option2.substr(0, option2.length() - 1);    // Need to remove the s from end
+                    string option3 = option2.substr(0, option2.length() - 1); // Need to remove the s from end
                     // Get the specific list
                     list.resize(0);
                     transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
@@ -646,7 +646,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     getConfigList(option3, list, false);
                     for (const auto& i : list) {
                         // This is a component
-                        option3 = i.substr(0, i.length() - 1);    // Need to remove the s from end
+                        option3 = i.substr(0, i.length() - 1); // Need to remove the s from end
                         // Get the specific list
                         vector<string> list2;
                         transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
@@ -667,8 +667,8 @@ bool ConfigGenerator::changeConfig(const string& option)
             break;
         }
     }
-    if (configPair != m_fixedConfigValues.end()) {    // This will happen when passing early --prefix, --rootdir etc.
-        configPair->m_value.resize(configPair->m_value.length() - 1);    // Remove trailing "
+    if (configPair != m_fixedConfigValues.end()) { // This will happen when passing early --prefix, --rootdir etc.
+        configPair->m_value.resize(configPair->m_value.length() - 1); // Remove trailing "
         if (configPair->m_value.length() > 2) {
             configPair->m_value += ' ';
         }
@@ -950,7 +950,7 @@ bool ConfigGenerator::outputConfig()
         string name = m_configureFile.substr(start, end - start);
         // Get config list input parameter
         start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
-        end = m_configureFile.find_first_of(g_whiteSpace, ++start);    // skip preceding '$'
+        end = m_configureFile.find_first_of(g_whiteSpace, ++start); // skip preceding '$'
         string list = m_configureFile.substr(start, end - start);
         if (!passEnabledComponents(file, structName, name, list)) {
             return false;
@@ -1013,6 +1013,14 @@ void ConfigGenerator::makeFileGeneratorRelative(const string& fileName, string& 
 
 bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnList, bool force, uint currentFilePos)
 {
+    // Check if list is in existing cache
+    auto cachedList = m_cachedConfigLists.find(list);
+    if (currentFilePos == string::npos && cachedList != m_cachedConfigLists.end()) {
+        returnList.insert(returnList.end(), cachedList->second.begin(), cachedList->second.end());
+        return true;
+    }
+    vector<string> foundList;
+
     // Find List name in file (searches backwards so that it finds the closest definition to where we currently are)
     //   This is in case a list is redefined
     uint start = m_configureFile.rfind(list + "=", currentFilePos);
@@ -1062,7 +1070,7 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                 end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
                 string param3 = m_configureFile.substr(start, end - start);
                 // Call function find_things
-                if (!passFindThings(param1, param2, param3, returnList)) {
+                if (!passFindThings(param1, param2, param3, foundList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
@@ -1089,7 +1097,7 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                     param4 = m_configureFile.substr(start, end - start);
                 }
                 // Call function find_things
-                if (!passFindThingsExtern(param1, param2, param3, param4, returnList)) {
+                if (!passFindThingsExtern(param1, param2, param3, param4, foundList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
@@ -1104,14 +1112,14 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                 end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
                 string param2 = m_configureFile.substr(start, end - start);
                 // Call function add_suffix
-                if (!passAddSuffix(param1, param2, returnList)) {
+                if (!passAddSuffix(param1, param2, foundList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
                 end = (m_configureFile.at(end) == ')') ? end + 1 : end;
             } else if (function == "filter_out") {
                 // This should filter out occurrence of first parameter from the list passed in the second
-                uint startSearch = start - list.length() - 5;    // ensure search is before current instance of
+                uint startSearch = start - list.length() - 5; // ensure search is before current instance of
                 // list
                 // Get first parameter
                 start = m_configureFile.find_first_not_of(g_whiteSpace, end + 1);
@@ -1122,7 +1130,7 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                 end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
                 string param2 = m_configureFile.substr(start, end - start);
                 // Call function add_suffix
-                if (!passFilterOut(param1, param2, returnList, startSearch)) {
+                if (!passFilterOut(param1, param2, foundList, startSearch)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
@@ -1133,7 +1141,7 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                 end = m_configureFile.find_first_of(g_whiteSpace + ")", start + 1);
                 string param = m_configureFile.substr(start, end - start);
                 // Call function find_filters_extern
-                if (!passFindFiltersExtern(param, returnList)) {
+                if (!passFindFiltersExtern(param, foundList)) {
                     return false;
                 }
                 // Make sure the closing ) is not included
@@ -1151,12 +1159,12 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
                 // Strip the identifier
                 tag.erase(0, 1);
                 // Recursively pass
-                if (!getConfigList(tag, returnList, force, end)) {
+                if (!getConfigList(tag, foundList, force, end)) {
                     return false;
                 }
             } else {
                 // Directly add the identifier
-                returnList.push_back(tag);
+                foundList.push_back(tag);
             }
         }
         start = m_configureFile.find_first_not_of(g_whiteSpace, end);
@@ -1165,6 +1173,11 @@ bool ConfigGenerator::getConfigList(const string& list, vector<string>& returnLi
             break;
         }
     }
+    // Add the new list to the cache
+    if (currentFilePos == string::npos) {
+        m_cachedConfigLists[list] = foundList;
+    }
+    returnList.insert(returnList.end(), foundList.begin(), foundList.end());
     return true;
 }
 
@@ -1576,7 +1589,7 @@ bool ConfigGenerator::passEnabledComponents(
 bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool enable)
 {
     // Simply find the element in the list and change its setting
-    string optionUpper = option;    // Ensure it is in upper case
+    string optionUpper = option; // Ensure it is in upper case
     transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
     bool bRet = false;
@@ -1592,7 +1605,7 @@ bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool ena
 
 bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable, const bool recursive)
 {
-    string optionUpper = option;    // Ensure it is in upper case
+    string optionUpper = option; // Ensure it is in upper case
     transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
     // Find in internal list
     bool ret = false;
@@ -1762,7 +1775,7 @@ bool ConfigGenerator::getMinWindowsVersion(uint& major, uint& minor) const
 {
     const string search = "cppflags -D_WIN32_WINNT=0x";
     uint pos = m_configureFile.find(search);
-    uint majorT = 10;    // Initially set minimum version to Win 10
+    uint majorT = 10; // Initially set minimum version to Win 10
     uint minorT = 0;
     bool found = false;
     while (pos != string::npos) {
@@ -2085,7 +2098,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 // Only enable if not forced to disable
                 auto temp = getConfigOption(i);
                 if ((temp != m_configValues.end()) && (temp->m_value != "0")) {
-                    toggleConfigValue(i, true);    // Weak check
+                    toggleConfigValue(i, true); // Weak check
                 }
             }
         }

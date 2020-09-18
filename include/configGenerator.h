@@ -55,6 +55,7 @@ private:
     using DefaultValuesList = map<string, string>;
     using DependencyList = map<string, bool>;
     using OptimisedConfigList = map<string, vector<string>>;
+    using CachedLists = map<string, vector<string>>;
 
     ValuesList m_fixedConfigValues;
     ValuesList m_configValues;
@@ -71,6 +72,7 @@ private:
     DefaultValuesList m_replaceList;
     DefaultValuesList m_replaceListASM;
     bool m_useNASM{true};
+    CachedLists m_cachedConfigLists;
 
 public:
     /** Default constructor. */
