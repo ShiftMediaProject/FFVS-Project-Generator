@@ -1924,6 +1924,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 // If not all deps are enabled then disable
                 if (!enabled) {
                     toggleConfigValue(optionLower, false);
+                    outputInfo("Option (" + optionLower + ") was disabled due to an unmet dependency (" + i + ')');
                     break;
                 }
             }
@@ -1968,6 +1969,14 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             if (!anyEnabled) {
                 // If not a single dep is enabled then disable
                 toggleConfigValue(optionLower, false);
+                string deps;
+                for (const auto& j : checkList) {
+                    if (!deps.empty()) {
+                        deps += ',';
+                    }
+                    deps += j;
+                }
+                outputInfo("Option (" + optionLower + ") was disabled due to an unmet any dependency (" + deps + ')');
             }
         }
     }
@@ -2005,12 +2014,11 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                     anyEnabled = (temp->m_value == "1") ^ toggle;
                 }
                 if (anyEnabled) {
+                    // If a single conflict is enabled then disable
+                    toggleConfigValue(optionLower, false);
+                    outputInfo("Option (" + optionLower + ") was disabled due to an conflict dependency (" + i + ')');
                     break;
                 }
-            }
-            if (anyEnabled) {
-                // If a single conflict is enabled then disable
-                toggleConfigValue(optionLower, false);
             }
         }
     }
@@ -2031,6 +2039,9 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                     if (!dep->second) {
                         // If any deps are disabled then disable
                         toggleConfigValue(optionLower, false);
+                        outputInfo(
+                            "Option (" + optionLower + ") was disabled due to an unmet select dependency (" + i + ')');
+                        break;
                     }
                     continue;
                 }
@@ -2049,6 +2060,8 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 if (temp->m_value == "0") {
                     // If any deps are disabled then disable
                     toggleConfigValue(optionLower, false);
+                    outputInfo(
+                        "Option (" + optionLower + ") was disabled due to an unmet select dependency (" + i + ')');
                     break;
                 }
             }
