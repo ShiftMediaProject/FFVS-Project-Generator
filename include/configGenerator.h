@@ -54,8 +54,8 @@ private:
     using ValuesList = vector<ConfigPair>;
     using DefaultValuesList = map<string, string>;
     using DependencyList = map<string, bool>;
-    using OptimisedConfigList = map<string, vector<string>>;
-    using CachedLists = map<string, vector<string>>;
+    using ConfigList = map<string, vector<string>>;
+    using InterDependencies = map<string, vector<pair<vector<string>, vector<string>>>>;
 
     ValuesList m_fixedConfigValues;
     ValuesList m_configValues;
@@ -72,7 +72,7 @@ private:
     DefaultValuesList m_replaceList;
     DefaultValuesList m_replaceListASM;
     bool m_useNASM{true};
-    CachedLists m_cachedConfigLists;
+    ConfigList m_cachedConfigLists;
 
 public:
     /** Default constructor. */
@@ -160,11 +160,18 @@ private:
     void buildAdditionalDependencies(DependencyList& additionalDependencies);
 
     /**
+     * Creates a list of additional dependencies between config options (in addition to _deps lists).
+     * @param [out] interDependencies The additional dependencies. Format is <libName, {required conditions},
+     * {dependencies}>
+     */
+    void buildInterDependencies(InterDependencies& interDependencies) const;
+
+    /**
      * Creates a list of components that can be disabled based on the current configuration as better alternatives are
      * enabled.
      * @param [in,out] optimisedDisables The optimised disables.
      */
-    static void buildOptimisedDisables(OptimisedConfigList& optimisedDisables);
+    static void buildOptimisedDisables(ConfigList& optimisedDisables);
 
     /**
      * Creates a list of config options that must be forced to be enabled if the specified option is enabled.

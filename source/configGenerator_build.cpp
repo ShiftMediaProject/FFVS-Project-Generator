@@ -64,7 +64,7 @@ bool ConfigGenerator::buildDefaultValues()
     for (auto& i : list) {
         toggleConfigValue(i, true);
         // Get the corresponding list and enable all member elements as well
-        i.resize(i.length() - 1);    // Need to remove the s from end
+        i.resize(i.length() - 1); // Need to remove the s from end
         transform(i.begin(), i.end(), i.begin(), toupper);
         // Get the specific list
         list2.resize(0);
@@ -396,7 +396,7 @@ bool ConfigGenerator::buildForcedValues()
     fastToggleConfigValue("inline_asm_direct_symbol_refs", false);
     fastToggleConfigValue("inline_asm_non_intel_mnemonic", false);
 
-    fastToggleConfigValue("xlib", false);    // enabled by default but is linux only so we force disable
+    fastToggleConfigValue("xlib", false); // enabled by default but is linux only so we force disable
     fastToggleConfigValue("qtkit", false);
     fastToggleConfigValue("avfoundation", false);
     fastToggleConfigValue("mmal", false);
@@ -766,7 +766,7 @@ void ConfigGenerator::buildReplaceValues(
                 if (getConfigList(checkFunc, checkList, false)) {
                     string addConfig;
                     bool reservedDeps = false;
-                    checkList.reserve(checkList.size() + 100);    // Prevent errors when adding to list below
+                    checkList.reserve(checkList.size() + 100); // Prevent errors when adding to list below
                     for (auto j = checkList.begin(); j < checkList.end(); ++j) {
                         // Check if this is a not !
                         bool toggle = false;
@@ -912,7 +912,7 @@ void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
     reservedItems.emplace_back("ebp_available");
     reservedItems.emplace_back("ebx_available");
     reservedItems.emplace_back("debug");
-    reservedItems.emplace_back("hardcoded_tables");    // Not supported
+    reservedItems.emplace_back("hardcoded_tables"); // Not supported
     reservedItems.emplace_back("small");
     reservedItems.emplace_back("lto");
     reservedItems.emplace_back("pic");
@@ -988,7 +988,76 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["MFX_CODEC_VP9"] = isConfigOptionEnabled("libmfx");
 }
 
-void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisables)
+void ConfigGenerator::buildInterDependencies(InterDependencies& interDependencies) const
+{
+    // TODO: Dynamically scan the configureFile for prepend {component}_deps and add
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"afftfilt_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"afir_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"amovie_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"aresample_filter"}, {"swresample"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"asyncts_filter"}, {"avresample"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"atempo_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"cover_rect_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"ebur128_filter", "swresample"}, {"swresample"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"elbg_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"fftfilt_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"find_rect_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"firequalizer_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"mcdeint_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"movie_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"pan_filter"}, {"swresample"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"pp_filter"}, {"postproc"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"removelogo_filter"}, {"avformat", "avcodec", "swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"resample_filter"}, {"avresample"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"sab_filter"}, {"swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"scale_filter"}, {"swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"scale2ref_filter"}, {"swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"sofalizer_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"showcqt_filter"}, {"avformat", "avcodec", "swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"showfreqs_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"showspectrum_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"signature_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"smartblur_filter"}, {"swscale"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"spectrumsynth_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"spp_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"subtitles_filter"}, {"avformat", "avcodec"}));
+    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"uspp_filter"}, {"avcodec"}));
+    interDependencies["avfilter"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"zoompan_filter"}, {"swscale"}));
+
+    interDependencies["avdevice"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"lavfi_indev"}, {"avfilter"}));
+
+    interDependencies["avcodec"].emplace_back(
+        make_pair<vector<string>, vector<string>>({"opus_decoder"}, {"swresample"}));
+}
+
+void ConfigGenerator::buildOptimisedDisables(ConfigList& optimisedDisables)
 {
     // This used is to return prioritised version of different config options
     //  For instance If enabling the decoder from an passed in library that is better than the inbuilt one
@@ -1020,24 +1089,24 @@ void ConfigGenerator::buildOptimisedDisables(OptimisedConfigList& optimisedDisab
     optimisedDisables["AAC_ENCODER"].push_back("LIBVO_AACENC_ENCODER");
     optimisedDisables["LIBVORBIS_ENCODER"].push_back("VORBIS_ENCODER");
     optimisedDisables["LIBMP3LAME_ENCODER"].push_back("LIBSHINE_ENCODER");
-    optimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER");    //???
-    optimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");      //???
-    optimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");      //???
+    optimisedDisables["LIBOPENJPEG_ENCODER"].push_back("JPEG2000_ENCODER"); //???
+    optimisedDisables["LIBUTVIDEO_ENCODER"].push_back("UTVIDEO_ENCODER");   //???
+    optimisedDisables["LIBWAVPACK_ENCODER"].push_back("WAVPACK_ENCODER");   //???
 #endif
 
 #ifdef OPTIMISE_DECODERS
-    optimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");          //???
-    optimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER");    //???
+    optimisedDisables["LIBGSM_DECODER"].push_back("GSM_DECODER");       //???
+    optimisedDisables["LIBGSM_MS_DECODER"].push_back("GSM_MS_DECODER"); //???
     optimisedDisables["LIBNUT_MUXER"].push_back("NUT_MUXER");
     optimisedDisables["LIBNUT_DEMUXER"].push_back("NUT_DEMUXER");
-    optimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER");    //???
-    optimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER");    //???
-    optimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");       //???
+    optimisedDisables["LIBOPENCORE_AMRNB_DECODER"].push_back("AMRNB_DECODER"); //???
+    optimisedDisables["LIBOPENCORE_AMRWB_DECODER"].push_back("AMRWB_DECODER"); //???
+    optimisedDisables["LIBOPENJPEG_DECODER"].push_back("JPEG2000_DECODER");    //???
     optimisedDisables["LIBSCHROEDINGER_DECODER"].push_back("DIRAC_DECODER");
-    optimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER");    //???
-    optimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");    // Inbuilt native decoder is apparently faster
+    optimisedDisables["LIBUTVIDEO_DECODER"].push_back("UTVIDEO_DECODER"); //???
+    optimisedDisables["VP8_DECODER"].push_back("LIBVPX_VP8_DECODER");     // Inbuilt native decoder is apparently faster
     optimisedDisables["VP9_DECODER"].push_back("LIBVPX_VP9_DECODER");
-    optimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER");    //??? Not sure which is better
+    optimisedDisables["OPUS_DECODER"].push_back("LIBOPUS_DECODER"); //??? Not sure which is better
 #endif
 }
 
@@ -1061,7 +1130,7 @@ void ConfigGenerator::buildForcedEnables(const string& optionLower, vector<strin
     } else if (optionLower == "dcadec") {
         CHECKFORCEDENABLES("struct_dcadec_exss_info_matrix_encoding");
     } else if (optionLower == "sdl") {
-        fastToggleConfigValue("sdl2", true);    // must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl2", true); // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "sdl2") {
         fastToggleConfigValue("sdl", true);
     } else if (optionLower == "libvorbis") {
@@ -1074,7 +1143,7 @@ void ConfigGenerator::buildForcedEnables(const string& optionLower, vector<strin
     } else if (optionLower == "cuda") {
         CHECKFORCEDENABLES("ffnvcodec");
     } else if (optionLower == "winrt") {
-        fastToggleConfigValue("uwp", true);    // must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("uwp", true); // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "uwp") {
         fastToggleConfigValue("winrt", true);
     }
@@ -1083,7 +1152,7 @@ void ConfigGenerator::buildForcedEnables(const string& optionLower, vector<strin
 void ConfigGenerator::buildForcedDisables(const string& optionLower, vector<string>& forceDisable)
 {
     if (optionLower == "sdl") {
-        fastToggleConfigValue("sdl2", false);    // must use fastToggle to prevent infinite cycle
+        fastToggleConfigValue("sdl2", false); // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "sdl2") {
         fastToggleConfigValue("sdl", false);
     } else if (optionLower == "winrt") {
@@ -1112,12 +1181,12 @@ void ConfigGenerator::buildObjects(const string& tag, vector<string>& objects)
 {
     if (tag == "COMPAT_OBJS") {
         objects.emplace_back(
-            "msvcrt/snprintf");            // msvc only provides _snprintf which does not conform to snprintf standard
-        objects.emplace_back("strtod");    // msvc contains a strtod but it does not handle NaN's correctly
+            "msvcrt/snprintf");         // msvc only provides _snprintf which does not conform to snprintf standard
+        objects.emplace_back("strtod"); // msvc contains a strtod but it does not handle NaN's correctly
         objects.emplace_back("getopt");
     } else if (tag == "EMMS_OBJS__yes_") {
         if (isConfigOptionEnabled("MMX_EXTERNAL")) {
-            objects.emplace_back("x86/emms");    // asm emms is not required in 32b but is for 64bit unless with icl
+            objects.emplace_back("x86/emms"); // asm emms is not required in 32b but is for 64bit unless with icl
         }
     }
 }

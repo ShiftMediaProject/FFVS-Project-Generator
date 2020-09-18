@@ -56,44 +56,14 @@ void ProjectGenerator::buildInterDependencies(StaticList& libs)
         }
     }
 
-    // Hard coded configuration checks for inter dependencies between different source libs.
-    if (m_projectName == "libavfilter") {
-        buildInterDependenciesHelper({"afftfilt_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"afir_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"amovie_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"aresample_filter"}, {"swresample"}, libs);
-        buildInterDependenciesHelper({"asyncts_filter"}, {"avresample"}, libs);
-        buildInterDependenciesHelper({"atempo_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"cover_rect_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"ebur128_filter", "swresample"}, {"swresample"}, libs);
-        buildInterDependenciesHelper({"elbg_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"fftfilt_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"find_rect_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"firequalizer_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"mcdeint_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"movie_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"pan_filter"}, {"swresample"}, libs);
-        buildInterDependenciesHelper({"pp_filter"}, {"postproc"}, libs);
-        buildInterDependenciesHelper({"removelogo_filter"}, {"avformat", "avcodec", "swscale"}, libs);
-        buildInterDependenciesHelper({"resample_filter"}, {"avresample"}, libs);
-        buildInterDependenciesHelper({"sab_filter"}, {"swscale"}, libs);
-        buildInterDependenciesHelper({"scale_filter"}, {"swscale"}, libs);
-        buildInterDependenciesHelper({"scale2ref_filter"}, {"swscale"}, libs);
-        buildInterDependenciesHelper({"sofalizer_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"showcqt_filter"}, {"avformat", "avcodec", "swscale"}, libs);
-        buildInterDependenciesHelper({"showfreqs_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"showspectrum_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"signature_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"smartblur_filter"}, {"swscale"}, libs);
-        buildInterDependenciesHelper({"spectrumsynth_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"spp_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"subtitles_filter"}, {"avformat", "avcodec"}, libs);
-        buildInterDependenciesHelper({"uspp_filter"}, {"avcodec"}, libs);
-        buildInterDependenciesHelper({"zoompan_filter"}, {"swscale"}, libs);
-    } else if (m_projectName == "libavdevice") {
-        buildInterDependenciesHelper({"lavfi_indev"}, {"avfilter"}, libs);
-    } else if (m_projectName == "libavcodec") {
-        buildInterDependenciesHelper({"opus_decoder"}, {"swresample"}, libs);
+    ConfigGenerator::InterDependencies interDependencies;
+    m_configHelper.buildInterDependencies(interDependencies);
+
+    const auto found = interDependencies.find(m_projectName.substr(3));
+    if (found != interDependencies.end()) {
+        for (const auto& i : found->second) {
+            buildInterDependenciesHelper(i.first, i.second, libs);
+        }
     }
 }
 
@@ -101,7 +71,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
 {
     // Add any forced dependencies
     if (m_projectName == "libavformat") {
-        addLibs.push_back("ws2_32");    // Add the additional required libs
+        addLibs.push_back("ws2_32"); // Add the additional required libs
     }
 
     // Determine only those dependencies that are valid for current project
@@ -112,7 +82,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
     vector<string> externLibs;
     m_configHelper.getConfigList("EXTERNAL_AUTODETECT_LIBRARY_LIST", externLibs, false);
     m_configHelper.getConfigList("EXTERNAL_LIBRARY_LIST", externLibs);
-    m_configHelper.getConfigList("HW_CODECS_LIST", externLibs, false);    // used on some older ffmpeg versions
+    m_configHelper.getConfigList("HW_CODECS_LIST", externLibs, false); // used on some older ffmpeg versions
     m_configHelper.getConfigList("HWACCEL_AUTODETECT_LIBRARY_LIST", externLibs, false);
     m_configHelper.getConfigList("HWACCEL_LIBRARY_LIST", externLibs, false);
     m_configHelper.getConfigList("SYSTEM_LIBRARIES", externLibs, false);
@@ -133,7 +103,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
             } else if (i == "avisynth") {
                 // doesn't need any additional libs
             } else if (i == "bcrypt") {
-                addLibs.push_back("Bcrypt");    // Add the additional required libs
+                addLibs.push_back("Bcrypt"); // Add the additional required libs
             } else if (i == "bzlib") {
                 lib = "libbz2";
             } else if (i == "libcdio") {
@@ -141,7 +111,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
             } else if (i == "libfdk_aac") {
                 lib = "libfdk-aac";
             } else if (i == "libnpp") {
-                addLibs.push_back("nppi");    // Add the additional required libs
+                addLibs.push_back("nppi"); // Add the additional required libs
                 // CUDA 7.5 onwards only provides npp for x64
             } else if (i == "libxvid") {
                 lib = "libxvidcore";
@@ -161,14 +131,14 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
             } else if (i == "decklink") {
                 // Doesn't need any additional libs
             } else if (i == "opengl") {
-                addLibs.push_back("Opengl32");    // Add the additional required libs
+                addLibs.push_back("Opengl32"); // Add the additional required libs
             } else if (i == "opencl") {
                 string fileName;
                 if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", fileName)) {
-                    addLibs.push_back("OpenCL");    // Add the additional required libs
+                    addLibs.push_back("OpenCL"); // Add the additional required libs
                 }
             } else if (i == "openal") {
-                addLibs.push_back("OpenAL32");    // Add the additional required libs
+                addLibs.push_back("OpenAL32"); // Add the additional required libs
             } else if (i == "ffnvcodec") {
                 // Doesn't require any additional libs
             } else if (i == "nvenc") {
@@ -177,7 +147,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", fileName)) {
-                    addLibs.push_back("cuda");    // Add the additional required libs
+                    addLibs.push_back("cuda"); // Add the additional required libs
                 }
             } else if (i == "cuda_sdk" || i == "cuda_nvcc") {
                 // Doesn't require any additional libs
@@ -185,7 +155,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_nvcuvid.h", fileName)) {
-                    addLibs.push_back("nvcuvid");    // Add the additional required libs
+                    addLibs.push_back("nvcuvid"); // Add the additional required libs
                 }
             } else if ((i == "nvdec") || (i == "nvenc")) {
                 // Doesn't need any additional libs
@@ -194,13 +164,13 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 addLibs.push_back("mfuuid");
                 addLibs.push_back("strmiids");
             } else if (i == "schannel") {
-                addLibs.push_back("Secur32");    // Add the additional required libs
+                addLibs.push_back("Secur32"); // Add the additional required libs
             } else if (i == "sdl") {
                 if (!m_configHelper.isConfigOptionValid("sdl2")) {
-                    libs.push_back("libsdl");    // Only add if not sdl2
+                    libs.push_back("libsdl"); // Only add if not sdl2
                 }
             } else if (i == "wincrypt") {
-                addLibs.push_back("Advapi32");    // Add the additional required libs
+                addLibs.push_back("Advapi32"); // Add the additional required libs
             } else {
                 // By default just use the lib name and prefix with lib if not already
                 if (i.find("lib") == 0) {
@@ -395,8 +365,8 @@ void ProjectGenerator::buildDependencyValues(
 void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) const
 {
     string notUsed;
-    projectDeps["amf"] = false;         // no dependencies ever needed
-    projectDeps["avisynth"] = false;    // no dependencies ever needed
+    projectDeps["amf"] = false;      // no dependencies ever needed
+    projectDeps["avisynth"] = false; // no dependencies ever needed
     projectDeps["bcrypt"] = (m_projectName == "libavutil");
     projectDeps["bzlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
     projectDeps["crystalhd"] = (m_projectName == "libavcodec");
@@ -410,7 +380,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["cuda_nvcc"] = (m_projectName == "libavfilter");
     projectDeps["cuvid"] =
         (m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv");
-    projectDeps["d3d11va"] = false;    // supplied by windows sdk
+    projectDeps["d3d11va"] = false; // supplied by windows sdk
     projectDeps["dxva2"] = false;
     projectDeps["decklink"] = (m_projectName == "libavdevice");
     projectDeps["libfontconfig"] = (m_projectName == "libavfilter");

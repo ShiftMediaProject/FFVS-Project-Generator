@@ -667,7 +667,8 @@ bool ConfigGenerator::changeConfig(const string& option)
             break;
         }
     }
-    if (configPair != m_fixedConfigValues.end()) { // This will happen when passing early --prefix, --rootdir etc.
+    if (configPair != m_fixedConfigValues.end()) {
+        // This will happen when passing early --prefix, --rootdir etc.
         configPair->m_value.resize(configPair->m_value.length() - 1); // Remove trailing "
         if (configPair->m_value.length() > 2) {
             configPair->m_value += ' ';
