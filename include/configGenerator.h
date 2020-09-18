@@ -161,10 +161,10 @@ private:
 
     /**
      * Creates a list of additional dependencies between config options (in addition to _deps lists).
-     * @param [out] interDependencies The additional dependencies. Format is <libName, {required conditions},
-     * {dependencies}>
+     * @param [out] interDependencies The additional dependencies. Format is <libName, <pair<{required conditions},
+     * {dependencies}>>>
      */
-    void buildInterDependencies(InterDependencies& interDependencies) const;
+    void buildInterDependencies(InterDependencies& interDependencies);
 
     /**
      * Creates a list of components that can be disabled based on the current configuration as better alternatives are

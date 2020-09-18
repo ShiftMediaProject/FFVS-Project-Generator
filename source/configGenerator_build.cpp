@@ -988,73 +988,51 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["MFX_CODEC_VP9"] = isConfigOptionEnabled("libmfx");
 }
 
-void ConfigGenerator::buildInterDependencies(InterDependencies& interDependencies) const
+void ConfigGenerator::buildInterDependencies(InterDependencies& interDependencies)
 {
-    // TODO: Dynamically scan the configureFile for prepend {component}_deps and add
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"afftfilt_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"afir_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"amovie_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"aresample_filter"}, {"swresample"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"asyncts_filter"}, {"avresample"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"atempo_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"cover_rect_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"ebur128_filter", "swresample"}, {"swresample"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"elbg_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"fftfilt_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"find_rect_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"firequalizer_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"mcdeint_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"movie_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"pan_filter"}, {"swresample"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"pp_filter"}, {"postproc"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"removelogo_filter"}, {"avformat", "avcodec", "swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"resample_filter"}, {"avresample"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"sab_filter"}, {"swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"scale_filter"}, {"swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"scale2ref_filter"}, {"swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"sofalizer_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"showcqt_filter"}, {"avformat", "avcodec", "swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"showfreqs_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"showspectrum_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"signature_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"smartblur_filter"}, {"swscale"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"spectrumsynth_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"spp_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"subtitles_filter"}, {"avformat", "avcodec"}));
-    interDependencies["avfilter"].emplace_back(make_pair<vector<string>, vector<string>>({"uspp_filter"}, {"avcodec"}));
-    interDependencies["avfilter"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"zoompan_filter"}, {"swscale"}));
+    // Dynamically scan the configureFile for prepend {component}_deps and add
+    vector<string> libraries;
+    if (!getConfigList("LIBRARY_LIST", libraries)) {
+        return;
+    }
+    for (const auto& i : libraries) {
+        string prependString = "prepend " + i + "_deps";
+        uint prependPos = m_configureFile.find(prependString);
+        while (prependPos != string::npos) {
+            const uint endPos = m_configureFile.rfind("&&", prependPos);
+            const uint startPos = m_configureFile.rfind('\n', endPos) + 1;
+            string enable = m_configureFile.substr(startPos, endPos - startPos);
+            // Get enabled flags
+            vector<string> required;
+            uint enabled = enable.find("enabled ");
+            while (enabled != string::npos) {
+                const uint enableStart = enable.find_first_not_of(' ', enabled + 8);
+                const uint cutPos = enable.find(' ', enableStart + 1);
+                required.emplace_back(enable.substr(enableStart, cutPos - enableStart));
+                // Get next
+                enabled = enable.find("enabled ", enabled + 8);
+            }
 
-    interDependencies["avdevice"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"lavfi_indev"}, {"avfilter"}));
+            // Get dependencies
+            const uint prependStart = m_configureFile.find('"', prependPos + prependString.length()) + 1;
+            const uint prependEnd = m_configureFile.find('"', prependStart);
+            string prepends = m_configureFile.substr(prependStart, prependEnd - prependStart);
+            vector<string> depends;
+            uint cutPos = 0;
+            do {
+                cutPos = prepends.find_first_not_of(' ', cutPos);
+                const uint cutPos2 = prepends.find(' ', cutPos);
+                depends.emplace_back(prepends.substr(cutPos, cutPos2 - cutPos));
+                cutPos = cutPos2;
+            } while (cutPos != string::npos);
 
-    interDependencies["avcodec"].emplace_back(
-        make_pair<vector<string>, vector<string>>({"opus_decoder"}, {"swresample"}));
+            // Add to list
+            interDependencies[i].emplace_back(make_pair(required, depends));
+
+            // Get next
+            prependPos = m_configureFile.find(prependString, prependEnd + 1);
+        }
+    }
 }
 
 void ConfigGenerator::buildOptimisedDisables(ConfigList& optimisedDisables)
