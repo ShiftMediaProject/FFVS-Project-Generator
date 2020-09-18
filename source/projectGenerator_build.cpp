@@ -219,33 +219,19 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
 void ProjectGenerator::buildDependenciesWinRT(StaticList& libs, StaticList& addLibs)
 {
     // Search through dependency list and remove any not supported by WinRT
-    for (auto i = libs.begin(); i < libs.end(); ++i) {
-        if (*i == "libmfx") {
-            libs.erase(i--);
-        }
-    }
+    libs.erase(remove(libs.begin(), libs.end(), "libmfx"), libs.end());
+
     // Remove any additional windows libs
-    for (auto i = addLibs.begin(); i < addLibs.end(); ++i) {
-        if (*i == "cuda") {
-            libs.erase(i--);
-        } else if (*i == "nvcuvid") {
-            libs.erase(i--);
-        } else if (*i == "ws2_32") {
-            libs.erase(i--);
-        } else if (*i == "Bcrypt") {
-            libs.erase(i--);
-        } else if (*i == "Advapi32") {
-            libs.erase(i--);
-        } else if (*i == "strmiids") {
-            libs.erase(i--);
-        } else if (*i == "vfw32") {
-            libs.erase(i--);
-        } else if (*i == "shlwapi") {
-            libs.erase(i--);
-        } else if (*i == "ksuser") {
-            libs.erase(i--);
-        }
-    }
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "cuda"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "nvcuvid"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "ws2_32"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "Bcrypt"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "Advapi32"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "strmiids"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "vfw32"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "shlwapi"), addLibs.end());
+    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "ksuser"), addLibs.end());
+
     // Add additional windows libs
     if (m_configHelper.isConfigOptionEnabled("D3D11VA")) {
         addLibs.push_back("dxgi");
