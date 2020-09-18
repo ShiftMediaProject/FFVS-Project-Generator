@@ -58,7 +58,7 @@ bool ProjectGenerator::passAllMake()
     m_configHelper.getConfigList("LIBRARY_LIST", libraries);
     for (const auto& i : libraries) {
         // Check if library is enabled
-        if (m_configHelper.getConfigOption(i)->m_value.compare("1") == 0) {
+        if (m_configHelper.isConfigOptionEnabled(i)) {
             m_projectDir = m_configHelper.m_rootDirectory + "lib" + i + "/";
             // Locate the project dir for specified library
             string retFileName;
@@ -1270,7 +1270,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs)
         for (const auto& j : exportStrings) {
             // Check if it is a wild card search
             findPos = j.find('*');
-            const string invalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \r\n\t\0";
+            const string invalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \r\n\t";
             if (findPos != string::npos) {
                 // Strip the wild card (Note: assumes wild card is at the end!)
                 string search = ' ' + j.substr(0, findPos);
@@ -1366,14 +1366,14 @@ cd $(ProjectDir)\r\n\
     const string prebuildClose = "</Command>\r\n    </PreBuildEvent>";
     // Get the correct license file
     string licenseFile;
-    if (m_configHelper.getConfigOption("nonfree")->m_value == "1") {
+    if (m_configHelper.isConfigOptionEnabled("nonfree")) {
         licenseFile = "template_rootdirCOPYING.GPLv3";    // Technically this has no license as it is unredistributable
                                                           // but we get the closest thing for now
-    } else if (m_configHelper.getConfigOption("gplv3")->m_value == "1") {
+    } else if (m_configHelper.isConfigOptionEnabled("gplv3")) {
         licenseFile = "template_rootdirCOPYING.GPLv3";
-    } else if (m_configHelper.getConfigOption("lgplv3")->m_value == "1") {
+    } else if (m_configHelper.isConfigOptionEnabled("lgplv3")) {
         licenseFile = "template_rootdirCOPYING.LGPLv3";
-    } else if (m_configHelper.getConfigOption("gpl")->m_value == "1") {
+    } else if (m_configHelper.isConfigOptionEnabled("gpl")) {
         licenseFile = "template_rootdirCOPYING.GPLv2";
     } else {
         licenseFile = "template_rootdirCOPYING.LGPLv2.1";

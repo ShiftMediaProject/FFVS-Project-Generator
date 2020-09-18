@@ -544,6 +544,8 @@ bool ConfigGenerator::changeConfig(const string& option)
                 return false;
             }
             toggleConfigValue(option2, enable);
+            // Enable parent list
+            fastToggleConfigValue(list + 's', true);
         } else {
             // Check for changes to entire list
             if (option2 == "devices") {
@@ -683,8 +685,8 @@ bool ConfigGenerator::passCurrentValues()
     }
 
     // Correct license variables
-    if (getConfigOption("version3")->m_value == "1") {
-        if (getConfigOption("gpl")->m_value == "1") {
+    if (isConfigOptionEnabled("version3")) {
+        if (isConfigOptionEnabled("gpl")) {
             fastToggleConfigValue("gplv3", true);
         } else {
             fastToggleConfigValue("lgplv3", true);
@@ -731,22 +733,22 @@ bool ConfigGenerator::passCurrentValues()
 #endif
 
     // Check the current options are valid for selected license
-    if (getConfigOption("nonfree")->m_value != "1") {
+    if (!isConfigOptionEnabled("nonfree")) {
         vector<string> licenseList;
         // Check for existence of specific license lists
         if (getConfigList("EXTERNAL_LIBRARY_NONFREE_LIST", licenseList, false)) {
             for (auto i = licenseList.begin(); i < licenseList.end(); ++i) {
-                if (getConfigOption(*i)->m_value == "1") {
+                if (isConfigOptionEnabled(*i)) {
                     outputError("Current license does not allow for option (" + getConfigOption(*i)->m_option + ")");
                     return false;
                 }
             }
             // Check for gpl3 lists
-            if (getConfigOption("gplv3")->m_value != "1") {
+            if (!isConfigOptionEnabled("gplv3")) {
                 licenseList.clear();
                 if (getConfigList("EXTERNAL_LIBRARY_GPLV3_LIST", licenseList, false)) {
                     for (auto i = licenseList.begin(); i < licenseList.end(); ++i) {
-                        if (getConfigOption(*i)->m_value == "1") {
+                        if (isConfigOptionEnabled(*i)) {
                             outputError(
                                 "Current license does not allow for option (" + getConfigOption(*i)->m_option + ")");
                             return false;
@@ -755,11 +757,11 @@ bool ConfigGenerator::passCurrentValues()
                 }
             }
             // Check for version3 lists
-            if ((getConfigOption("lgplv3")->m_value != "1") && (getConfigOption("gplv3")->m_value != "1")) {
+            if ((!isConfigOptionEnabled("lgplv3")) && (!isConfigOptionEnabled("gplv3"))) {
                 licenseList.clear();
                 if (getConfigList("EXTERNAL_LIBRARY_VERSION3_LIST", licenseList, false)) {
                     for (auto itI = licenseList.begin(); itI < licenseList.end(); ++itI) {
-                        if (getConfigOption(*itI)->m_value == "1") {
+                        if (isConfigOptionEnabled(*itI)) {
                             outputError(
                                 "Current license does not allow for option (" + getConfigOption(*itI)->m_option + ")");
                             return false;
@@ -768,11 +770,11 @@ bool ConfigGenerator::passCurrentValues()
                 }
             }
             // Check for gpl lists
-            if (getConfigOption("gpl")->m_value != "1") {
+            if (!isConfigOptionEnabled("gpl")) {
                 licenseList.clear();
                 if (getConfigList("EXTERNAL_LIBRARY_GPL_LIST", licenseList, false)) {
                     for (auto itI = licenseList.begin(); itI < licenseList.end(); ++itI) {
-                        if (getConfigOption(*itI)->m_value == "1") {
+                        if (isConfigOptionEnabled(*itI)) {
                             outputError(
                                 "Current license does not allow for option (" + getConfigOption(*itI)->m_option + ")");
                             return false;
@@ -802,13 +804,13 @@ bool ConfigGenerator::outputConfig()
             break;
         }
     }
-    if (getConfigOption("nonfree")->m_value == "1") {
+    if (isConfigOptionEnabled("nonfree")) {
         option->m_value = "\"nonfree and unredistributable\"";
-    } else if (getConfigOption("gplv3")->m_value == "1") {
+    } else if (isConfigOptionEnabled("gplv3")) {
         option->m_value = "\"GPL version 3 or later\"";
-    } else if (getConfigOption("lgplv3")->m_value == "1") {
+    } else if (isConfigOptionEnabled("lgplv3")) {
         option->m_value = "\"LGPL version 3 or later\"";
-    } else if (getConfigOption("gpl")->m_value == "1") {
+    } else if (isConfigOptionEnabled("gpl")) {
         option->m_value = "\"GPL version 2 or later\"";
     } else {
         option->m_value = "\"LGPL version 2.1 or later\"";
@@ -1795,7 +1797,7 @@ bool ConfigGenerator::getMinWindowsVersion(uint& major, uint& minor) const
     return found;
 }
 
-bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator option)
+bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
 {
     // Need to convert the name to lower case
     string optionLower = option->m_option;

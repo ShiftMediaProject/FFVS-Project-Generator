@@ -118,7 +118,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
     m_configHelper.getConfigList("SYSTEM_LIBRARIES", externLibs, false);
     for (const auto& i : externLibs) {
         // Check if enabled
-        if (m_configHelper.getConfigOption(i)->m_value == "1") {
+        if (m_configHelper.isConfigOptionEnabled(i)) {
             // Check if this dependency is valid for this project (if the dependency is not known default to enable)
             if (projectDeps.find(i) == projectDeps.end()) {
                 outputInfo("Unknown dependency found (" + i + ")");
@@ -231,7 +231,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
         m_configHelper.getConfigList("INDEV_LIST", externLibs);
         for (const auto& i : externLibs) {
             // Check if enabled
-            if (m_configHelper.getConfigOption(i)->m_value == "1") {
+            if (m_configHelper.isConfigOptionEnabled(i)) {
                 // Add the additional required libs
                 if (i == "dshow_indev") {
                     addLibs.push_back("strmiids");
@@ -277,7 +277,7 @@ void ProjectGenerator::buildDependenciesWinRT(StaticList& libs, StaticList& addL
         }
     }
     // Add additional windows libs
-    if (m_configHelper.getConfigOption("CONFIG_D3D11VA")->m_value == "1") {
+    if (m_configHelper.isConfigOptionEnabled("D3D11VA")) {
         addLibs.push_back("dxgi");
         addLibs.push_back("d3d11");
     }

@@ -326,7 +326,7 @@ private:
      */
     bool getMinWindowsVersion(uint& major, uint& minor) const;
 
-    bool passDependencyCheck(ValuesList::iterator option);
+    bool passDependencyCheck(const ValuesList::iterator& option);
 };
 
 #endif

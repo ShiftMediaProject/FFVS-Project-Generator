@@ -1116,7 +1116,7 @@ void ConfigGenerator::buildObjects(const string& tag, vector<string>& objects)
         objects.emplace_back("strtod");    // msvc contains a strtod but it does not handle NaN's correctly
         objects.emplace_back("getopt");
     } else if (tag == "EMMS_OBJS__yes_") {
-        if (this->getConfigOption("MMX_EXTERNAL")->m_value == "1") {
+        if (isConfigOptionEnabled("MMX_EXTERNAL")) {
             objects.emplace_back("x86/emms");    // asm emms is not required in 32b but is for 64bit unless with icl
         }
     }
