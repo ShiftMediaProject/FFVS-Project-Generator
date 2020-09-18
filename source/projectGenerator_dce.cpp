@@ -424,6 +424,9 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                 uint posBack = pos2;
                 pos2 = (pos2 != string::npos) ? pos2 : function.rfind(')');
                 pos2 = function.find_last_not_of(g_whiteSpace, pos2 - 1);
+                if (pos2 == pos) {
+                    break;
+                }
                 // Check the type of the last tag in case it is only a type name
                 bool needsName = false;
                 string param = function.substr(pos + 1, pos2 - pos);
@@ -637,7 +640,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
                     // This is a single line of code
                     findPos2 = file.find_first_of(g_endLine + ';', findPos + 1);
                     if (file.at(findPos2) == ';') {
-                        ++findPos2;    // must include the ;
+                        ++findPos2; // must include the ;
                     } else {
                         // Must check if next line was also an if
                         uint findPos5 = findPos;
@@ -666,7 +669,7 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
                             // This is a single line of code
                             findPos2 = file.find_first_of(g_endLine + ';', findPos5 + 1);
                             if (file.at(findPos2) == ';') {
-                                ++findPos2;    // must include the ;
+                                ++findPos2; // must include the ;
                                 break;
                             }
                         }
@@ -1281,10 +1284,10 @@ void ProjectGenerator::outputProjectDCECleanDefine(string& define)
             }
             if ((startTag == 0) || ((define.at(startTag - 1) == '(') && (define.at(rightPos) != ')'))) {
                 // Trim operators after tag instead of before it
-                rightPos = define.find_first_not_of("|&!=", rightPos + 1);    // Must not search for ()'s
+                rightPos = define.find_first_not_of("|&!=", rightPos + 1); // Must not search for ()'s
             } else {
                 // Trim operators before tag
-                startTag = define.find_last_not_of("|&!=", startTag - 1) + 1;    // Must not search for ()'s
+                startTag = define.find_last_not_of("|&!=", startTag - 1) + 1; // Must not search for ()'s
             }
             define.erase(startTag, rightPos - startTag);
             startTag = define.find_first_not_of(g_preProcessor, startTag);
