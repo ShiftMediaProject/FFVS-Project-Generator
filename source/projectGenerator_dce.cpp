@@ -1140,7 +1140,9 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                 findPos3 = file.find_first_not_of(g_whiteSpace, findPos2 + 1);
                 // If this is a definition (i.e. '{') then that means no declaration could be found (headers are
                 // searched before code files)
-                if ((file.at(findPos3) == ';') || (file.at(findPos3) == '{')) {
+                const bool definition = (file.at(findPos3) == '{');
+                bool valid = false;
+                if ((file.at(findPos3) == ';') || definition) {
                     findPos3 = file.find_last_not_of(g_whiteSpace, findPos - 1);
                     if (g_nonName.find(file.at(findPos3)) == string::npos) {
                         // Get the return type
@@ -1149,9 +1151,9 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                         // Return the declaration
                         retDeclaration = file.substr(findPos, findPos2 - findPos + 1);
                         isFunction = true;
-                        return true;
+                        valid = true;
                     }
-                    if (file.at(findPos3) == '*') {
+                    if (!valid && file.at(findPos3) == '*') {
                         // Return potentially contains a pointer
                         --findPos3;
                         findPos3 = file.find_last_not_of(g_whiteSpace, findPos3 - 1);
@@ -1162,8 +1164,15 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                             // Return the declaration
                             retDeclaration = file.substr(findPos, findPos2 - findPos + 1);
                             isFunction = true;
-                            return true;
+                            valid = true;
                         }
+                    }
+                    if (valid) {
+                        if (definition) {
+                            outputWarning(
+                                "Using DCE definition for (" + function + ") this may cause errors during generation");
+                        }
+                        return true;
                     }
                 }
             }
@@ -1177,7 +1186,9 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                     findPos2 = file.find(']', findPos2 + 1);
                 }
                 uint findPos3 = file.find_first_not_of(g_whiteSpace, findPos2 + 1);
-                if (file.at(findPos3) == '=') {
+                const bool definition = (file.at(findPos3) == '=');
+                bool valid = false;
+                if ((file.at(findPos3) == ';') || definition) {
                     findPos3 = file.find_last_not_of(g_whiteSpace, findPos - 1);
                     if (g_nonName.find(file.at(findPos3)) == string::npos) {
                         // Get the array type
@@ -1186,9 +1197,9 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                         // Return the definition
                         retDeclaration = file.substr(findPos, findPos2 - findPos + 1);
                         isFunction = false;
-                        return true;
+                        valid = true;
                     }
-                    if (file.at(findPos3) == '*') {
+                    if (!valid && file.at(findPos3) == '*') {
                         // Type potentially contains a pointer
                         --findPos3;
                         findPos3 = file.find_last_not_of(g_whiteSpace, findPos3 - 1);
@@ -1199,8 +1210,15 @@ bool ProjectGenerator::outputProjectDCEsFindDeclarations(
                             // Return the definition
                             retDeclaration = file.substr(findPos, findPos2 - findPos + 1);
                             isFunction = false;
-                            return true;
+                            valid = true;
                         }
+                    }
+                    if (valid) {
+                        if (definition) {
+                            outputWarning(
+                                "Using DCE definition for (" + function + ") this may cause errors during generation");
+                        }
+                        return true;
                     }
                 }
             }
