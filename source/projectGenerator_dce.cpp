@@ -843,8 +843,10 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
                             }
                         } else if (file.at(findPos4) == '[') {
                             // Check if function is a table declaration
-                            findPos4 = file.find(']', findPos4 + 1);
-                            findPos4 = file.find_first_not_of(g_whiteSpace, findPos4 + 1);
+                            do {
+                                findPos4 = file.find(']', findPos4 + 1);
+                                findPos4 = file.find_first_not_of(g_whiteSpace, findPos4 + 1);
+                            } while (file.at(findPos4) == '[');
                             if (file.at(findPos4) == '=') {
                                 valid = true;
                             }
