@@ -694,6 +694,31 @@ bool ConfigGenerator::passCurrentValues()
         }
     }
 
+    // Check for disabled libraries and disable all components
+    // In order to correctly enable _select dependencies we also do a weak enable of any unset library components
+    vector<string> libList;
+    if (getConfigList("LIBRARY_LIST", libList, false)) {
+        vector<string> list2;
+        for (const auto& i : libList) {
+            const bool enable = !!isConfigOptionEnabled(i);
+            const bool weak = !enable;
+            string optionUpper = i; // Ensure it is in upper case
+            transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
+            list2.resize(0);
+            if (getConfigList(optionUpper + "_COMPONENTS", list2, false)) {
+                for (const auto& j : list2) {
+                    toggleConfigValue(j, enable, weak);
+                }
+            }
+            list2.resize(0);
+            if (getConfigList(optionUpper + "_COMPONENTS_LIST", list2, false)) {
+                for (const auto& j : list2) {
+                    toggleConfigValue(j, enable, weak);
+                }
+            }
+        }
+    }
+
     // Perform full check of all config values
     auto option = m_configValues.begin();
     for (; option < m_configValues.end(); ++option) {
@@ -1587,7 +1612,7 @@ bool ConfigGenerator::passEnabledComponents(
     return true;
 }
 
-bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool enable)
+bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool enable, const bool weak)
 {
     // Simply find the element in the list and change its setting
     string optionUpper = option; // Ensure it is in upper case
@@ -1597,6 +1622,9 @@ bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool ena
     // Some options appear more than once with different prefixes
     for (auto& i : m_configValues) {
         if (i.m_option == optionUpper) {
+            if (weak && !i.m_value.empty()) {
+                continue;
+            }
             i.m_value = (enable) ? "1" : "0";
             bRet = true;
         }
@@ -1604,7 +1632,7 @@ bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool ena
     return bRet;
 }
 
-bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable, const bool recursive)
+bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable, const bool weak, const bool recursive)
 {
     string optionUpper = option; // Ensure it is in upper case
     transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
@@ -1617,7 +1645,7 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
             if (!i.m_lock) {
                 // Lock the item to prevent cyclic conditions
                 i.m_lock = true;
-                if (enable && (i.m_value != "1")) {
+                if (enable) {
                     // Need to convert the name to lower case
                     string optionLower = option;
                     transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
@@ -1625,16 +1653,16 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
                     vector<string> checkList;
                     if (getConfigList(checkFunc, checkList, false)) {
                         for (const auto& j : checkList) {
-                            toggleConfigValue(j, true, true);
+                            toggleConfigValue(j, true, false, true);
                         }
                     }
 
-                    // If enabled then all of these should then be enabled
+                    // If enabled then all of these should then be enabled if not already disabled
                     checkFunc = optionLower + "_suggest";
                     checkList.resize(0);
                     if (getConfigList(checkFunc, checkList, false)) {
                         for (const auto& j : checkList) {
-                            toggleConfigValue(j, true, true);
+                            toggleConfigValue(j, true, true, true);
                         }
                     }
 
@@ -1642,9 +1670,9 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
                     vector<string> forceEnable;
                     buildForcedEnables(optionLower, forceEnable);
                     for (const auto& j : forceEnable) {
-                        toggleConfigValue(j, true, true);
+                        toggleConfigValue(j, true, weak, true);
                     }
-                } else if (!enable && (i.m_value != "0")) {
+                } else if (!enable) {
                     // Need to convert the name to lower case
                     string optionLower = option;
                     transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
@@ -1652,11 +1680,13 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
                     vector<string> forceDisable;
                     buildForcedDisables(optionLower, forceDisable);
                     for (const auto& j : forceDisable) {
-                        toggleConfigValue(j, false, true);
+                        toggleConfigValue(j, false, false, true);
                     }
                 }
-                // Change the items value
-                i.m_value = (enable) ? "1" : "0";
+                if (!(weak && !i.m_value.empty())) {
+                    // Change the items value
+                    i.m_value = (enable) ? "1" : "0";
+                }
                 // Unlock item
                 i.m_lock = false;
             }
@@ -1821,12 +1851,17 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
     DependencyList additionalDependencies;
     buildAdditionalDependencies(additionalDependencies);
 
-    // Check if disabled
+    // Check if not enabled
     if (option->m_value != "1") {
         // Enabled if any of these
         string checkFunc = optionLower + "_if_any";
         vector<string> checkList;
-        if (getConfigList(checkFunc, checkList, false)) {
+        bool valid = getConfigList(checkFunc, checkList, false);
+        // Also check if this has its own component list
+        string optionUpper = option->m_option;
+        transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
+        valid |= getConfigList(optionUpper + "_COMPONENTS", checkList, false);
+        if (valid) {
             for (auto& i : checkList) {
                 // Check if this is a not !
                 bool bToggle = false;
@@ -1855,13 +1890,13 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 }
                 if (enabled) {
                     // If any deps are enabled then enable
-                    toggleConfigValue(optionLower, true);
+                    fastToggleConfigValue(optionLower, true, true);
                     break;
                 }
             }
         }
     }
-    // Check if still disabled
+    // Check if still not enabled
     if (option->m_value != "1") {
         // Should be enabled if all of these
         string checkFunc = optionLower + "_if";
@@ -1899,12 +1934,12 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             }
             if (allEnabled) {
                 // If all deps are enabled then enable
-                toggleConfigValue(optionLower, true);
+                fastToggleConfigValue(optionLower, true, true);
             }
         }
     }
-    // Perform dependency check if enabled
-    if (option->m_value == "1") {
+    // Perform dependency check if not disabled
+    if (option->m_value != "0") {
         // The following are the needed dependencies that must be enabled
         string checkFunc = optionLower + "_deps";
         vector<string> checkList;
@@ -1944,8 +1979,8 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             }
         }
     }
-    // Perform dependency check if still enabled
-    if (option->m_value == "1") {
+    // Perform dependency check if not disabled
+    if (option->m_value != "0") {
         // Any 1 of the following dependencies are needed
         string checkFunc = optionLower + "_deps_any";
         vector<string> checkList;
@@ -1994,8 +2029,8 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             }
         }
     }
-    // Perform dependency check if still enabled
-    if (option->m_value == "1") {
+    // Perform dependency check if not disabled
+    if (option->m_value != "0") {
         // If conflict items are enabled then this one must be disabled
         string checkFunc = optionLower + "_conflict";
         vector<string> checkList;
@@ -2036,8 +2071,8 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             }
         }
     }
-    // Perform dependency check if still enabled
-    if (option->m_value == "1") {
+    // Perform dependency check if not disabled
+    if (option->m_value != "0") {
         // All select items are enabled when this item is enabled. If one of them has since been disabled then so must
         // this one
         string checkFunc = optionLower + "_select";
@@ -2061,12 +2096,6 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 }
                 // Check if this variable has been initialized already
                 if (temp > option) {
-                    // Enable it if it is not currently initialised
-                    if (temp->m_value.length() == 0) {
-                        string optionLower2 = temp->m_option;
-                        transform(optionLower2.begin(), optionLower2.end(), optionLower2.begin(), ::tolower);
-                        toggleConfigValue(optionLower2, true);
-                    }
                     if (!passDependencyCheck(temp)) {
                         return false;
                     }
@@ -2083,26 +2112,9 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
     }
     // Enable any required deps if still enabled
     if (option->m_value == "1") {
-        string checkFunc = optionLower + "_select";
-        vector<string> checkList;
-        if (getConfigList(checkFunc, checkList, false)) {
-            for (auto& i : checkList) {
-                toggleConfigValue(i, true);
-            }
-        }
-
-        // If enabled then all of these should then be enabled (if not already forced disabled)
-        checkFunc = optionLower + "_suggest";
-        checkList.resize(0);
-        if (getConfigList(checkFunc, checkList, false)) {
-            for (auto& i : checkList) {
-                // Only enable if not forced to disable
-                auto temp = getConfigOption(i);
-                if ((temp != m_configValues.end()) && (temp->m_value != "0")) {
-                    toggleConfigValue(i, true); // Weak check
-                }
-            }
-        }
+        // Perform a deep enable
+        fastToggleConfigValue(optionLower, false);
+        toggleConfigValue(optionLower, true);
     } else {
         // Ensure the option is not in an uninitialised state
         toggleConfigValue(optionLower, false);

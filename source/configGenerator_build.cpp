@@ -36,71 +36,114 @@ bool ConfigGenerator::buildDefaultValues()
         m_outDirectory = "../../../msvc/";
     }
 
-    // configurable options
+    // Bulk disable most common options. The ones that are actually available will be set later
     vector<string> list;
-    if (!getConfigList("PROGRAM_LIST", list)) {
-        return false;
+    vector<string> archLists = {"ARCH_LIST", "HAVE_LIST", "DOCUMENT_LIST", "FEATURE_LIST", "EXAMPLE_LIST"};
+    for (const auto& i : archLists) {
+        list.resize(0);
+        if (getConfigList(i, list, false)) {
+            for (const auto& j : list) {
+                fastToggleConfigValue(j, false);
+                // Also disable _EXTERNAL and _INLINE
+                fastToggleConfigValue(i + "_EXTERNAL", false);
+                fastToggleConfigValue(i + "_INLINE", false);
+            }
+        }
     }
+
     // Enable all programs
-    for (const auto& i : list) {
-        toggleConfigValue(i, true);
+    list.resize(0);
+    if (getConfigList("PROGRAM_LIST", list, false)) {
+        // Enable all programs
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, true);
+        }
     }
     // Enable all libraries
     list.resize(0);
-    if (!getConfigList("LIBRARY_LIST", list)) {
-        return false;
-    }
-    for (const auto& i : list) {
-        if (!m_isLibav && i != "avresample") {
-            toggleConfigValue(i, true);
+    if (getConfigList("LIBRARY_LIST", list, false)) {
+        for (const auto& i : list) {
+            if (!m_isLibav && i != "avresample") {
+                fastToggleConfigValue(i, true);
+            }
         }
     }
     // Enable all components
     list.resize(0);
     vector<string> list2;
-    if (!getConfigList("COMPONENT_LIST", list)) {
-        return false;
-    }
-    for (auto& i : list) {
-        toggleConfigValue(i, true);
-        // Get the corresponding list and enable all member elements as well
-        i.resize(i.length() - 1); // Need to remove the s from end
-        transform(i.begin(), i.end(), i.begin(), toupper);
-        // Get the specific list
-        list2.resize(0);
-        getConfigList(i + "_LIST", list2);
-        for (const auto& j : list2) {
-            toggleConfigValue(j, true);
+    if (getConfigList("COMPONENT_LIST", list, false)) {
+        for (auto& i : list) {
+            fastToggleConfigValue(i, true);
+            // Get the corresponding list and enable all member elements as well
+            i.resize(i.length() - 1); // Need to remove the s from end
+            transform(i.begin(), i.end(), i.begin(), toupper);
+            // Get the specific list
+            list2.resize(0);
+            if (getConfigList(i + "_LIST", list2)) {
+                for (const auto& j : list2) {
+                    fastToggleConfigValue(j, true);
+                }
+            }
         }
     }
 
+    fastToggleConfigValue("debug", true);
+    fastToggleConfigValue("optimizations", true);
     fastToggleConfigValue("runtime_cpudetect", true);
     fastToggleConfigValue("safe_bitstream_reader", true);
     fastToggleConfigValue("static", true);
     fastToggleConfigValue("shared", true);
     fastToggleConfigValue("swscale_alpha", true);
 
+    // Enable all extra libs
+    list.resize(0);
+    if (getConfigList("EXTRALIBS_LIST", list, false)) {
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, true);
+        }
+    }
+
+    // Disable all external libs until explicitly enabled
+    list.resize(0);
+    if (getConfigList("EXTERNAL_LIBRARY_LIST", list, false)) {
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, false);
+        }
+    }
+
+    // Disable all hwaccels until explicitly enabled
+    list.resize(0);
+    if (getConfigList("HWACCEL_LIBRARY_LIST", list, false)) {
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, false);
+        }
+    }
+
     // Enable x86 hardware architectures
     fastToggleConfigValue("x86", true);
     fastToggleConfigValue("i686", true);
+    fastToggleConfigValue("fast_64bit", true);
     fastToggleConfigValue("fast_cmov", true);
+    fastToggleConfigValue("simd_align_16", true);
+    fastToggleConfigValue("simd_align_32", true);
+    fastToggleConfigValue("simd_align_64", true);
     fastToggleConfigValue("x86_32", true);
     fastToggleConfigValue("x86_64", true);
     // Enable x86 extensions
     list.resize(0);
-    if (!getConfigList("ARCH_EXT_LIST_X86", list)) {
-        return false;
-    }
-    for (const auto& i : list) {
-        fastToggleConfigValue(i, true);
-        // Also enable _EXTERNAL and _INLINE
-        fastToggleConfigValue(i + "_EXTERNAL", true);
-        fastToggleConfigValue(i + "_INLINE", true);
+    if (getConfigList("ARCH_EXT_LIST_X86", list, false)) {
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, true);
+            // Also enable _EXTERNAL and _INLINE
+            fastToggleConfigValue(i + "_EXTERNAL", true);
+            fastToggleConfigValue(i + "_INLINE", true);
+        }
     }
 
     // Default we enable asm
     fastToggleConfigValue("yasm", true);
     fastToggleConfigValue("x86asm", true);
+    fastToggleConfigValue("asm", true);
     if (m_useNASM) {
         // NASM doesn't support cpunop
         fastToggleConfigValue("cpunop", false);
@@ -109,21 +152,22 @@ bool ConfigGenerator::buildDefaultValues()
         // Yasm doesn't support avx512
         fastToggleConfigValue("avx512", false);
         fastToggleConfigValue("avx512_external", false);
+        fastToggleConfigValue("simd_align_64", false);
         // Yasm does have cpunop
         fastToggleConfigValue("cpunop", true);
     }
 
     // msvc specific options
     fastToggleConfigValue("w32threads", true);
+    fastToggleConfigValue("threads", true);
     fastToggleConfigValue("atomics_win32", true);
 
     // math functions
     list.resize(0);
-    if (!getConfigList("MATH_FUNCS", list)) {
-        return false;
-    }
-    for (const auto& i : list) {
-        fastToggleConfigValue(i, true);
+    if (getConfigList("MATH_FUNCS", list, false)) {
+        for (const auto& i : list) {
+            fastToggleConfigValue(i, true);
+        }
     }
 
     fastToggleConfigValue("access", true);
@@ -214,22 +258,6 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("rdft", true);
     fastToggleConfigValue("fft", true);
     fastToggleConfigValue("pixelutils", true);
-
-    // Disable all external libs until explicitly enabled
-    list.resize(0);
-    if (getConfigList("EXTERNAL_LIBRARY_LIST", list)) {
-        for (const auto& i : list) {
-            toggleConfigValue(i, false);
-        }
-    }
-
-    // Disable all hwaccels until explicitly enabled
-    list.resize(0);
-    if (getConfigList("HWACCEL_LIBRARY_LIST", list)) {
-        for (const auto& i : list) {
-            toggleConfigValue(i, false);
-        }
-    }
 
     // Check if auto detection is enabled
     const auto autoDet = getConfigOption("autodetect");
@@ -325,6 +353,10 @@ bool ConfigGenerator::buildDefaultValues()
                 } else if (i == "opencl") {
                     makeFileGeneratorRelative(m_outDirectory + "include/cl/cl.h", sFileName);
                     enable = findFile(sFileName, sFileName);
+                    if (enable) {
+                        fastToggleConfigValue("opencl_d3d11", true);
+                        fastToggleConfigValue("opencl_dxva2", true);
+                    }
                 } else if (i == "vaapi") {
                     enable = false;
                 } else if (i == "vda") {
@@ -358,7 +390,7 @@ bool ConfigGenerator::buildDefaultValues()
                     // Just disable
                     enable = false;
                 }
-                toggleConfigValue(i, enable);
+                fastToggleConfigValue(i, enable);
             }
             fastToggleConfigValue("autodetect", true);
         } else {

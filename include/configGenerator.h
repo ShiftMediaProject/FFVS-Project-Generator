@@ -263,18 +263,20 @@ private:
      * Update configuration option without performing any dependency option checks.
      * @param option The option to update.
      * @param enable True to enable, false to disable.
-     * @return True if it succeeds, false if it fails.
+     * @param weak   (Optional) True to only change a value if it is not already set.
+     * @returns True if it succeeds, false if it fails.
      */
-    bool fastToggleConfigValue(const string& option, bool enable);
+    bool fastToggleConfigValue(const string& option, bool enable, bool weak = false);
 
     /**
      * Update configuration option and perform any dependency option updates as well.
      * @param option    The option to update.
      * @param enable    True to enable, false to disable.
+     * @param weak      (Optional) True to only change a value if it is not already set.
      * @param recursive (Optional) True if the function has been called from within itself.
      * @returns True if it succeeds, false if it fails.
      */
-    bool toggleConfigValue(const string& option, bool enable, bool recursive = false);
+    bool toggleConfigValue(const string& option, bool enable, bool weak = false, bool recursive = false);
 
     /**
      * Gets configuration option.
