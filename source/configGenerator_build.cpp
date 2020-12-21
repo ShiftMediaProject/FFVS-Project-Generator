@@ -960,6 +960,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["const_nan"] = true;
     additionalDependencies["CreateDIBSection"] = true;
     additionalDependencies["dv1394"] = false;
+    additionalDependencies["DXVA_PicParams_AV1"] = false;
     additionalDependencies["DXVA_PicParams_HEVC"] = true;
     additionalDependencies["DXVA_PicParams_VP9"] = true;
     additionalDependencies["dxva2api_h"] = true;
@@ -983,11 +984,13 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["vdpau_vdpau_x11_h"] = false;
     additionalDependencies["vfw32"] = true;
     additionalDependencies["vfwcap_defines"] = true;
+    additionalDependencies["VADecPictureParameterBufferAV1_bit_depth_idx"] = false;
     additionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
     additionalDependencies["X11_extensions_Xvlib_h"] = false;
     additionalDependencies["X11_extensions_XvMClib_h"] = false;
     additionalDependencies["x264_csp_bgr"] = isConfigOptionEnabled("libx264");
     bool bCuvid = isConfigOptionEnabled("cuvid");
+    additionalDependencies["CUVIDAV1PICPARAMS"] = bCuvid;
     additionalDependencies["CUVIDH264PICPARAMS"] = bCuvid;
     additionalDependencies["CUVIDHEVCPICPARAMS"] = bCuvid;
     additionalDependencies["CUVIDVC1PICPARAMS"] = bCuvid;
