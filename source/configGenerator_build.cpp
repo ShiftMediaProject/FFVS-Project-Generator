@@ -451,6 +451,7 @@ void ConfigGenerator::buildFixedValues(DefaultValuesList& fixedValues)
     fixedValues["$(eval c_escape $datadir)"] = ".";
     fixedValues["$(c_escape ${cc_ident:-Unknown compiler})"] = "msvc";
     fixedValues["$_restrict"] = "__restrict";
+    fixedValues["$target_os"] = "Windows";
     fixedValues["$restrict_keyword"] = "__restrict";
     fixedValues["${extern_prefix}"] = "";
     fixedValues["$build_suffix"] = "";
