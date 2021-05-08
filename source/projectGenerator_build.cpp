@@ -106,6 +106,10 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 addLibs.push_back("Bcrypt"); // Add the additional required libs
             } else if (i == "bzlib") {
                 lib = "libbz2";
+            } else if (i == "d3d11va") {
+                // doesn't need any additional libs
+            } else if (i == "dxva2") {
+                // doesn't need any additional libs
             } else if (i == "libcdio") {
                 lib = "libcdio_paranoia";
             } else if (i == "libfdk_aac") {
@@ -353,8 +357,8 @@ void ProjectGenerator::buildDependencyValues(
 void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) const
 {
     string notUsed;
-    projectDeps["amf"] = false;      // no dependencies ever needed
-    projectDeps["avisynth"] = false; // no dependencies ever needed
+    projectDeps["amf"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
+    projectDeps["avisynth"] = (m_projectName == "libavformat");
     projectDeps["bcrypt"] = (m_projectName == "libavutil");
     projectDeps["bzlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
     projectDeps["crystalhd"] = (m_projectName == "libavcodec");
@@ -368,11 +372,11 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["cuda_nvcc"] = (m_projectName == "libavfilter");
     projectDeps["cuvid"] =
         (m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv");
-    projectDeps["d3d11va"] = false; // supplied by windows sdk
-    projectDeps["dxva2"] = false;
+    projectDeps["d3d11va"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
+    projectDeps["dxva2"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["decklink"] = (m_projectName == "libavdevice");
     projectDeps["libfontconfig"] = (m_projectName == "libavfilter");
-    projectDeps["ffnvcodec"] = false;
+    projectDeps["ffnvcodec"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["frei0r"] = (m_projectName == "libavfilter");
     projectDeps["gcrypt"] = (m_projectName == "libavformat");
     projectDeps["gmp"] = (m_projectName == "libavformat");
@@ -380,17 +384,23 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["iconv"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
     projectDeps["ladspa"] = (m_projectName == "libavfilter");
     projectDeps["libaacplus"] = (m_projectName == "libavcodec");
+    projectDeps["libaom"] = (m_projectName == "libavcodec");
+    projectDeps["libaribb24"] = (m_projectName == "libavcodec");
     projectDeps["libass"] = (m_projectName == "libavfilter");
     projectDeps["libbluray"] = (m_projectName == "libavformat");
     projectDeps["libbs2b"] = (m_projectName == "libavfilter");
     projectDeps["libcaca"] = (m_projectName == "libavdevice");
     projectDeps["libcdio"] = (m_projectName == "libavdevice");
     projectDeps["libcelt"] = (m_projectName == "libavcodec");
+    projectDeps["libcodec2"] = (m_projectName == "libavcodec");
+    projectDeps["libdav1d"] = (m_projectName == "libavcodec");
+    projectDeps["libdavs2"] = (m_projectName == "libavcodec");
     projectDeps["libdc1394"] = (m_projectName == "libavdevice");
     projectDeps["libdcadec"] = (m_projectName == "libavcodec");
     projectDeps["libfaac"] = (m_projectName == "libavcodec");
     projectDeps["libfdk_aac"] = (m_projectName == "libavcodec");
     projectDeps["libflite"] = (m_projectName == "libavfilter");
+    projectDeps["libfontconfig"] = (m_projectName == "libavfilter");
     projectDeps["libfreetype"] = (m_projectName == "libavfilter");
     projectDeps["libfribidi"] = (m_projectName == "libavfilter");
     projectDeps["libgme"] = (m_projectName == "libavformat");
@@ -411,25 +421,37 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libopencv"] = (m_projectName == "libavfilter");
     projectDeps["libopenjpeg"] = (m_projectName == "libavcodec");
     projectDeps["libopenh264"] = (m_projectName == "libavcodec");
+    projectDeps["libopenmpt"] = (m_projectName == "libavformat");
+    projectDeps["libopenvino"] = (m_projectName == "libavfilter");
     projectDeps["libopus"] = (m_projectName == "libavcodec");
     projectDeps["libpulse"] = (m_projectName == "libavdevice");
-    projectDeps["librubberband"] = (m_projectName == "libavfilter");
     projectDeps["libquvi"] = (m_projectName == "libavformat");
+    projectDeps["librabbitmq"] = (m_projectName == "libavformat");
+    projectDeps["librav1e"] = (m_projectName == "libavcodec");
+    projectDeps["librist"] = (m_projectName == "libavformat");
+    projectDeps["librsvg"] = (m_projectName == "libavcodec");
     projectDeps["librtmp"] = (m_projectName == "libavformat");
+    projectDeps["librubberband"] = (m_projectName == "libavfilter");
     projectDeps["libschroedinger"] = (m_projectName == "libavcodec");
     projectDeps["libshine"] = (m_projectName == "libavcodec");
     projectDeps["libsmbclient"] = (m_projectName == "libavformat");
     projectDeps["libsnappy"] = (m_projectName == "libavcodec");
     projectDeps["libsoxr"] = (m_projectName == "libswresample");
     projectDeps["libspeex"] = (m_projectName == "libavcodec");
+    projectDeps["libsrt"] = (m_projectName == "libavformat");
     projectDeps["libssh"] = (m_projectName == "libavformat");
     projectDeps["libstagefright_h264"] = (m_projectName == "libavcodec");
+    projectDeps["libsvtav1"] = (m_projectName == "libavcodec");
+    projectDeps["libtensorflow"] = (m_projectName == "libavfilter");
     projectDeps["libtesseract"] = (m_projectName == "libavfilter");
     projectDeps["libtheora"] = (m_projectName == "libavcodec");
+    projectDeps["libtls"] = (m_projectName == "libavformat");
     projectDeps["libtwolame"] = (m_projectName == "libavcodec");
+    projectDeps["libuavs3d"] = (m_projectName == "libavcodec");
     projectDeps["libutvideo"] = (m_projectName == "libavcodec");
     projectDeps["libv4l2"] = (m_projectName == "libavdevice");
     projectDeps["libvidstab"] = (m_projectName == "libavfilter");
+    projectDeps["libvmaf"] = (m_projectName == "libavfilter");
     projectDeps["libvo_aacenc"] = (m_projectName == "libavcodec");
     projectDeps["libvo_amrwbenc"] = (m_projectName == "libavcodec");
     projectDeps["libvorbis"] = (m_projectName == "libavcodec");
@@ -439,10 +461,11 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libx264"] = (m_projectName == "libavcodec");
     projectDeps["libx265"] = (m_projectName == "libavcodec");
     projectDeps["libxavs"] = (m_projectName == "libavcodec");
+    projectDeps["libxavs2"] = (m_projectName == "libavcodec");
     projectDeps["libxml2"] = (m_projectName == "libavformat");
     projectDeps["libxvid"] = (m_projectName == "libavcodec");
     projectDeps["libzimg"] = (m_projectName == "libavfilter");
-    projectDeps["libzmq"] = (m_projectName == "libavfilter");
+    projectDeps["libzmq"] = (m_projectName == "libavfilter") || (m_projectName == "libavformat");
     projectDeps["libzvbi"] = (m_projectName == "libavcodec");
     projectDeps["lzma"] = (m_projectName == "libavcodec");
     projectDeps["mediafoundation"] = (m_projectName == "libavcodec");
@@ -458,7 +481,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["sdl"] = (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     projectDeps["sdl2"] =
         (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
-    // projectDeps["x11grab"] = ( m_projectName.compare("libavdevice") == 0 );//Always disabled on Win32
+    projectDeps["vapoursynth"] = m_projectName.compare("libavformat");
     projectDeps["zlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
 }
 
