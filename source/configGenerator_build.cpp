@@ -439,6 +439,12 @@ bool ConfigGenerator::buildForcedValues()
     fastToggleConfigValue("coreimage_filter", false);
     fastToggleConfigValue("coreimagesrc_filter", false);
 
+    // Disabled filters that are were temporarily made available
+    if (m_configureFile.find("disable mcdeint_filter") != string::npos) {
+        fastToggleConfigValue("mcdeint_filter", false);
+        fastToggleConfigValue("uspp_filter", false);
+    }
+
     return true;
 }
 

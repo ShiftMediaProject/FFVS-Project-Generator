@@ -78,6 +78,8 @@ bool ConfigGenerator::passConfig(const int argc, char** argv)
     if (!passCurrentValues()) {
         return false;
     }
+    // Super ensure forced values
+    buildForcedValues();
     return true;
 }
 
@@ -1341,6 +1343,9 @@ bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& p
         // Skip any occurrence of 'const'
         if ((findFile.at(start) == 'c') && (findFile.find("const ", start) == start)) {
             start += 6;
+        } else if ((findFile.at(start) == 'L') && (findFile.find("LIBX264_CONST ", start) == start)) {
+            // Hacky fix for detecting a macro define of const
+            start += 14;
         }
         // Check for search tag
         start = findFile.find_first_not_of(g_whiteSpace, start);
@@ -1387,6 +1392,7 @@ bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& p
 bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>& returnList) const
 {
     // s/^extern AVFilter ff_([avfsinkrc]{2,5})_([a-zA-Z0-9_]+);/\2_filter/p
+    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p from 4.4 onwards
     // Need to find and open the specified file
     const string file = m_rootDirectory + param1;
     string findFile;
@@ -1395,8 +1401,12 @@ bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>
     }
 
     // Find the search pattern in the file
-    const string search = "extern AVFilter ff_";
+    string search = "extern AVFilter ff_";
     uint start = findFile.find(search);
+    if (start == string::npos) {
+        search = "extern const AVFilter ff_";
+        start = findFile.find(search);
+    }
     while (start != string::npos) {
         // Find the start and end of the tag
         start += search.length();
@@ -1473,6 +1483,7 @@ bool ConfigGenerator::passFilterOut(
 bool ConfigGenerator::passFullFilterName(const string& param1, string& returnString) const
 {
     // sed -n "s/^extern AVFilter ff_\([avfsinkrc]\{2,5\}\)_$1;/\1_$1/p"
+    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p from 4.4 onwards
     // Need to find and open the specified file
     const string file = m_rootDirectory + "libavfilter/allfilters.c";
     string findFile;
@@ -1481,8 +1492,12 @@ bool ConfigGenerator::passFullFilterName(const string& param1, string& returnStr
     }
 
     // Find the search pattern in the file
-    const string search = "extern AVFilter ff_";
+    string search = "extern AVFilter ff_";
     uint start = findFile.find(search);
+    if (start == string::npos) {
+        search = "extern const AVFilter ff_";
+        start = findFile.find(search);
+    }
     while (start != string::npos) {
         // Find the start and end of the tag
         start += search.length();
