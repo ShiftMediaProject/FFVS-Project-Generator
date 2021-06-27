@@ -31,6 +31,6 @@ deploy:
   tag: $(APPVEYOR_REPO_TAG_NAME)
   description: Pre-built 32b and 64b executables for $(APPVEYOR_PROJECT_NAME) $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
-    secure: aiTcAD/YitqgwuiBdC3ImXiUlHfIIDD7ayjCs3Y3aAO5vEm1gA7flCZpUZ60a5am
+    secure: c9Sads7Y16h7FP+LrR3IjVygYAgh8GByE8TtazxDg7jpPVxc+XDV81z7MoUc2Ada
   artifact: $(APPVEYOR_PROJECT_NAME)_$(APPVEYOR_REPO_TAG_NAME)_$(PLATFORM)
   force_update: true
