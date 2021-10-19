@@ -189,8 +189,9 @@ bool ProjectGenerator::outputProject()
     StaticList includeDirs;
     StaticList lib32Dirs;
     StaticList lib64Dirs;
-    StaticList defines;
-    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, defines);
+    StaticList definesShared;
+    StaticList definesStatic;
+    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic);
 
     // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(includeDirs)) {
@@ -251,7 +252,7 @@ bool ProjectGenerator::outputProject()
     outputLibDirs(lib32Dirs, lib64Dirs, projectFile);
 
     // Add additional defines
-    outputDefines(defines, projectFile);
+    outputDefines(definesShared, definesStatic, projectFile);
 
     // Replace all template tag arguments
     outputTemplateTags(projectFile, filtersFile);
@@ -283,8 +284,9 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     StaticList includeDirs;
     StaticList lib32Dirs;
     StaticList lib64Dirs;
-    StaticList defines;
-    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, defines);
+    StaticList definesShared;
+    StaticList definesStatic;
+    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic);
 
     // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(includeDirs)) {
@@ -335,7 +337,7 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     outputLibDirs(lib32Dirs, lib64Dirs, programFile);
 
     // Add additional defines
-    outputDefines(defines, programFile);
+    outputDefines(definesShared, definesStatic, programFile, true);
 
     // Replace all template tag arguments
     outputTemplateTags(programFile, programFiltersFile);
@@ -1470,22 +1472,42 @@ void ProjectGenerator::outputLibDirs(const StaticList& lib32Dirs, const StaticLi
     }
 }
 
-void ProjectGenerator::outputDefines(const StaticList& defines, string& projectTemplate)
+void ProjectGenerator::outputDefines(
+    const StaticList& definesShared, const StaticList& definesStatic, string& projectTemplate, const bool program)
 {
-    if (!defines.empty()) {
-        string defines2;
-        for (const auto& i : defines) {
-            defines2 += i + ";";
+    if (!definesShared.empty() || !definesStatic.empty()) {
+        string defines2Shared, defines2Static;
+        for (const auto& i : definesShared) {
+            defines2Shared += i + ";";
         }
+        for (const auto& i : definesStatic) {
+            defines2Static += i + ";";
+        }
+        // libraries:
+        // Debug, DebugWinRT x2 (0-7), DebugDLL,DebugDLLWinRT x2 (8-15), Release, ReleaseWinRT x2, ReleaseDLL,
+        // ReleaseDLLWinRT x2, ReleaseDLLStaticDeps, ReleaseDLLWinRTStaticDeps x2
+        // Libraries have 2 PreprocessorDefinitions for each configuration due to NASM section
+        // programs:
+        // Debug x2, DebugDLL x2, Release x2, ReleaseDLL x2
         const string addDefines = "<PreprocessorDefinitions>";
         uint findPos = projectTemplate.find(addDefines);
+        uint count = 0;
+        const bool addWinrt =
+            m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
+        const uint check = (!program) ? (addWinrt ? 8 : 4) : 2;
         while (findPos != string::npos) {
             // Add to output
             findPos += addDefines.length();
-            projectTemplate.insert(findPos, defines2);
-            findPos += defines2.length();
+            if ((count / check) % 2 == 0) {
+                projectTemplate.insert(findPos, defines2Static);
+                findPos += defines2Static.length();
+            } else {
+                projectTemplate.insert(findPos, defines2Shared);
+                findPos += defines2Shared.length();
+            }
             // Get next
             findPos = projectTemplate.find(addDefines, findPos + 1);
+            ++count;
         }
     }
 }

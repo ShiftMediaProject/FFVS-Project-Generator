@@ -222,8 +222,8 @@ private:
      */
     void buildDependenciesWinRT(StaticList& libs, StaticList& addLibs);
 
-    void buildDependencyValues(
-        StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs, StaticList& defines) const;
+    void buildDependencyValues(StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs,
+        StaticList& definesShared, StaticList& definesStatic) const;
 
     void buildProjectDependencies(map<string, bool>& projectDeps) const;
 
@@ -320,10 +320,13 @@ private:
 
     /**
      * Output additional defines to the project.
-     * @param          defines         The defines.
+     * @param          definesShared   The defines for shared libraries.
+     * @param          definesStatic   The defines for static libraires.
      * @param [in,out] projectTemplate The project template.
+     * @param          program         (Optional) True if building program project.
      */
-    static void outputDefines(const StaticList& defines, string& projectTemplate);
+    void outputDefines(const StaticList& definesShared, const StaticList& definesStatic, string& projectTemplate,
+        bool program = false);
 
     /**
      * Output asm tools to project template.

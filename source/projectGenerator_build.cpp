@@ -243,8 +243,8 @@ void ProjectGenerator::buildDependenciesWinRT(StaticList& libs, StaticList& addL
     }
 }
 
-void ProjectGenerator::buildDependencyValues(
-    StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs, StaticList& defines) const
+void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs,
+    StaticList& definesShared, StaticList& definesStatic) const
 {
     // Determine only those dependencies that are valid for current project
     map<string, bool> projectDeps;
@@ -264,13 +264,15 @@ void ProjectGenerator::buildDependencyValues(
             } else if (i.first == "libfribidi") {
                 includeDirs.push_back("$(OutDir)/include/fribidi");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
-                defines.push_back("FRIBIDI_LIB_STATIC");
+                definesStatic.push_back("FRIBIDI_LIB_STATIC");
             } else if (i.first == "libilbc") {
-                defines.push_back("ILBC_STATIC_DEFINE");
+                definesStatic.push_back("ILBC_STATIC_DEFINE");
+            } else if (i.first == "libx264") {
+                definesShared.push_back("X264_API_IMPORTS");
             } else if (i.first == "libxml2") {
                 includeDirs.push_back("$(OutDir)/include/libxml2");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
-                defines.push_back("LIBXML_STATIC");
+                definesStatic.push_back("LIBXML_STATIC");
             } else if ((i.first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2")) {
                 includeDirs.push_back("$(OutDir)/include/SDL");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
