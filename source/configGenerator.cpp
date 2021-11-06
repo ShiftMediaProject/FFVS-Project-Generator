@@ -702,8 +702,9 @@ bool ConfigGenerator::passCurrentValues()
     if (getConfigList("LIBRARY_LIST", libList, false)) {
         vector<string> list2;
         for (const auto& i : libList) {
-            const bool enable = !!isConfigOptionEnabled(i);
-            const bool weak = !enable;
+            const auto opt = getConfigOption(i);
+            const bool enable = (opt != m_configValues.end()) && (opt->m_value != "0");
+            const bool weak = enable;
             string optionUpper = i; // Ensure it is in upper case
             transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
             list2.resize(0);
@@ -1660,15 +1661,15 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
             if (!i.m_lock) {
                 // Lock the item to prevent cyclic conditions
                 i.m_lock = true;
+                // Need to convert the name to lower case
+                string optionLower = option;
+                transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
                 if (enable) {
-                    // Need to convert the name to lower case
-                    string optionLower = option;
-                    transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
                     string checkFunc = optionLower + "_select";
                     vector<string> checkList;
                     if (getConfigList(checkFunc, checkList, false)) {
                         for (const auto& j : checkList) {
-                            toggleConfigValue(j, true, false, true);
+                            toggleConfigValue(j, true, weak, true);
                         }
                     }
 
@@ -1688,9 +1689,6 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
                         toggleConfigValue(j, true, weak, true);
                     }
                 } else if (!enable) {
-                    // Need to convert the name to lower case
-                    string optionLower = option;
-                    transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
                     // Check for any hard dependencies that must be disabled
                     vector<string> forceDisable;
                     buildForcedDisables(optionLower, forceDisable);
