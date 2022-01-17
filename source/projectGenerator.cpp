@@ -722,7 +722,8 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, string& filte
     string toolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
     <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='16.0'\">v142</PlatformToolset>";
+    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='16.0'\">v142</PlatformToolset>\r\n\
+    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='17.0'\">v143</PlatformToolset>";
     if (m_configHelper.m_toolchain.compare("msvc") != 0) {
         toolchain +=
             "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
