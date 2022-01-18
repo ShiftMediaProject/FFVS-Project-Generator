@@ -276,8 +276,32 @@ bool ConfigGenerator::buildDefaultValues()
                     enable = findFile(sFileName, sFileName);
                 } else if (i == "appkit") {
                     enable = false;
+                } else if (i == "audiotoolbox") {
+                    enable = false;
+                } else if (i == "avfoundation") {
+                    enable = false;
                 } else if (i == "bzlib") {
                     makeFileGeneratorRelative(m_outDirectory + "include/bzlib.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "coreimage") {
+                    enable = false;
+                } else if (i == "crystalhd") {
+                    enable = false;
+                } else if (i == "cuda" || i == "cuvid") {
+                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    if (!enable) {
+                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
+                    }
+                } else if (i == "cuda_llvm" || i == "cuda_nvcc") {
+                    // Not currently supported
+                    enable = false;
+                } else if (i == "d3d11va") {
+                    enable = true;
+                } else if (i == "dxva2") {
+                    enable = true;
+                } else if (i == "ffnvcodec") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
                     enable = findFile(sFileName, sFileName);
                 } else if (i == "iconv") {
                     makeFileGeneratorRelative(m_outDirectory + "include/iconv.h", sFileName);
@@ -297,46 +321,8 @@ bool ConfigGenerator::buildDefaultValues()
                     enable = findFile(sFileName, sFileName);
                 } else if (i == "mediafoundation") {
                     enable = true;
-                } else if (i == "schannel") {
-                    enable = true;
-                } else if (i == "sdl2") {
-                    makeFileGeneratorRelative(m_outDirectory + "include/SDL/SDL.h", sFileName);
-                    enable = findFile(sFileName, sFileName);
-                } else if (i == "securetransport") {
+                } else if (i == "metal") {
                     enable = false;
-                } else if (i == "sndio") {
-                    enable = false;
-                } else if (i == "xlib") {
-                    enable = false;
-                } else if (i == "zlib") {
-                    makeFileGeneratorRelative(m_outDirectory + "include/zlib.h", sFileName);
-                    enable = findFile(sFileName, sFileName);
-                } else if (i == "amf") {
-                    makeFileGeneratorRelative(m_outDirectory + "include/AMF/core/Version.h", sFileName);
-                    enable = findFile(sFileName, sFileName);
-                } else if (i == "audiotoolbox") {
-                    enable = false;
-                } else if (i == "crystalhd") {
-                    enable = false;
-                } else if (i == "cuda") {
-                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-                    if (!enable) {
-                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                        enable = findFile(sFileName, sFileName);
-                    }
-                } else if (i == "cuvid") {
-                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
-                    if (!enable) {
-                        makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                        enable = findFile(sFileName, sFileName);
-                    }
-                } else if (i == "d3d11va") {
-                    enable = true;
-                } else if (i == "dxva2") {
-                    enable = true;
-                } else if (i == "ffnvcodec") {
-                    makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
-                    enable = findFile(sFileName, sFileName);
                 } else if (i == "nvdec") {
                     enable = (findFile(m_rootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
                         findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
@@ -357,33 +343,43 @@ bool ConfigGenerator::buildDefaultValues()
                         fastToggleConfigValue("opencl_d3d11", true);
                         fastToggleConfigValue("opencl_dxva2", true);
                     }
+                } else if (i == "os2threads") {
+                    enable = false;
+                } else if (i == "pthreads") {
+                    enable = false;
+                } else if (i == "schannel") {
+                    enable = true;
+                } else if (i == "sdl2") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/SDL/SDL.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
+                } else if (i == "securetransport") {
+                    enable = false;
+                } else if (i == "sndio") {
+                    enable = false;
+                } else if (i == "v4l2_m2m") {
+                    enable = false;
                 } else if (i == "vaapi") {
                     enable = false;
                 } else if (i == "vda") {
                     enable = false;
                 } else if (i == "vdpau") {
                     enable = false;
+                } else if (i == "videotoolbox") {
+                    enable = false;
                 } else if (i == "videotoolbox_hwaccel") {
                     enable = false;
-                } else if (i == "v4l2_m2m") {
-                    enable = false;
-                } else if (i == "xvmc") {
-                    enable = false;
-                } else if (i == "pthreads") {
-                    enable = false;
-                } else if (i == "os2threads") {
+                } else if (i == "vulkan") {
+                    // Not currently supported
                     enable = false;
                 } else if (i == "w32threads") {
                     enable = true;
-                } else if (i == "avfoundation") {
+                } else if (i == "xlib") {
                     enable = false;
-                } else if (i == "coreimage") {
+                } else if (i == "xvmc") {
                     enable = false;
-                } else if (i == "videotoolbox") {
-                    enable = false;
-                } else if (i == "cuda_llvm" || i == "cuda_nvcc") {
-                    // Not currently supported
-                    enable = false;
+                } else if (i == "zlib") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/zlib.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
                 } else {
                     // This is an unknown option
                     outputInfo("Found unknown auto detected option " + i);
