@@ -179,6 +179,30 @@ private:
     bool passDLibUnknown();
 
     /**
+     * Pass a shared only dynamic source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passSharedDCInclude();
+
+    /**
+     * Pass a shared only source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passSharedCInclude();
+
+    /**
+     * Pass a static only dynamic source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passStaticDCInclude();
+
+    /**
+     * Pass a static only source include line from current makefile.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passStaticCInclude();
+
+    /**
      * Passes the makefile for the current project directory.
      * @return True if it succeeds, false if it fails.
      */

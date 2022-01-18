@@ -125,7 +125,7 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
         endPos = m_inLine.find(')', startPos);
         const string dynInc = m_inLine.substr(startPos + 2, endPos - startPos - 2);
         // Find it in the unknown list
-        auto objectList = m_unknowns.find(dynInc);
+        const auto objectList = m_unknowns.find(dynInc);
         if (objectList != m_unknowns.end()) {
             // Loop over each internal object
             for (auto object = objectList->second.begin(); object < objectList->second.end(); ++object) {
@@ -360,6 +360,86 @@ bool ProjectGenerator::passDLibUnknown()
     return true;
 }
 
+bool ProjectGenerator::passSharedDCInclude()
+{
+    StaticList temp;
+    if (passDynamicInclude(10, temp)) {
+        for (auto& i : temp) {
+            // Check if object already included in internal list
+            if (find(m_includes.begin(), m_includes.end(), i) == m_includes.end()) {
+                // Check if already in replace list
+                if (m_replaceIncludes.find(i) == m_replaceIncludes.end() ||
+                    find(m_replaceIncludes[i].begin(), m_replaceIncludes[i].end(), "CONFIG_SHARED") ==
+                        m_replaceIncludes[i].end()) {
+                    m_replaceIncludes[i].push_back("CONFIG_SHARED");
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ProjectGenerator::passSharedCInclude()
+{
+    StaticList temp;
+    if (passStaticInclude(10, temp)) {
+        for (auto& i : temp) {
+            // Check if object already included in internal list
+            if (find(m_includes.begin(), m_includes.end(), i) == m_includes.end()) {
+                // Check if already in replace list
+                if (m_replaceIncludes.find(i) == m_replaceIncludes.end() ||
+                    find(m_replaceIncludes[i].begin(), m_replaceIncludes[i].end(), "CONFIG_SHARED") ==
+                        m_replaceIncludes[i].end()) {
+                    m_replaceIncludes[i].push_back("CONFIG_SHARED");
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ProjectGenerator::passStaticDCInclude()
+{
+    StaticList temp;
+    if (passDynamicInclude(10, temp)) {
+        for (auto& i : temp) {
+            // Check if object already included in internal list
+            if (find(m_includes.begin(), m_includes.end(), i) == m_includes.end()) {
+                // Check if already in replace list
+                if (m_replaceIncludes.find(i) == m_replaceIncludes.end() ||
+                    find(m_replaceIncludes[i].begin(), m_replaceIncludes[i].end(), "CONFIG_STATIC") ==
+                        m_replaceIncludes[i].end()) {
+                    m_replaceIncludes[i].push_back("CONFIG_STATIC");
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ProjectGenerator::passStaticCInclude()
+{
+    StaticList temp;
+    if (passStaticInclude(10, temp)) {
+        for (auto& i : temp) {
+            // Check if object already included in internal list
+            if (find(m_includes.begin(), m_includes.end(), i) == m_includes.end()) {
+                // Check if already in replace list
+                if (m_replaceIncludes.find(i) == m_replaceIncludes.end() ||
+                    find(m_replaceIncludes[i].begin(), m_replaceIncludes[i].end(), "CONFIG_STATIC") ==
+                        m_replaceIncludes[i].end()) {
+                    m_replaceIncludes[i].push_back("CONFIG_STATIC");
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 bool ProjectGenerator::passMake()
 {
     const string mainFile = m_projectDir + "MakeFile";
@@ -452,6 +532,36 @@ bool ProjectGenerator::passMake()
                     } else {
                         // Found some static libs
                         if (!passLibInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.substr(0, 9) == "SHLIBOBJS") {
+                    // Found some libs
+                    if (m_inLine.at(9) == '-') {
+                        // Found some dynamic include
+                        if (!passSharedDCInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static include
+                        if (!passSharedCInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
+                } else if (m_inLine.substr(0, 9) == "STLIBOBJS") {
+                    // Found some libs
+                    if (m_inLine.at(9) == '-') {
+                        // Found some dynamic include
+                        if (!passStaticDCInclude()) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    } else {
+                        // Found some static include
+                        if (!passStaticCInclude()) {
                             m_inputFile.close();
                             return false;
                         }
@@ -620,10 +730,10 @@ bool ProjectGenerator::passProgramMake()
         }
         m_inputFile.close();
         if (checks == 2) {
-            string ignore;
+            string ignored;
             const string makeFolder = "fftools/";
             makeFile = m_projectDir + makeFolder + "MakeFile";
-            if (findFile(makeFile, ignore)) {
+            if (findFile(makeFile, ignored)) {
                 // If using the Makefile in fftools then we need to read both it and the root Makefile
                 m_projectDir += makeFolder;
             } else {
