@@ -24,15 +24,7 @@
 #include <regex>
 
 ConfigGenerator::ConfigGenerator()
-    :
-#ifdef _MSC_VER
-    m_toolchain("msvc")
-#elif defined(_WIN32)
-    m_toolchain("mingw")
-#else
-    m_toolchain("gcc")
-#endif
-    , m_projectName("FFMPEG")
+    : m_projectName("FFMPEG")
 {}
 
 bool ConfigGenerator::passConfig(const int argc, char** argv)
@@ -345,7 +337,7 @@ bool ConfigGenerator::changeConfig(const string& option)
         outputLine(helpOptions);
         // Add in custom standard string
         outputLine("Standard options:");
-        outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
+        // outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
         // outputLine("  --bindir=DIR             install binaries in DIR [PREFIX/bin]");
         // outputLine("  --libdir=DIR             install libs in DIR [PREFIX/lib]");
         // outputLine("  --incdir=DIR             install includes in DIR [PREFIX/include]");
@@ -355,7 +347,6 @@ bool ConfigGenerator::changeConfig(const string& option)
             "  --use-existing-config    use an existing config.h file found in rootdir, ignoring any other passed parameters affecting config");
         // Add in custom toolchain string
         outputLine("Toolchain options:");
-        outputLine("  --toolchain=NAME         set tool defaults according to NAME");
         outputLine("  --dce-only               do not output a project and only generate missing DCE files");
         outputLine(
             "  --use-yasm               use YASM instead of the default NASM (this is not advised as it does not support newer instructions)");
@@ -368,63 +359,7 @@ bool ConfigGenerator::changeConfig(const string& option)
         }
         return false;
     }
-    if (option.find("--toolchain") == 0) {
-        // Check for correct command syntax
-        if (option.at(11) != '=') {
-            outputError("Incorrect toolchain syntax (" + option + ")");
-            outputError("Excepted syntax (--toolchain=NAME)", false);
-            return false;
-        }
-        // A tool chain has been specified
-        string toolChain = option.substr(12);
-        if (toolChain == "msvc") {
-            // Don't disable inline as the configure header will auto header guard it out anyway. This allows for
-            // changing on the fly afterwards
-        } else if (toolChain == "icl") {
-            // Inline asm by default is turned on if icl is detected
-        } else {
-#ifdef _MSC_VER
-            // Only support msvc when built with msvc
-            outputError("Unknown toolchain option (" + toolChain + ")");
-            outputError("Excepted toolchains (msvc, icl)", false);
-            return false;
-#else
-            // Only support other toolchains if DCE only
-            if (!m_onlyDCE) {
-                outputError("Unknown toolchain option (" + sToolChain + ")");
-                outputError("Other toolchains are only supported if --dce-only has already been specified.", false);
-                return false;
-            } else {
-                if ((toolChain.find("mingw") == string::npos) && (toolChain.find("gcc") == string::npos)) {
-                    outputError("Unknown toolchain option (" + toolChain + ")");
-                    outputError("Excepted toolchains (mingw*, gcc*)", false);
-                    return false;
-                }
-            }
-#endif
-        }
-        m_toolchain = toolChain;
-    } else if (option.find("--prefix") == 0) {
-        // Check for correct command syntax
-        if (option.at(8) != '=') {
-            outputError("Incorrect prefix syntax (" + option + ")");
-            outputError("Excepted syntax (--prefix=PREFIX)", false);
-            return false;
-        }
-        // A output dir has been specified
-        string value = option.substr(9);
-        m_outDirectory = value;
-        // Convert '\' to '/'
-        replace(m_outDirectory.begin(), m_outDirectory.end(), '\\', '/');
-        // Check if a directory has been passed
-        if (m_outDirectory.length() == 0) {
-            m_outDirectory = "./";
-        }
-        // Check if directory has trailing '/'
-        if (m_outDirectory.back() != '/') {
-            m_outDirectory += '/';
-        }
-    } else if (option.find("--rootdir") == 0) {
+    if (option.find("--rootdir") == 0) {
         // Check for correct command syntax
         if (option.at(9) != '=') {
             outputError("Incorrect rootdir syntax (" + option + ")");
@@ -516,7 +451,7 @@ bool ConfigGenerator::changeConfig(const string& option)
             // Find remainder of option
             option2 = option.substr(10);
         } else {
-            outputError("Unknown command line option (" + option2 + ")");
+            outputError("Unknown command line option (" + option + ")");
             outputError("Use --help to get available options", false);
             return false;
         }

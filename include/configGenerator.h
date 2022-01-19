@@ -61,7 +61,6 @@ private:
     ValuesList m_configValues;
     uint m_configValuesEnd{};
     string m_configureFile;
-    string m_toolchain;
     bool m_isLibav{false};
     string m_projectName;
     string m_rootDirectory;

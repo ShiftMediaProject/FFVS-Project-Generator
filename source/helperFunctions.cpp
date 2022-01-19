@@ -31,31 +31,34 @@
 #    include <Windows.h>
 #else
 #    include <dirent.h>
-extern char _binary_compat_h_start[];
-extern char _binary_compat_h_end[];
-extern char _binary_math_h_start[];
-extern char _binary_math_h_end[];
-extern char _binary_unistd_h_start[];
-extern char _binary_unistd_h_end[];
-extern char _binary_template_in_sln_start[];
-extern char _binary_template_in_sln_end[];
-extern char _binary_template_in_vcxproj_start[];
-extern char _binary_template_in_vcxproj_end[];
-extern char _binary_template_in_vcxproj_filters_start[];
-extern char _binary_template_in_vcxproj_filters_end[];
-extern char _binary_templateprogram_in_vcxproj_start[];
-extern char _binary_templateprogram_in_vcxproj_end[];
-extern char _binary_templateprogram_in_vcxproj_filters_start[];
-extern char _binary_templateprogram_in_vcxproj_filters_end[];
-extern char _binary_stdatomic_h_start[];
-extern char _binary_stdatomic_h_end[];
-const char* pp_cStartArray[] = {_binary_compat_h_start, _binary_math_h_start, _binary_unistd_h_start,
-    _binary_template_in_sln_start, _binary_template_in_vcxproj_start, _binary_template_in_vcxproj_filters_start,
-    _binary_templateprogram_in_vcxproj_start, _binary_templateprogram_in_vcxproj_filters_start,
-    _binary_stdatomic_h_start};
-const char* pp_cEndArray[] = {_binary_compat_h_end, _binary_math_h_end, _binary_unistd_h_end,
-    _binary_template_in_sln_end, _binary_template_in_vcxproj_end, _binary_template_in_vcxproj_filters_end,
-    _binary_templateprogram_in_vcxproj_end, _binary_templateprogram_in_vcxproj_filters_end, _binary_stdatomic_h_end};
+extern char _binary_template_sln_start[];
+extern char _binary_template_sln_end[];
+extern char _binary_template_vcxproj_start[];
+extern char _binary_template_vcxproj_end[];
+extern char _binary_template_vcxproj_filters_start[];
+extern char _binary_template_vcxproj_filters_end[];
+extern char _binary_template_program_vcxproj_start[];
+extern char _binary_template_program_vcxproj_end[];
+extern char _binary_template_program_vcxproj_filters_start[];
+extern char _binary_template_program_vcxproj_filters_end[];
+extern char _binary_template_bat_start[];
+extern char _binary_template_bat_end[];
+extern char _binary_template_vcxproj_winrt_start[];
+extern char _binary_template_vcxproj_winrt_end[];
+extern char _binary_template_props_start[];
+extern char _binary_template_props_end[];
+extern char _binary_template_props_winrt_start[];
+extern char _binary_template_props_winrt_end[];
+extern char _binary_template_file_props_start[];
+extern char _binary_template_file_props_end[];
+const char* pp_cStartArray[] = {_binary_template_sln_start, _binary_template_vcxproj_start,
+    _binary_template_vcxproj_filters_start, _binary_template_program_vcxproj_start,
+    _binary_template_program_vcxproj_filters_start, _binary_template_bat_start, _binary_template_vcxproj_winrt_start,
+    _binary_template_props_start, _binary_template_props_winrt_start, _binary_template_file_props_start};
+const char* pp_cEndArray[] = {_binary_template_sln_end, _binary_template_vcxproj_end,
+    _binary_template_vcxproj_filters_end, _binary_template_program_vcxproj_end,
+    _binary_template_program_vcxproj_filters_end, _binary_template_bat_end, _binary_template_vcxproj_winrt_end,
+    _binary_template_props_end, _binary_template_props_winrt_end, _binary_template_file_props_end};
 #endif
 
 #if _DEBUG

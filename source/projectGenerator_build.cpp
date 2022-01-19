@@ -67,10 +67,10 @@ void ProjectGenerator::buildInterDependencies(StaticList& libs)
     }
 }
 
-void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
+void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, const bool winrt)
 {
     // Add any forced dependencies
-    if (m_projectName == "libavformat") {
+    if (m_projectName == "libavformat" && !winrt) {
         addLibs.push_back("ws2_32"); // Add the additional required libs
     }
 
@@ -97,6 +97,20 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
                 continue;
             }
 
+            // Check if this value is conditional on winrt
+            if (winrt) {
+                // Convert to full config value
+                const auto name =
+                    m_configHelper.getConfigOption(i)->m_prefix + m_configHelper.getConfigOption(i)->m_option;
+                if (m_configHelper.m_replaceList.find(name) != m_configHelper.m_replaceList.end()) {
+                    // Skip this option
+                    if (m_configHelper.m_replaceList[name].find("!HAVE_WINRT") != string::npos ||
+                        m_configHelper.m_replaceList[name].find("!HAVE_UWP") != string::npos) {
+                        continue;
+                    }
+                }
+            }
+
             string lib;
             if (i == "amf") {
                 // doesn't need any additional libs
@@ -107,6 +121,10 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
             } else if (i == "bzlib") {
                 lib = "libbz2";
             } else if (i == "d3d11va") {
+                if (winrt) {
+                    addLibs.push_back("dxgi");
+                    addLibs.push_back("d3d11");
+                }
                 // doesn't need any additional libs
             } else if (i == "dxva2") {
                 // doesn't need any additional libs
@@ -166,7 +184,9 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
             } else if (i == "mediafoundation") {
                 addLibs.push_back("mfplat");
                 addLibs.push_back("mfuuid");
-                addLibs.push_back("strmiids");
+                if (!winrt) {
+                    addLibs.push_back("strmiids");
+                }
             } else if (i == "schannel") {
                 addLibs.push_back("Secur32"); // Add the additional required libs
             } else if (i == "sdl") {
@@ -199,7 +219,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
     }
 
     // Add in extralibs used for various devices
-    if (m_projectName == "libavdevice") {
+    if (m_projectName == "libavdevice" && !winrt) {
         externLibs.resize(0);
         m_configHelper.getConfigList("OUTDEV_LIST", externLibs);
         m_configHelper.getConfigList("INDEV_LIST", externLibs);
@@ -220,32 +240,15 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs)
     }
 }
 
-void ProjectGenerator::buildDependenciesWinRT(StaticList& libs, StaticList& addLibs)
-{
-    // Search through dependency list and remove any not supported by WinRT
-    libs.erase(remove(libs.begin(), libs.end(), "libmfx"), libs.end());
-
-    // Remove any additional windows libs
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "cuda"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "nvcuvid"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "ws2_32"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "Bcrypt"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "Advapi32"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "strmiids"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "vfw32"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "shlwapi"), addLibs.end());
-    addLibs.erase(remove(addLibs.begin(), addLibs.end(), "ksuser"), addLibs.end());
-
-    // Add additional windows libs
-    if (m_configHelper.isConfigOptionEnabled("D3D11VA")) {
-        addLibs.push_back("dxgi");
-        addLibs.push_back("d3d11");
-    }
-}
-
 void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs,
-    StaticList& definesShared, StaticList& definesStatic) const
+    StaticList& definesShared, StaticList& definesStatic, const bool winrt) const
 {
+    // Add hard dependencies
+    string dep;
+    if (findFile(m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h", dep)) {
+        includeDirs.push_back("$(ProjectDir)/../compat/atomics/win32/");
+    }
+
     // Determine only those dependencies that are valid for current project
     map<string, bool> projectDeps;
     buildProjectDependencies(projectDeps);
@@ -279,9 +282,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
             } else if (i.first == "sdl2") {
                 includeDirs.push_back("$(OutDir)/include/SDL");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
-            } else if (i.first == "opengl") {
+            } else if (i.first == "opengl" && !winrt) {
                 // Requires glext headers to be installed in include dir (does not require the libs)
-            } else if (i.first == "opencl") {
+            } else if (i.first == "opencl" && !winrt) {
                 string fileName;
                 if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", fileName)) {
                     // Need to check for the existence of environment variables
@@ -306,7 +309,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                             false);
                     }
                 }
-            } else if (i.first == "openal") {
+            } else if (i.first == "openal" && !winrt) {
                 if (!findEnvironmentVariable("OPENAL_SDK")) {
                     outputWarning("Could not find the OpenAl SDK environment variable.");
                     outputWarning(
@@ -316,7 +319,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                 includeDirs.push_back("$(OPENAL_SDK)/include/");
                 lib32Dirs.push_back("$(OPENAL_SDK)/libs/Win32");
                 lib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
-            } else if (i.first == "nvenc") {
+            } else if (i.first == "nvenc" && !winrt) {
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", fileName)) {
@@ -334,7 +337,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                         includeDirs.push_back("$(CUDA_PATH)/include/");
                     }
                 }
-            } else if ((i.first == "cuda") || (i.first == "cuvid")) {
+            } else if ((i.first == "cuda") || (i.first == "cuvid") && !winrt) {
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", fileName)) {
@@ -498,6 +501,16 @@ void ProjectGenerator::buildProjectGUIDs(map<string, string>& keys) const
     keys["libswresample"] = "3CE4A9EF-98B6-4454-B76E-3AD9C03A2114";
     keys["libswscale"] = "6D8A6330-8EBE-49FD-9281-0A396F9F28F2";
     keys["libpostproc"] = "4D9C457D-9ADA-4A12-9D06-42D80124C5AB";
+
+    keys["libavcodec_winrt"] = "B4824EFF-C340-425D-A4A8-E2E02A71A7AF";
+    keys["libavdevice_winrt"] = "6E165FA4-44EB-4330-8394-9F0D76D8E03F";
+    keys["libavfilter_winrt"] = "BC2E1028-66CD-41A0-AF90-EEBD8CC5278F";
+    keys["libavformat_winrt"] = "30A96E9B-8061-4F19-BD71-FDE7EA8F792F";
+    keys["libavresample_winrt"] = "0096CB8C-3B04-462B-BF4F-0A9970A57C9F";
+    keys["libavutil_winrt"] = "CE6C44DD-6E38-4293-8AB3-04EE28CCA97F";
+    keys["libswresample_winrt"] = "3CE4A9EF-98B6-4454-B76E-3AD9C03A211F";
+    keys["libswscale_winrt"] = "6D8A6330-8EBE-49FD-9281-0A396F9F28FF";
+    keys["libpostproc_winrt"] = "4D9C457D-9ADA-4A12-9D06-42D80124C5AF";
 
     if (!m_configHelper.m_isLibav) {
         keys["ffmpeg"] = "4081C77E-F1F7-49FA-9BD8-A4D267C83716";

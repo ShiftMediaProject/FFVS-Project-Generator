@@ -41,6 +41,8 @@ bool ProjectGenerator::runMSVC(
     // Create a test file to read in definitions
     string outDir = m_configHelper.m_outDirectory;
     m_configHelper.makeFileGeneratorRelative(outDir, outDir);
+    string projectDir = m_configHelper.m_solutionDirectory;
+    m_configHelper.makeFileGeneratorRelative(projectDir, projectDir);
     vector<string> includeDirs2 = includeDirs;
     includeDirs2.insert(includeDirs2.begin(), outDir + "include/");
     includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_solutionDirectory);
@@ -50,6 +52,10 @@ bool ProjectGenerator::runMSVC(
         uint findPos2 = i.find("$(OutDir)");
         if (findPos2 != string::npos) {
             i.replace(findPos2, 9, outDir);
+        }
+        findPos2 = i.find("$(ProjectDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 13, projectDir);
         }
         findPos2 = i.find("$(");
         if (findPos2 != string::npos) {
@@ -150,7 +156,7 @@ popd\n";
         // Split calls into groups of 50 to prevent batch file length limit
         for (uint i = 0; i < numClCalls; i++) {
             launchBat += "cl.exe ";
-            launchBat += extraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /FI"compat.h" )" +
+            launchBat += extraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" +
                 runCommands + " /c /MP /w /nologo";
             uint uiStartPos = totalPos;
             for (; totalPos < min(uiStartPos + rowSize, j.second.size()); totalPos++) {
@@ -302,9 +308,9 @@ bool ProjectGenerator::runGCC(
             runCommands = "-E -P";
         }
         // Check if gcc or mingw
-        if (m_configHelper.m_toolchain.find("mingw") != string::npos) {
-            extraCl += R"(-D"WIN32" -D"_WINDOWS")";
-        }
+#ifdef _WIN32
+        extraCl += R"(-D"WIN32" -D"_WINDOWS")";
+#endif
 
         // Split calls as gcc outputs a single file at a time
         for (auto& j : i.second) {

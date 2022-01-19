@@ -25,33 +25,25 @@
 #include <sstream>
 #include <utility>
 
-#define TEMPLATE_COMPAT_ID 100
-#define TEMPLATE_MATH_ID 101
-#define TEMPLATE_UNISTD_ID 102
-#define TEMPLATE_SLN_ID 103
-#define TEMPLATE_VCXPROJ_ID 104
-#define TEMPLATE_FILTERS_ID 105
-#define TEMPLATE_PROG_VCXPROJ_ID 106
-#define TEMPLATE_PROG_FILTERS_ID 107
-#define TEMPLATE_STDATOMIC_ID 108
-#define TEMPLATE_BAT_ID 109
+#define TEMPLATE_SLN_ID 101
+#define TEMPLATE_VCXPROJ_ID 102
+#define TEMPLATE_FILTERS_ID 103
+#define TEMPLATE_PROG_VCXPROJ_ID 104
+#define TEMPLATE_PROG_FILTERS_ID 105
+#define TEMPLATE_BAT_ID 106
+#define TEMPLATE_VCXPROJ_WINRT_ID 107
+#define TEMPLATE_PROPS_ID 108
+#define TEMPLATE_PROPS_WINRT_ID 109
+#define TEMPLATE_FILE_PROPS_ID 110
 
 bool ProjectGenerator::passAllMake()
 {
-    if ((m_configHelper.m_toolchain == "msvc") || (m_configHelper.m_toolchain == "icl")) {
-        // Copy the required header files to output directory
-        const bool copy = copyResourceFile(TEMPLATE_COMPAT_ID, m_configHelper.m_solutionDirectory + "compat.h", true);
-        if (!copy) {
-            outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
-            return false;
-        }
-        copyResourceFile(TEMPLATE_MATH_ID, m_configHelper.m_solutionDirectory + "math.h", true);
-        copyResourceFile(TEMPLATE_UNISTD_ID, m_configHelper.m_solutionDirectory + "unistd.h", true);
-        string fileName;
-        if (findFile(m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h", fileName)) {
-            copyResourceFile(TEMPLATE_STDATOMIC_ID, m_configHelper.m_solutionDirectory + "stdatomic.h", true);
-        }
+    // Copy the required header files to output directory
+    if (!copyResourceFile(TEMPLATE_PROPS_ID, m_configHelper.m_solutionDirectory + "smp_deps.props", true)) {
+        outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
+        return false;
     }
+    copyResourceFile(TEMPLATE_PROPS_WINRT_ID, m_configHelper.m_solutionDirectory + "smp_winrt_deps.props", true);
 
     // Loop through each library make file
     vector<string> libraries;
@@ -112,16 +104,14 @@ void ProjectGenerator::deleteCreatedFiles()
     vector<string> existingFiles;
     findFiles(m_configHelper.m_solutionDirectory + "ffmpeg.sln", existingFiles, false);
     findFiles(m_configHelper.m_solutionDirectory + "libav.sln", existingFiles, false);
-    findFiles(m_configHelper.m_solutionDirectory + "compat.h", existingFiles, false);
-    findFiles(m_configHelper.m_solutionDirectory + "math.h", existingFiles, false);
-    findFiles(m_configHelper.m_solutionDirectory + "unistd.h", existingFiles, false);
-    findFiles(m_configHelper.m_solutionDirectory + "stdatomic.h", existingFiles, false);
     findFiles(m_configHelper.m_solutionDirectory + "ffmpeg_with_latest_sdk.bat", existingFiles, false);
     findFiles(m_configHelper.m_solutionDirectory + "libav_with_latest_sdk.bat", existingFiles, false);
     for (auto& i : libraries) {
         i = "lib" + i;
         findFiles(m_configHelper.m_solutionDirectory + i + ".vcxproj", existingFiles, false);
         findFiles(m_configHelper.m_solutionDirectory + i + ".vcxproj.filters", existingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + i + "_winrt.vcxproj", existingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + i + "_winrt.vcxproj.filters", existingFiles, false);
         findFiles(m_configHelper.m_solutionDirectory + i + ".def", existingFiles, false);
     }
     for (const auto& i : programs) {
@@ -191,7 +181,7 @@ bool ProjectGenerator::outputProject()
     StaticList lib64Dirs;
     StaticList definesShared;
     StaticList definesStatic;
-    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic);
+    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic, false);
 
     // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(includeDirs)) {
@@ -211,61 +201,100 @@ bool ProjectGenerator::outputProject()
     // We now have complete list of all the files that we need
     outputLine("  Generating project file (" + m_projectName + ")...");
 
-    // Open the input temp project file
-    string projectFile;
-    if (!loadFromResourceFile(TEMPLATE_VCXPROJ_ID, projectFile)) {
-        return false;
-    }
-
     // Open the input temp project file filters
     string filtersFile;
     if (!loadFromResourceFile(TEMPLATE_FILTERS_ID, filtersFile)) {
         return false;
     }
 
-    // Remove any winrt configurations if not requested
-    if (!m_configHelper.isConfigOptionEnabled("WINRT") && !m_configHelper.isConfigOptionEnabled("UWP")) {
-        outputStripWinRT(projectFile);
-    }
-
-    // Add all project source files
-    outputSourceFiles(projectFile, filtersFile);
-
-    // Add the build events
-    outputBuildEvents(projectFile);
-
-    // Add ASM requirements
-    outputASMTools(projectFile);
-
-    // Add CUDA requirements
-    outputCUDATools(projectFile);
-
-    // Add the dependency libraries
-    if (!outputDependencyLibs(projectFile)) {
+    // Open the input files property file
+    string filesFile;
+    if (!loadFromResourceFile(TEMPLATE_FILE_PROPS_ID, filesFile)) {
         return false;
     }
 
-    // Add additional includes to include list
-    outputIncludeDirs(includeDirs, projectFile);
+    // Add all project source files
+    outputSourceFiles(filesFile, filtersFile);
+    outputTemplateTags(filtersFile);
+    outputTemplateTags(filesFile);
 
-    // Add additional lib includes to include list
-    outputLibDirs(lib32Dirs, lib64Dirs, projectFile);
-
-    // Add additional defines
-    outputDefines(definesShared, definesStatic, projectFile);
-
-    // Replace all template tag arguments
-    outputTemplateTags(projectFile, filtersFile);
-
-    // Write output project
-    const string outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj";
-    if (!writeToFile(outProjectFile, projectFile, true)) {
+    // Write output files
+    const string outFilesFile = m_configHelper.m_solutionDirectory + m_projectName + "_files.props";
+    if (!writeToFile(outFilesFile, filesFile, true)) {
         return false;
     }
 
     // Write output filters
-    const string outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj.filters";
-    return writeToFile(outFiltersFile, filtersFile, true);
+    string outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj.filters";
+    if (!writeToFile(outFiltersFile, filtersFile, true)) {
+        return false;
+    }
+    outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj.filters";
+    if (!writeToFile(outFiltersFile, filtersFile, true)) {
+        return false;
+    }
+
+    // Open the input temp project file
+    string projectFile, projectFileWinRT;
+    if (!loadFromResourceFile(TEMPLATE_VCXPROJ_ID, projectFile)) {
+        return false;
+    }
+    if (!loadFromResourceFile(TEMPLATE_VCXPROJ_WINRT_ID, projectFileWinRT)) {
+        return false;
+    }
+
+    // Add the build events
+    outputBuildEvents(projectFile);
+    outputBuildEvents(projectFileWinRT);
+
+    // Add ASM requirements
+    outputASMTools(projectFile);
+    outputASMTools(projectFileWinRT);
+
+    // Add CUDA requirements
+    outputCUDATools(projectFile);
+    outputCUDATools(projectFileWinRT);
+
+    // Add the dependency libraries
+    if (!outputDependencyLibs(projectFile, false, false)) {
+        return false;
+    }
+    if (!outputDependencyLibs(projectFileWinRT, true, false)) {
+        return false;
+    }
+
+    // Get dependency directories for winrt
+    StaticList includeDirsWinRT;
+    StaticList lib32DirsWinRT;
+    StaticList lib64DirsWinRT;
+    StaticList definesSharedWinRT;
+    StaticList definesStaticWinRT;
+    buildDependencyValues(
+        includeDirsWinRT, lib32DirsWinRT, lib64DirsWinRT, definesSharedWinRT, definesStaticWinRT, true);
+
+    // Add additional includes to include list
+    outputIncludeDirs(includeDirs, projectFile);
+    outputIncludeDirs(includeDirsWinRT, projectFileWinRT);
+
+    // Add additional lib includes to include list
+    outputLibDirs(lib32Dirs, lib64Dirs, projectFile);
+    outputLibDirs(lib32DirsWinRT, lib64DirsWinRT, projectFileWinRT);
+
+    // Add additional defines
+    outputDefines(definesShared, definesStatic, projectFile);
+    outputDefines(definesSharedWinRT, definesStaticWinRT, projectFileWinRT);
+
+    // Replace all template tag arguments
+    outputTemplateTags(projectFile);
+    outputTemplateTags(projectFileWinRT);
+
+    // Write output project
+    string outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj";
+    if (!writeToFile(outProjectFile, projectFile, true)) {
+        return false;
+    }
+    outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj";
+    return writeToFile(outProjectFile, projectFileWinRT, true);
 }
 
 bool ProjectGenerator::outputProgramProject(const string& destinationFile, const string& destinationFilterFile)
@@ -286,7 +315,7 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     StaticList lib64Dirs;
     StaticList definesShared;
     StaticList definesStatic;
-    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic);
+    buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic, false);
 
     // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(includeDirs)) {
@@ -326,7 +355,7 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     outputCUDATools(programFile);
 
     // Add the dependency libraries
-    if (!outputDependencyLibs(programFile, true)) {
+    if (!outputDependencyLibs(programFile, false, true)) {
         return false;
     }
 
@@ -340,7 +369,8 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
     outputDefines(definesShared, definesStatic, programFile, true);
 
     // Replace all template tag arguments
-    outputTemplateTags(programFile, programFiltersFile);
+    outputTemplateTags(programFile);
+    outputTemplateTags(programFiltersFile);
 
     // Write program file
     if (!writeToFile(destinationFile, programFile, true)) {
@@ -414,16 +444,11 @@ bool ProjectGenerator::outputSolution()
         return false;
     }
 
-    // Remove any winrt configurations if not requested
-    if (!m_configHelper.isConfigOptionEnabled("winrt") && !m_configHelper.isConfigOptionEnabled("uwp")) {
-        outputStripWinRTSolution(solutionFile);
-    }
-
     map<string, string> keys;
     buildProjectGUIDs(keys);
     string solutionKey = "8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942";
 
-    vector<string> addedKeys;
+    vector<pair<string, bool>> addedKeys;
 
     const string project = "\r\nProject(\"{";
     const string project2 = "}\") = \"";
@@ -444,51 +469,61 @@ bool ProjectGenerator::outputSolution()
     for (const auto& i : m_projectLibs) {
         // Check if this is a library or a program
         if (programList.find(i.first) == programList.end()) {
-            // Check if this library has a known key (to lazy to auto generate at this time)
-            if (keys.find(i.first) == keys.end()) {
-                outputError("Unknown library. Could not determine solution key (" + i.first + ")");
-                return false;
-            }
-            // Add the library to the solution
-            string projectAdd = project;
-            projectAdd += solutionKey;
-            projectAdd += project2;
-            projectAdd += i.first;
-            projectAdd += project3;
-            projectAdd += i.first;
-            projectAdd += project4;
-            projectAdd += keys[i.first];
-            projectAdd += projectEnd;
-
-            // Add the key to the used key list
-            addedKeys.push_back(keys[i.first]);
-
-            // Add the dependencies
-            if (i.second.size() > 0) {
-                projectAdd += depend;
-                for (auto& j : i.second) {
-                    // Check if this library has a known key
-                    if (keys.find(j) == keys.end()) {
-                        outputError("Unknown library dependency. Could not determine solution key (" + j + ")");
-                        return false;
-                    }
-                    projectAdd += subDepend;
-                    projectAdd += keys[j];
-                    projectAdd += subDepend2;
-                    projectAdd += keys[j];
-                    projectAdd += subDependEnd;
+            for (uint winrt = 0; winrt < 2; ++winrt) {
+                string name = i.first;
+                if (winrt) {
+                    name += "_winrt";
                 }
-                projectAdd += dependClose;
-            }
-            projectAdd += projectClose;
+                // Check if this library has a known key (to lazy to auto generate at this time)
+                if (keys.find(name) == keys.end()) {
+                    outputError("Unknown library. Could not determine solution key (" + name + ")");
+                    return false;
+                }
+                // Add the library to the solution
+                string projectAdd = project;
+                projectAdd += solutionKey;
+                projectAdd += project2;
+                projectAdd += name;
+                projectAdd += project3;
+                projectAdd += name;
+                projectAdd += project4;
+                projectAdd += keys[name];
+                projectAdd += projectEnd;
 
-            // Insert into solution string
-            solutionFile.insert(pos, projectAdd);
-            pos += projectAdd.length();
+                // Add the key to the used key list
+                addedKeys.emplace_back(keys[name], winrt);
+
+                // Add the dependencies
+                if (i.second.size() > 0) {
+                    projectAdd += depend;
+                    for (auto& j : i.second) {
+                        string name2 = j;
+                        if (winrt) {
+                            name2 += "_winrt";
+                        }
+                        // Check if this library has a known key
+                        if (keys.find(name2) == keys.end()) {
+                            outputError("Unknown library dependency. Could not determine solution key (" + name2 + ")");
+                            return false;
+                        }
+                        projectAdd += subDepend;
+                        projectAdd += keys[name2];
+                        projectAdd += subDepend2;
+                        projectAdd += keys[name2];
+                        projectAdd += subDependEnd;
+                    }
+                    projectAdd += dependClose;
+                }
+                projectAdd += projectClose;
+
+                // Insert into solution string
+                solutionFile.insert(pos, projectAdd);
+                pos += projectAdd.length();
+            }
         }
     }
 
-    // Next add the projects
+    // Next add the programs
     string projectAdd;
     vector<string> addedPrograms;
     for (const auto& i : programList) {
@@ -541,9 +576,6 @@ bool ProjectGenerator::outputSolution()
         solutionFile.insert(pos, projectAdd);
     }
 
-    // Check if winrt builds are enabled
-    bool addWinrt = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
-
     // Next Add the solution configurations
     string configStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
     pos = solutionFile.find(configStart) + configStart.length();
@@ -552,6 +584,10 @@ bool ProjectGenerator::outputSolution()
     string configPlatform3 = "|";
     string buildConfigs[10] = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL",
         "ReleaseDLLStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
+    string buildConfigsNoWinRT[10] = {"Debug", "DebugDLL", "DebugDLL", "Debug", "Release", "ReleaseDLL",
+        "ReleaseDLLStaticDeps", "ReleaseDLL", "ReleaseDLLStaticDeps", "Release"};
+    string buildConfigsWinRT[10] = {"DebugWinRT", "DebugDLLWinRT", "DebugDLLWinRT", "DebugWinRT", "ReleaseWinRT",
+        "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
     string buildArchsSol[2] = {"x86", "x64"};
     string buildArchs[2] = {"Win32", "x64"};
     string buildTypes[2] = {".ActiveCfg = ", ".Build.0 = "};
@@ -559,21 +595,22 @@ bool ProjectGenerator::outputSolution()
     // Add the lib keys
     for (const auto& i : addedKeys) {
         // loop over build configs
-        for (uint j = 0; j < 7; j++) {
-            // Skip winrt configs if not enabled
-            if ((buildConfigs[j].find("WinRT") == string::npos) || addWinrt) {
-                // loop over build archs
-                for (uint k = 0; k < 2; k++) {
-                    // loop over build types
-                    for (const auto& aBuildType : buildTypes) {
+        for (uint j = 0; j < sizeof(buildConfigs) / sizeof(buildConfigs[0]); j++) {
+            // loop over build archs
+            for (uint k = 0; k < sizeof(buildArchsSol) / sizeof(buildArchsSol[0]); k++) {
+                // loop over build types
+                for (uint l = 0; l < sizeof(buildTypes) / sizeof(buildTypes[0]); l++) {
+                    auto config = !i.second ? buildConfigsNoWinRT[j] : buildConfigsWinRT[j];
+                    // Don't build if project config doesn't match solution config
+                    if (l == 0 || buildConfigs[j] == config) {
                         addPlatform += configPlatform;
-                        addPlatform += i;
+                        addPlatform += i.first;
                         addPlatform += configPlatform2;
                         addPlatform += buildConfigs[j];
                         addPlatform += configPlatform3;
                         addPlatform += buildArchsSol[k];
-                        addPlatform += aBuildType;
-                        addPlatform += buildConfigs[j];
+                        addPlatform += buildTypes[l];
+                        addPlatform += config;
                         addPlatform += configPlatform3;
                         addPlatform += buildArchs[k];
                     }
@@ -586,41 +623,24 @@ bool ProjectGenerator::outputSolution()
     for (const auto& i : addedPrograms) {
         // Loop over build configs
         for (uint j = 0; j < sizeof(buildConfigs) / sizeof(buildConfigs[0]); j++) {
-            // Skip winrt configs if not enabled
-            if ((buildConfigs[j].find("WinRT") == string::npos) || addWinrt) {
-                // Loop over build archs
-                for (uint k = 0; k < sizeof(buildArchsSol) / sizeof(buildArchsSol[0]); k++) {
-                    // Loop over build types
-                    for (uint m = 0; m < sizeof(buildTypes) / sizeof(buildTypes[0]); m++) {
-                        if ((m == 1) && (j != 4)) {
-                            // We dont build programs by default except for Release config
-                            continue;
-                        }
-                        addPlatform += configPlatform;
-                        addPlatform += i;
-                        addPlatform += configPlatform2;
-                        addPlatform += buildConfigs[j];
-                        addPlatform += configPlatform3;
-                        addPlatform += buildArchsSol[k];
-                        addPlatform += buildTypes[m];
-                        if (j == 2) {
-                            addPlatform += buildConfigs[1];
-                        } else if (j == 3) {
-                            addPlatform += buildConfigs[0];
-                        } else if (j == 6) {
-                            addPlatform += buildConfigs[5];
-                        } else if (j == 7) {
-                            addPlatform += buildConfigs[5];
-                        } else if (j == 8) {
-                            addPlatform += buildConfigs[5];
-                        } else if (j == 9) {
-                            addPlatform += buildConfigs[4];
-                        } else {
-                            addPlatform += buildConfigs[j];
-                        }
-                        addPlatform += configPlatform3;
-                        addPlatform += buildArchs[k];
+            // Loop over build archs
+            for (uint k = 0; k < sizeof(buildArchsSol) / sizeof(buildArchsSol[0]); k++) {
+                // Loop over build types
+                for (uint m = 0; m < sizeof(buildTypes) / sizeof(buildTypes[0]); m++) {
+                    if ((m == 1) && (j != 4)) {
+                        // We don't build programs by default except for Release config
+                        continue;
                     }
+                    addPlatform += configPlatform;
+                    addPlatform += i;
+                    addPlatform += configPlatform2;
+                    addPlatform += buildConfigs[j];
+                    addPlatform += configPlatform3;
+                    addPlatform += buildArchsSol[k];
+                    addPlatform += buildTypes[m];
+                    addPlatform += buildConfigsNoWinRT[j == 6 || j == 8 ? 5 : j];
+                    addPlatform += configPlatform3;
+                    addPlatform += buildArchs[k];
                 }
             }
         }
@@ -681,7 +701,7 @@ bool ProjectGenerator::outputSolution()
     return true;
 }
 
-void ProjectGenerator::outputTemplateTags(string& projectTemplate, string& filtersTemplate) const
+void ProjectGenerator::outputTemplateTags(string& projectTemplate) const
 {
     // Change all occurrences of template_in with project name
     const string searchTag = "template_in";
@@ -692,162 +712,26 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, string& filte
         // Get next
         findPos = projectTemplate.find(searchTag, findPos + 1);
     }
-    uint findPosFilt = filtersTemplate.find(searchTag);
-    while (findPosFilt != string::npos) {
-        // Replace
-        filtersTemplate.replace(findPosFilt, searchTag.length(), m_projectName);
-        // Get next
-        findPosFilt = filtersTemplate.find(searchTag, findPosFilt + 1);
-    }
 
     // Change all occurrences of template_shin with short project name
     const string shortSearchTag = "template_shin";
     findPos = projectTemplate.find(shortSearchTag);
-    string projectNameShort = m_projectName.substr(3); // The full name minus the lib prefix
+    const string projectNameShort = m_projectName.substr(3); // The full name minus the lib prefix
     while (findPos != string::npos) {
         // Replace
         projectTemplate.replace(findPos, shortSearchTag.length(), projectNameShort);
         // Get next
         findPos = projectTemplate.find(shortSearchTag, findPos + 1);
     }
-    findPosFilt = filtersTemplate.find(shortSearchTag);
-    while (findPosFilt != string::npos) {
-        // Replace
-        filtersTemplate.replace(findPosFilt, shortSearchTag.length(), projectNameShort);
-        // Get next
-        findPosFilt = filtersTemplate.find(shortSearchTag, findPosFilt + 1);
-    }
-
-    // Change all occurrences of template_platform with specified project toolchain
-    string toolchain = "<PlatformToolset Condition=\"'$(VisualStudioVersion)'=='12.0'\">v120</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='14.0'\">v140</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='15.0'\">v141</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='16.0'\">v142</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(VisualStudioVersion)'=='17.0'\">v143</PlatformToolset>";
-    if (m_configHelper.m_toolchain.compare("msvc") != 0) {
-        toolchain +=
-            "\r\n    <PlatformToolset Condition=\"'$(ICPP_COMPILER13)'!=''\">Intel C++ Compiler XE 13.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER14)'!=''\">Intel C++ Compiler XE 14.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER15)'!=''\">Intel C++ Compiler XE 15.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER16)'!=''\">Intel C++ Compiler 16.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER17)'!=''\">Intel C++ Compiler 17.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER18)'!=''\">Intel C++ Compiler 18.0</PlatformToolset>\r\n\
-    <PlatformToolset Condition=\"'$(ICPP_COMPILER19)'!=''\">Intel C++ Compiler 19.0</PlatformToolset>";
-    }
-
-    const string platformSearch = "<PlatformToolset>template_platform</PlatformToolset>";
-    findPos = projectTemplate.find(platformSearch);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, platformSearch.length(), toolchain);
-        // Get next
-        findPos = projectTemplate.find(platformSearch, findPos + platformSearch.length());
-    }
 
     // Set the project key
-    string projectGuid = "<ProjectGuid>{";
+    const string projectGuid = "<ProjectGuid>{";
     findPos = projectTemplate.find(projectGuid);
     if (findPos != string::npos) {
         map<string, string> keys;
         buildProjectGUIDs(keys);
         findPos += projectGuid.length();
         projectTemplate.replace(findPos, keys[m_projectName].length(), keys[m_projectName]);
-    }
-
-    // Change all occurrences of template_outdir with configured output directory
-    string outDir = m_configHelper.m_outDirectory;
-    replace(outDir.begin(), outDir.end(), '/', '\\');
-    if (outDir.at(0) == '.') {
-        outDir = "$(ProjectDir)" + outDir; // Make any relative paths based on project dir
-    }
-    const string outSearchTag = "template_outdir";
-    findPos = projectTemplate.find(outSearchTag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, outSearchTag.length(), outDir);
-        // Get next
-        findPos = projectTemplate.find(outSearchTag, findPos + 1);
-    }
-
-    // Change all occurrences of template_rootdir with configured output directory
-    string rootDir = m_configHelper.m_rootDirectory;
-    m_configHelper.makeFileProjectRelative(rootDir, rootDir);
-    replace(rootDir.begin(), rootDir.end(), '/', '\\');
-    const string rootSearchTag = "template_rootdir";
-    findPos = projectTemplate.find(rootSearchTag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, rootSearchTag.length(), rootDir);
-        // Get next
-        findPos = projectTemplate.find(rootSearchTag, findPos + 1);
-    }
-
-    // Change all occurrences of template_winver
-    uint major, minor;
-    if (!m_configHelper.getMinWindowsVersion(major, minor)) {
-        outputWarning("Could not detect a supported Windows version. Defaults of WinXP will be used instead.");
-        major = 5;
-        minor = 1;
-    }
-    string subsystemVer32 = to_string(major);
-    subsystemVer32 += '.';
-    subsystemVer32 += to_string(minor);
-    // Create 64bit version which must have min of Vista 6.0
-    string subsystemVer64;
-    if (major < 6) {
-        subsystemVer64 = "6.0";
-    } else {
-        subsystemVer64 = subsystemVer32;
-    }
-    const string winver32Tag = "template_winver32";
-    findPos = projectTemplate.find(winver32Tag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, winver32Tag.length(), subsystemVer32);
-        // Get next
-        findPos = projectTemplate.find(winver32Tag, findPos + 1);
-    }
-    const string winver64Tag = "template_winver64";
-    findPos = projectTemplate.find(winver64Tag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, winver64Tag.length(), subsystemVer64);
-        // Get next
-        findPos = projectTemplate.find(winver64Tag, findPos + 1);
-    }
-
-    // Change all occurrences of template_winnt
-    string winNtVer, winNtVer32 = "0x";
-    stringstream ss;
-    ss << std::setfill('0') << std::setw(sizeof(char) * 2) << std::hex << major;
-    ss >> winNtVer;
-    ss.clear();
-    winNtVer32 += winNtVer;
-    ss << std::setfill('0') << std::setw(sizeof(char) * 2) << std::hex << minor;
-    ss >> winNtVer;
-    ss.clear();
-    winNtVer32 += winNtVer;
-    string winNtVer64;
-    if (major < 6) {
-        winNtVer64 = "0x0600";
-    } else {
-        winNtVer64 = winNtVer32;
-    }
-    const string winnt32Tag = "template_winnt32";
-    findPos = projectTemplate.find(winnt32Tag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, winnt32Tag.length(), winNtVer32);
-        // Get next
-        findPos = projectTemplate.find(winnt32Tag, findPos + 1);
-    }
-    const string winnt64Tag = "template_winnt64";
-    findPos = projectTemplate.find(winnt64Tag);
-    while (findPos != string::npos) {
-        // Replace
-        projectTemplate.replace(findPos, winnt64Tag.length(), winNtVer64);
-        // Get next
-        findPos = projectTemplate.find(winnt64Tag, findPos + 1);
     }
 }
 
@@ -926,9 +810,6 @@ void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& 
                 } else {
                     buildConfig = buildConfigsStatic;
                     configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
-                }
-                if (!m_configHelper.isConfigOptionEnabled("WINRT") && !m_configHelper.isConfigOptionEnabled("UWP")) {
-                    configs /= 2;
                 }
                 for (uint j = 0; j < configs; j++) {
                     typeFilesTemp += excludeConfig;
@@ -1345,20 +1226,20 @@ mkdir \"$(OutDir)\"\\include\\";
     transform(licenseName.begin(), licenseName.end(), licenseName.begin(), tolower);
     const string licenseEnd = " \"$(OutDir)\"\\licenses\\" + licenseName + ".txt";
     const string prebuild = "\r\n    <PreBuildEvent>\r\n\
-      <Command>if exist template_rootdirconfig.h (\r\n\
-del template_rootdirconfig.h\r\n\
+      <Command>if exist ..\\config.h (\r\n\
+del ..\\config.h\r\n\
 )\r\n\
-if exist template_rootdirversion.h (\r\n\
-del template_rootdirversion.h\r\n\
+if exist ..\\version.h (\r\n\
+del ..\\version.h\r\n\
 )\r\n\
-if exist template_rootdirconfig.asm (\r\n\
-del template_rootdirconfig.asm\r\n\
+if exist ..\\config.asm (\r\n\
+del ..\\config.asm\r\n\
 )\r\n\
-if exist template_rootdirlibavutil\\avconfig.h (\r\n\
-del template_rootdirlibavutil\\avconfig.h\r\n\
+if exist ..\\libavutil\\avconfig.h (\r\n\
+del ..\\libavutil\\avconfig.h\r\n\
 )\r\n\
-if exist template_rootdirlibavutil\\ffversion.h (\r\n\
-del template_rootdirlibavutil\\ffversion.h\r\n\
+if exist ..\\libavutil\\ffversion.h (\r\n\
+del ..\\libavutil\\ffversion.h\r\n\
 )";
     const string prebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_projectName + " (\r\n\
 rd /s /q \"$(OutDir)\"\\include\\" +
@@ -1370,16 +1251,16 @@ cd $(ProjectDir)\r\n\
     // Get the correct license file
     string licenseFile;
     if (m_configHelper.isConfigOptionEnabled("nonfree")) {
-        licenseFile = "template_rootdirCOPYING.GPLv3"; // Technically this has no license as it is unredistributable
-                                                       // but we get the closest thing for now
+        licenseFile = "..\\COPYING.GPLv3"; // Technically this has no license as it is unredistributable
+                                           // but we get the closest thing for now
     } else if (m_configHelper.isConfigOptionEnabled("gplv3")) {
-        licenseFile = "template_rootdirCOPYING.GPLv3";
+        licenseFile = "..\\COPYING.GPLv3";
     } else if (m_configHelper.isConfigOptionEnabled("lgplv3")) {
-        licenseFile = "template_rootdirCOPYING.LGPLv3";
+        licenseFile = "..\\COPYING.LGPLv3";
     } else if (m_configHelper.isConfigOptionEnabled("gpl")) {
-        licenseFile = "template_rootdirCOPYING.GPLv2";
+        licenseFile = "..\\COPYING.GPLv2";
     } else {
-        licenseFile = "template_rootdirCOPYING.LGPLv2.1";
+        licenseFile = "..\\COPYING.LGPLv2.1";
     }
     // Generate the pre build and post build string
     string additional;
@@ -1426,21 +1307,32 @@ cd $(ProjectDir)\r\n\
 void ProjectGenerator::outputIncludeDirs(const StaticList& includeDirs, string& projectTemplate)
 {
     if (!includeDirs.empty()) {
-        string addInclude;
+        // Check if already an AdditionalIncludeDirectories tag
+        string search = "<ClCompile>";
+        uint findPos = projectTemplate.find(search);
+        const uint findPos2 = projectTemplate.find("</ClCompile>", findPos + search.length());
+        bool existing = false;
+        if (projectTemplate.find("<AdditionalIncludeDirectories>", findPos + search.length()) < findPos2) {
+            search = "<AdditionalIncludeDirectories>";
+            existing = true;
+        }
+
+        string addInclude = !existing ? "\r\n      <AdditionalIncludeDirectories>" : "";
         for (const auto& i : includeDirs) {
             addInclude += i + ";";
         }
         replace(addInclude.begin(), addInclude.end(), '/', '\\');
-        const string addIncludeDir = "<AdditionalIncludeDirectories>";
-        uint findPos = projectTemplate.find(addIncludeDir);
+        if (!existing) {
+            addInclude += "%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>";
+        }
+        findPos = projectTemplate.find(search);
         while (findPos != string::npos) {
             // Add to output
-            findPos += addIncludeDir.length(); // Must be added first so that it is before $(IncludePath) as
-                                               // otherwise there are errors
+            findPos += search.length();
             projectTemplate.insert(findPos, addInclude);
             findPos += addInclude.length();
             // Get next
-            findPos = projectTemplate.find(addIncludeDir, findPos + 1);
+            findPos = projectTemplate.find(search, findPos + 1);
         }
     }
 }
@@ -1450,6 +1342,9 @@ void ProjectGenerator::outputLibDirs(const StaticList& lib32Dirs, const StaticLi
     if ((!lib32Dirs.empty()) || (!lib64Dirs.empty())) {
         // Add additional lib includes to include list based on current config
         string addLibs[2];
+        for (auto& i : addLibs) {
+            i = "\r\n      <AdditionalLibraryDirectories>";
+        }
         for (const auto& i : lib32Dirs) {
             addLibs[0] += i + ";";
         }
@@ -1458,17 +1353,22 @@ void ProjectGenerator::outputLibDirs(const StaticList& lib32Dirs, const StaticLi
         }
         replace(addLibs[0].begin(), addLibs[0].end(), '/', '\\');
         replace(addLibs[1].begin(), addLibs[1].end(), '/', '\\');
-        const string addLibDir = "<AdditionalLibraryDirectories>";
-        uint arch32Or64 = 0; // start with 32 (assumes projects are ordered 32 then 64 recursive)
-        uint findPos = projectTemplate.find(addLibDir);
-        while (findPos != string::npos) {
-            // Add to output
-            findPos += addLibDir.length();
-            projectTemplate.insert(findPos, addLibs[arch32Or64]);
-            findPos += addLibs[arch32Or64].length();
-            // Get next
-            findPos = projectTemplate.find(addLibDir, findPos + 1);
-            arch32Or64 = !arch32Or64;
+        for (auto& i : addLibs) {
+            i += "%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>";
+        }
+        const string search[] = {"<Link>", "<Lib>"};
+        for (uint i = 0; i < 1; ++i) {
+            uint arch32Or64 = 0; // start with 32 (assumes projects are ordered 32 then 64 recursive)
+            uint findPos = projectTemplate.find(search[i]);
+            while (findPos != string::npos) {
+                // Add to output
+                findPos += search[i].length();
+                projectTemplate.insert(findPos, addLibs[arch32Or64]);
+                findPos += addLibs[arch32Or64].length();
+                // Get next
+                findPos = projectTemplate.find(search[i], findPos + 1);
+                arch32Or64 = !arch32Or64;
+            }
         }
     }
 }
@@ -1485,17 +1385,15 @@ void ProjectGenerator::outputDefines(
             defines2Static += i + ";";
         }
         // libraries:
-        // Debug, DebugWinRT x2 (0-7), DebugDLL,DebugDLLWinRT x2 (8-15), Release, ReleaseWinRT x2, ReleaseDLL,
-        // ReleaseDLLWinRT x2, ReleaseDLLStaticDeps, ReleaseDLLWinRTStaticDeps x2
+        // Debug, DebugDLL, Release, ReleaseDLL,
+        // ReleaseDLLStaticDeps
         // Libraries have 2 PreprocessorDefinitions for each configuration due to NASM section
         // programs:
         // Debug x2, DebugDLL x2, Release x2, ReleaseDLL x2
         const string addDefines = "<PreprocessorDefinitions>";
         uint findPos = projectTemplate.find(addDefines);
         uint count = 0;
-        const bool addWinrt =
-            m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
-        const uint check = (!program) ? (addWinrt ? 8 : 4) : 2;
+        const uint check = (!program) ? 4 : 2;
         while (findPos != string::npos) {
             // Add to output
             findPos += addDefines.length();
@@ -1518,11 +1416,11 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     if (m_configHelper.isASMEnabled() && (m_includesASM.size() > 0)) {
         string definesASM = "\r\n\
     <NASM>\r\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\$(ProjectName)\\x86;%(IncludePaths)</IncludePaths>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\..\\;$(ProjectDir)\\..\\template_in\\x86;%(IncludePaths)</IncludePaths>\r\n\
       <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
       <GenerateDebugInformation>false</GenerateDebugInformation>\r\n\
     </NASM>";
-        string propeASM = "\r\n\
+        string propsASM = "\r\n\
   <ImportGroup Label=\"ExtensionSettings\">\r\n\
     <Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\nasm.props\" />\r\n\
   </ImportGroup>";
@@ -1537,11 +1435,11 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
                 definesASM.replace(n, 4, "YASM");
                 n += 4;
             }
-            propeASM.replace(propeASM.find("nasm"), 4, "yasm");
+            propsASM.replace(propsASM.find("nasm"), 4, "yasm");
             targetsASM.replace(targetsASM.find("nasm"), 4, "yasm");
         }
-        const string findProps = R"(<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />)";
-        const string findTargets = R"(<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />)";
+        const string findProps = R"(</ImportGroup>)";
+        const string findTargets = R"(</ItemDefinitionGroup>)";
 
         // Add NASM defines
         const string endPreBuild = "</PreBuildEvent>";
@@ -1555,12 +1453,12 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
             findPos = projectTemplate.find(endPreBuild, findPos + 1);
         }
 
-        // Add NASM build customisation
+        // Add asm build customisation
         findPos = projectTemplate.find(findProps) + findProps.length();
-        // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> add asm props
-        projectTemplate.insert(findPos, propeASM);
-        findPos = projectTemplate.find(findTargets) + findTargets.length();
-        // After <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> add asm target
+        // Add asm props
+        projectTemplate.insert(findPos, propsASM);
+        findPos = projectTemplate.rfind(findTargets) + findTargets.length();
+        // Add asm target
         projectTemplate.insert(findPos, targetsASM);
     }
 }
@@ -1572,7 +1470,7 @@ void ProjectGenerator::outputCUDATools(string& projectTemplate) const
     }
 }
 
-bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool program)
+bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool winrt, const bool program)
 {
     // Check current libs list for valid lib names
     for (auto& i : m_libs) {
@@ -1585,61 +1483,33 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
     // Add additional dependencies based on current config to Libs list
     buildInterDependencies(m_libs);
     m_projectLibs[m_projectName] = m_libs; // Backup up current libs for solution
-    StaticList addLibs;
-    buildDependencies(m_libs, addLibs);
-    StaticList libsWinRT;
-    StaticList addLibsWinRT;
-    for (auto vitLib = m_libs.begin() + m_projectLibs[m_projectName].size(); vitLib < m_libs.end(); ++vitLib) {
-        libsWinRT.push_back(*vitLib);
-    }
-    buildDependenciesWinRT(libsWinRT, addLibsWinRT);
+    StaticList addLibs, libs = m_libs;
+    buildDependencies(libs, addLibs, winrt);
 
-    if ((m_libs.size() > 0) || (addLibs.size() > 0)) {
+    if ((libs.size() > 0) || (addLibs.size() > 0)) {
         // Create list of additional ffmpeg dependencies
         string addFFmpegLibs[4]; // debug, release, debugDll, releaseDll
         for (const auto& i : m_projectLibs[m_projectName]) {
             addFFmpegLibs[0] += i;
-            addFFmpegLibs[0] += "d.lib;";
+            addFFmpegLibs[0] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addFFmpegLibs[1] += i;
-            addFFmpegLibs[1] += ".lib;";
+            addFFmpegLibs[1] += (!winrt) ? ".lib;" : "_winrt.lib;";
             addFFmpegLibs[2] += i.substr(3);
-            addFFmpegLibs[2] += "d.lib;";
+            addFFmpegLibs[2] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addFFmpegLibs[3] += i.substr(3);
-            addFFmpegLibs[3] += ".lib;";
-        }
-        string addFFmpegLibsWinRT[4]; // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
-        for (const auto& i : m_projectLibs[m_projectName]) {
-            addFFmpegLibsWinRT[0] += i;
-            addFFmpegLibsWinRT[0] += "d_winrt.lib;";
-            addFFmpegLibsWinRT[1] += i;
-            addFFmpegLibsWinRT[1] += "_winrt.lib;";
-            addFFmpegLibsWinRT[2] += i.substr(3);
-            addFFmpegLibsWinRT[2] += "d_winrt.lib;";
-            addFFmpegLibsWinRT[3] += i.substr(3);
-            addFFmpegLibsWinRT[3] += "_winrt.lib;";
+            addFFmpegLibs[3] += (!winrt) ? ".lib;" : "_winrt.lib;";
         }
         // Create List of additional dependencies
         string addDeps[4]; // debug, release, debugDll, releaseDll
-        for (auto i = m_libs.begin() + m_projectLibs[m_projectName].size(); i < m_libs.end(); ++i) {
+        for (auto i = libs.begin() + m_projectLibs[m_projectName].size(); i < libs.end(); ++i) {
             addDeps[0] += *i;
-            addDeps[0] += "d.lib;";
+            addDeps[0] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addDeps[1] += *i;
-            addDeps[1] += ".lib;";
+            addDeps[1] += (!winrt) ? ".lib;" : "_winrt.lib;";
             addDeps[2] += i->substr(3);
-            addDeps[2] += "d.lib;";
+            addDeps[2] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addDeps[3] += i->substr(3);
-            addDeps[3] += ".lib;";
-        }
-        string addDepsWinRT[4]; // debugWinRT, releaseWinRT, debugDllWinRT, releaseDllWinRT
-        for (const auto& i : libsWinRT) {
-            addDepsWinRT[0] += i;
-            addDepsWinRT[0] += "d_winrt.lib;";
-            addDepsWinRT[1] += i;
-            addDepsWinRT[1] += "_winrt.lib;";
-            addDepsWinRT[2] += i.substr(3);
-            addDepsWinRT[2] += "d_winrt.lib;";
-            addDepsWinRT[3] += i.substr(3);
-            addDepsWinRT[3] += "_winrt.lib;";
+            addDeps[3] += (!winrt) ? ".lib;" : "_winrt.lib;";
         }
         // Create List of additional external dependencies
         string addExternDeps;
@@ -1647,29 +1517,21 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
             addExternDeps += i;
             addExternDeps += ".lib;";
         }
-        string addExternDepsWinRT;
-        for (const auto& i : addLibsWinRT) {
-            addExternDepsWinRT += i;
-            addExternDepsWinRT += ".lib;";
-        }
-        // Check if winrt builds are enabled
-        bool addWinrt = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
         // Add to Additional Dependencies
-        string libLink2[2] = {"<Link>", "<Lib>"};
+        const string libLink2[2] = {"<Link>", "<Lib>"};
         for (uint linkLib = 0; linkLib < (!program ? 2 : 1); linkLib++) {
             // loop over each debug/release sequence
-            uint findPos = projectTemplate.find(libLink2[linkLib]);
+            uint findPos = 0;
             for (uint debugRelease = 0; debugRelease < 2; debugRelease++) {
-                uint max = !program ? (((debugRelease == 1) && (linkLib == 0)) ? 2 : 1) : 2;
+                const uint max = !program ? (((debugRelease == 1) && (linkLib == 0)) ? 2 : 1) : 2;
                 // Libs have:
                 // link:
-                //  DebugDLL|Win32, DebugDLLWinRT|Win32, DebugDLL|x64, DebugDLLWinRT|x64,
-                //  ReleaseDLL|Win32, ReleaseDLLWinRT|Win32, ReleaseDLL|x64, ReleaseDLLWinRT|x64,
-                //  ReleaseDLLStaticDeps|Win32, ReleaseDLLWinRTStaticDeps|Win32, ReleaseDLLStaticDeps|x64,
-                //  ReleaseDLLWinRTStaticDeps|x64
+                //  DebugDLL|Win32, DebugDLL|x64,
+                //  ReleaseDLL|Win32, ReleaseDLL|x64,
+                //  ReleaseDLLStaticDeps|Win32, ReleaseDLLStaticDeps|x64
                 // lib:
-                //  Debug32, DebugWinRT|Win32, Debug|x64, DebugWinRT|x64,
-                //  Release|Win32, ReleaseWinRT|Win32, Release|x64, ReleaseWinRT|x64,
+                //  Debug32, Debug|x64,
+                //  Release|Win32, Release|x64,
                 // Programs have:
                 // link:
                 //  Debug32, Debug|x64,
@@ -1679,113 +1541,41 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, bool progra
                 for (uint conf = 0; conf < max; conf++) {
                     // Loop over x32/x64
                     for (uint arch = 0; arch < 2; arch++) {
-                        // Loop over any WinRT configs
-                        for (uint win = 0; win < ((!program && addWinrt) ? 2 : 1); win++) {
-                            findPos = projectTemplate.find("%(AdditionalDependencies)", findPos);
-                            if (findPos == string::npos) {
-                                outputError("Failed finding %(AdditionalDependencies) in template.");
-                                return false;
-                            }
-                            // Add in ffmpeg inter-dependencies
-                            uint addIndex = debugRelease;
-                            if ((linkLib == 0) && (!program || (conf % 2 != 0))) {
-                                // Use DLL libs
-                                addIndex += 2;
-                            }
-                            string addString;
-                            // If the dependency is actually for one of the ffmpeg libs then we can ignore it in
-                            // static linking mode as this just causes unnecessary code bloat
-                            if (linkLib == 0) {
-                                if (win == 0) {
-                                    addString = addFFmpegLibs[addIndex];
-                                } else {
-                                    addString = addFFmpegLibsWinRT[addIndex];
-                                }
-                            }
-                            // Add in normal dependencies
-                            addIndex = debugRelease;
-                            if ((linkLib == 0) && (((!program) && (conf < 1)) || (program && (conf % 2 != 0)))) {
-                                // Use DLL libs
-                                addIndex += 2;
-                            }
-                            if (win == 0) {
-                                addString += addDeps[addIndex];
-                                addString += addExternDeps;
-                            } else {
-                                addString += addDepsWinRT[addIndex];
-                                addString += addExternDepsWinRT;
-                            }
-                            projectTemplate.insert(findPos, addString);
-                            findPos += addString.length();
-                            // Get next
-                            findPos = projectTemplate.find(libLink2[linkLib], findPos + 1);
+                        findPos = projectTemplate.find(libLink2[linkLib], findPos);
+                        if (findPos == string::npos) {
+                            outputError("Failed finding " + libLink2[linkLib] + " in template.");
+                            return false;
                         }
+                        findPos += libLink2[linkLib].length();
+                        // Add in ffmpeg inter-dependencies
+                        uint addIndex = debugRelease;
+                        if ((linkLib == 0) && (!program || (conf % 2 != 0))) {
+                            // Use DLL libs
+                            addIndex += 2;
+                        }
+                        string addString = "\r\n      <AdditionalDependencies>";
+                        // If the dependency is actually for one of the ffmpeg libs then we can ignore it in
+                        // static linking mode as this just causes unnecessary code bloat
+                        if (linkLib == 0) {
+                            addString += addFFmpegLibs[addIndex];
+                        }
+                        // Add in normal dependencies
+                        addIndex = debugRelease;
+                        if ((linkLib == 0) && (((!program) && (conf < 1)) || (program && (conf % 2 != 0)))) {
+                            // Use DLL libs
+                            addIndex += 2;
+                        }
+                        addString += addDeps[addIndex];
+                        addString += addExternDeps;
+                        addString += "%(AdditionalDependencies)</AdditionalDependencies>";
+                        projectTemplate.insert(findPos, addString);
+                        findPos += addString.length();
+                        // Get next
+                        findPos = projectTemplate.find(libLink2[linkLib], findPos + 1);
                     }
                 }
             }
         }
     }
     return true;
-}
-
-void ProjectGenerator::outputStripWinRT(string& projectTemplate)
-{
-    // Search through template for all instances of WinRT
-    const string search = "WinRT";
-    uint found = projectTemplate.find(search);
-    while (found != string::npos) {
-        // Skip erroneous detections
-        if (projectTemplate[found + search.length()] == '>') {
-            // Find next occurence
-            found = projectTemplate.find(search, found + 1);
-            continue;
-        }
-        // Backward search for start of section
-        uint startPos = projectTemplate.rfind('<', found);
-        startPos = projectTemplate.find_last_of(g_endLine, startPos - 1) + 1;
-        // Loop from start until we find the end tag for that section
-        uint sectionCount = 1;
-        uint endPos = found;
-        while (true) {
-            endPos = projectTemplate.find_first_of("</", endPos + 1);
-            if (projectTemplate[endPos] == '<') {
-                ++sectionCount;
-            } else {
-                if (projectTemplate[endPos + 1] == '>') {
-                    --sectionCount;
-                } else if (projectTemplate[endPos - 1] == '<') {
-                    sectionCount -= 2;
-                }
-                if (sectionCount == 0) {
-                    // Move to end of closing tag
-                    endPos = projectTemplate.find('>', endPos + 1);
-                    break;
-                }
-            }
-        }
-        // Remove the found section
-        projectTemplate.erase(startPos, endPos - startPos + 1);
-        // Cleanup any left over empty lines
-        while (g_endLine.find(projectTemplate[startPos]) != string::npos) {
-            projectTemplate.erase(startPos, 1);
-        }
-        // Find next occurence
-        found = projectTemplate.find(search, startPos);
-    }
-}
-
-void ProjectGenerator::outputStripWinRTSolution(string& solutionFile)
-{
-    // Search through template for all instances of WinRT
-    const string search = "WinRT";
-    uint found = solutionFile.find(search);
-    while (found != string::npos) {
-        // Remove the entire line
-        const uint start = solutionFile.find_last_of(g_endLine, found - 1);
-        const uint end = solutionFile.find_first_of(g_endLine, start + 1);
-        solutionFile.erase(start, end - start + 1);
-
-        // Find next occurence
-        found = solutionFile.find(search, found);
-    }
 }

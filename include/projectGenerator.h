@@ -237,17 +237,16 @@ private:
 
     void buildInterDependencies(StaticList& libs);
 
-    void buildDependencies(StaticList& libs, StaticList& addLibs);
-
     /**
-     * Updates existing library dependency lists by adding/removing those required/unavailable by WinRT.
+     * Gets library dependency lists.
      * @param [in,out] libs    The project dependency libs.
      * @param [in,out] addLibs The windows dependency libs.
+     * @param          winrt   True if checking for winrt.
      */
-    void buildDependenciesWinRT(StaticList& libs, StaticList& addLibs);
+    void buildDependencies(StaticList& libs, StaticList& addLibs, bool winrt);
 
     void buildDependencyValues(StaticList& includeDirs, StaticList& lib32Dirs, StaticList& lib64Dirs,
-        StaticList& definesShared, StaticList& definesStatic) const;
+        StaticList& definesShared, StaticList& definesStatic, bool winrt) const;
 
     void buildProjectDependencies(map<string, bool>& projectDeps) const;
 
@@ -278,7 +277,7 @@ private:
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
         StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const;
 
-    void outputTemplateTags(string& projectTemplate, string& filtersTemplate) const;
+    void outputTemplateTags(string& projectTemplate) const;
 
     void outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
         string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,
@@ -365,19 +364,7 @@ private:
      */
     void outputCUDATools(string& projectTemplate) const;
 
-    bool outputDependencyLibs(string& projectTemplate, bool program = false);
-
-    /**
-     * Removes any WinRT/UWP configurations from the output project template.
-     * @param [in,out] projectTemplate The project template.
-     */
-    static void outputStripWinRT(string& projectTemplate);
-
-    /**
-     * Removes any WinRT/UWP configurations from the output solution template.
-     * @param [in,out] solutionFile The solution template.
-     */
-    static void outputStripWinRTSolution(string& solutionFile);
+    bool outputDependencyLibs(string& projectTemplate, bool winrt, bool program);
 
     /**
      * Search through files in the current project and finds any undefined elements that are used in DCE blocks. A new

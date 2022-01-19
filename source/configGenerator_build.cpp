@@ -229,12 +229,12 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("struct_pollfd", true);
     fastToggleConfigValue("struct_sockaddr_in6", true);
     fastToggleConfigValue("struct_sockaddr_storage", true);
-    fastToggleConfigValue("unistd_h", true);
-    fastToggleConfigValue("uwp", false);
+    fastToggleConfigValue("unistd_h", false);
+    fastToggleConfigValue("uwp", true);
     fastToggleConfigValue("VirtualAlloc", true);
     fastToggleConfigValue("windows_h", true);
     fastToggleConfigValue("winsock2_h", true);
-    fastToggleConfigValue("winrt", false);
+    fastToggleConfigValue("winrt", true);
     fastToggleConfigValue("wglgetprocaddress", true);
 
     fastToggleConfigValue("aligned_stack", true);
@@ -951,8 +951,8 @@ void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
     reservedItems.emplace_back("small");
     reservedItems.emplace_back("lto");
     reservedItems.emplace_back("pic");
-    // reservedItems.emplace_back("uwp");
-    // reservedItems.emplace_back("winrt");
+    reservedItems.emplace_back("uwp");
+    reservedItems.emplace_back("winrt");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies)
