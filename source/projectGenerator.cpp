@@ -106,6 +106,8 @@ void ProjectGenerator::deleteCreatedFiles()
     findFiles(m_configHelper.m_solutionDirectory + "libav.sln", existingFiles, false);
     findFiles(m_configHelper.m_solutionDirectory + "ffmpeg_with_latest_sdk.bat", existingFiles, false);
     findFiles(m_configHelper.m_solutionDirectory + "libav_with_latest_sdk.bat", existingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "smp_deps.props", existingFiles, false);
+    findFiles(m_configHelper.m_solutionDirectory + "smp_winrt_deps.props", existingFiles, false);
     for (auto& i : libraries) {
         i = "lib" + i;
         findFiles(m_configHelper.m_solutionDirectory + i + ".vcxproj", existingFiles, false);
@@ -113,6 +115,7 @@ void ProjectGenerator::deleteCreatedFiles()
         findFiles(m_configHelper.m_solutionDirectory + i + "_winrt.vcxproj", existingFiles, false);
         findFiles(m_configHelper.m_solutionDirectory + i + "_winrt.vcxproj.filters", existingFiles, false);
         findFiles(m_configHelper.m_solutionDirectory + i + ".def", existingFiles, false);
+        findFiles(m_configHelper.m_solutionDirectory + i + "_files.props", existingFiles, false);
     }
     for (const auto& i : programs) {
         findFiles(m_configHelper.m_solutionDirectory + i + ".vcxproj", existingFiles, false);
