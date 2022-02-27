@@ -967,7 +967,10 @@ void ConfigGenerator::makeFileGeneratorRelative(const string& fileName, string& 
         path = fileName.substr(0, pos);
         file = fileName.substr(pos);
     }
-    makePathsRelative(m_solutionDirectory + path, "./", retFileName);
+    if (path != m_solutionDirectory) {
+        path = m_solutionDirectory + path;
+    }
+    makePathsRelative(path, "./", retFileName);
     // Check if relative to current dir
     if (retFileName.find("./") == 0) {
         retFileName = retFileName.substr(2);
