@@ -1162,6 +1162,10 @@ void ConfigGenerator::buildForcedEnables(const string& optionLower, vector<strin
         fastToggleConfigValue("uwp", true); // must use fastToggle to prevent infinite cycle
     } else if (optionLower == "uwp") {
         fastToggleConfigValue("winrt", true);
+    } else if (optionLower == "threads") {
+        CHECKFORCEDENABLES("w32threads");
+    } else if (optionLower == "w32threads") {
+        CHECKFORCEDENABLES("threads");
     }
 }
 
