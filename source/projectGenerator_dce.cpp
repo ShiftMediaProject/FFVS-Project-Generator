@@ -459,7 +459,13 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
             }
             outFile += function + " {";
             // Need to check return type
-            string return2 = function.substr(0, function.find_first_of(g_whiteSpace));
+            uint ret2 = function.find_first_of(g_whiteSpace);
+            string return2 = function.substr(0, ret2);
+            // Check if space before '*'
+            ret2 = function.find_first_not_of(g_whiteSpace, ret2 + 1);
+            if (function.at(ret2) == '*') {
+                return2 += '*';
+            }
             if (return2 == "void") {
                 outFile += "return;";
             } else if (return2 == "int") {
