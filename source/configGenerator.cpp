@@ -664,6 +664,15 @@ bool ConfigGenerator::passCurrentValues()
             return false;
         }
     }
+    // Check for any still unset values
+    option = m_configValues.begin();
+    for (; option < m_configValues.end(); ++option) {
+        // If still not set then disable
+        if (option->m_value.empty()) {
+            option->m_value = "0";
+        }
+    }
+
 #if defined(OPTIMISE_ENCODERS) || defined(OPTIMISE_DECODERS)
     // Optimise the config values. Based on user input different encoders/decoder can be disabled as there are now
     // better inbuilt alternatives
@@ -1597,6 +1606,10 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
         if (i.m_option == optionUpper) {
             ret = true;
             if (!i.m_lock) {
+                // Skip weak setting an already configured value
+                if (!!(weak && !i.m_value.empty())) {
+                    continue;
+                }
                 // Lock the item to prevent cyclic conditions
                 i.m_lock = true;
                 // Need to convert the name to lower case
@@ -2066,9 +2079,6 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
         // Perform a deep enable
         fastToggleConfigValue(optionLower, false);
         toggleConfigValue(optionLower, true);
-    } else {
-        // Ensure the option is not in an uninitialised state
-        toggleConfigValue(optionLower, false);
     }
     return true;
 }
