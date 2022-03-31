@@ -1001,6 +1001,7 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["parisc64"] = false;
     additionalDependencies["DXVA2_ConfigPictureDecode"] = true;
     additionalDependencies["snd_pcm_htimestamp"] = false;
+    additionalDependencies["stdatomic"] = false;
     additionalDependencies["va_va_h"] = false;
     additionalDependencies["vdpau_vdpau_h"] = false;
     additionalDependencies["vdpau_vdpau_x11_h"] = false;
