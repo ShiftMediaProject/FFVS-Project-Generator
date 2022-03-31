@@ -440,6 +440,11 @@ bool ConfigGenerator::buildForcedValues()
         fastToggleConfigValue("mcdeint_filter", false);
         fastToggleConfigValue("uspp_filter", false);
     }
+    // Forced enables
+    if (m_configureFile.find("enable frame_thread_encoder") != string::npos) {
+        fastToggleConfigValue("frame_thread_encoder", true);
+        fastToggleConfigValue("w32threads", true);
+    }
 
     return true;
 }
