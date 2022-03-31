@@ -303,7 +303,7 @@ bool ConfigGenerator::passExistingConfig()
         }
 
         // Update intern value
-        fastToggleConfigValue(option, enable);
+        toggleConfigValue(option, enable);
 
         // Get next
         pos = configH.find("#define ", pos2 + 1);
@@ -483,9 +483,9 @@ bool ConfigGenerator::changeConfig(const string& option)
                 outputError("Use --help to get available options", false);
                 return false;
             }
-            toggleConfigValue(option2, enable);
+            toggleConfigValue(option2, enable, false, true);
             // Enable parent list
-            fastToggleConfigValue(list + 's', true);
+            toggleConfigValue(list + 's', true);
         } else {
             // Check for changes to entire list
             if (option2 == "devices") {
@@ -495,7 +495,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
                 // Change OUTDEV_LIST
                 list.resize(0);
@@ -503,7 +503,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
             } else if (option2 == "programs") {
                 // Change PROGRAM_LIST
@@ -512,7 +512,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
             } else if (option2 == "everything") {
                 // Change ALL_COMPONENTS
@@ -521,7 +521,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
             } else if (option2 == "all") {
                 // Change ALL_COMPONENTS
@@ -530,7 +530,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
                 // Change LIBRARY_LIST
                 list.resize(0);
@@ -538,7 +538,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
                 // Change PROGRAM_LIST
                 list.resize(0);
@@ -546,9 +546,17 @@ bool ConfigGenerator::changeConfig(const string& option)
                     return false;
                 }
                 for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
+                    toggleConfigValue(i, enable, false, true);
                 }
             } else if (option2 == "autodetect") {
+                // Change AUTODETECT_LIBS
+                vector<string> list;
+                if (!getConfigList("AUTODETECT_LIBS", list)) {
+                    return false;
+                }
+                for (const auto& i : list) {
+                    toggleConfigValue(i, enable, true);
+                }
                 toggleConfigValue(option2, enable);
             } else {
                 // Check if the option is a component
@@ -562,7 +570,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
                     getConfigList(option3 + "_LIST", list);
                     for (const auto& i : list) {
-                        toggleConfigValue(i, enable);
+                        toggleConfigValue(i, enable, false, true);
                     }
                 } else {
                     // If not one of above components then check if it exists as standalone option
@@ -585,11 +593,11 @@ bool ConfigGenerator::changeConfig(const string& option)
                         transform(option3.begin(), option3.end(), option3.begin(), ::toupper);
                         getConfigList(option3 + "_LIST", list2);
                         for (const auto& j : list) {
-                            toggleConfigValue(j, enable);
+                            toggleConfigValue(j, enable, false, true);
                         }
                     }
                 }
-                toggleConfigValue(option2, enable);
+                toggleConfigValue(option2, enable, false, true);
             }
         }
     }
@@ -1591,7 +1599,8 @@ bool ConfigGenerator::fastToggleConfigValue(const string& option, const bool ena
     return bRet;
 }
 
-bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable, const bool weak, const bool recursive)
+bool ConfigGenerator::toggleConfigValue(
+    const string& option, const bool enable, const bool weak, const bool deep, const bool recursive)
 {
     string optionUpper = option; // Ensure it is in upper case
     transform(optionUpper.begin(), optionUpper.end(), optionUpper.begin(), ::toupper);
@@ -1612,20 +1621,22 @@ bool ConfigGenerator::toggleConfigValue(const string& option, const bool enable,
                 string optionLower = option;
                 transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
                 if (enable) {
-                    string checkFunc = optionLower + "_select";
-                    vector<string> checkList;
-                    if (getConfigList(checkFunc, checkList, false)) {
-                        for (const auto& j : checkList) {
-                            toggleConfigValue(j, true, weak, true);
+                    if (deep) {
+                        string checkFunc = optionLower + "_select";
+                        vector<string> checkList;
+                        if (getConfigList(checkFunc, checkList, false)) {
+                            for (const auto& j : checkList) {
+                                toggleConfigValue(j, true, weak, true);
+                            }
                         }
-                    }
 
-                    // If enabled then all of these should then be enabled if not already disabled
-                    checkFunc = optionLower + "_suggest";
-                    checkList.resize(0);
-                    if (getConfigList(checkFunc, checkList, false)) {
-                        for (const auto& j : checkList) {
-                            toggleConfigValue(j, true, true, true);
+                        // If enabled then all of these should then be enabled if not already disabled
+                        checkFunc = optionLower + "_suggest";
+                        checkList.resize(0);
+                        if (getConfigList(checkFunc, checkList, false)) {
+                            for (const auto& j : checkList) {
+                                toggleConfigValue(j, true, true, true);
+                            }
                         }
                     }
 
@@ -1850,7 +1861,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                 }
                 if (enabled) {
                     // If any deps are enabled then enable
-                    fastToggleConfigValue(optionLower, true, true);
+                    toggleConfigValue(optionLower, true, true);
                     break;
                 }
             }
@@ -1894,7 +1905,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
             }
             if (allEnabled) {
                 // If all deps are enabled then enable
-                fastToggleConfigValue(optionLower, true, true);
+                toggleConfigValue(optionLower, true, true);
             }
         }
     }
@@ -2074,7 +2085,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
     if (option->m_value == "1") {
         // Perform a deep enable
         fastToggleConfigValue(optionLower, false);
-        toggleConfigValue(optionLower, true);
+        toggleConfigValue(optionLower, true, false, true);
     }
     return true;
 }

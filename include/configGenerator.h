@@ -274,10 +274,12 @@ private:
      * @param option    The option to update.
      * @param enable    True to enable, false to disable.
      * @param weak      (Optional) True to only change a value if it is not already set.
+     * @param deep      (Optional) True to also enable _select and _suggest dependencies.
      * @param recursive (Optional) True if the function has been called from within itself.
      * @returns True if it succeeds, false if it fails.
      */
-    bool toggleConfigValue(const string& option, bool enable, bool weak = false, bool recursive = false);
+    bool toggleConfigValue(
+        const string& option, bool enable, bool weak = false, bool deep = false, bool recursive = false);
 
     /**
      * Gets configuration option.
