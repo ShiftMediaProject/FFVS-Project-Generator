@@ -263,7 +263,45 @@ bool ConfigGenerator::buildDefaultValues()
     const auto autoDet = getConfigOption("autodetect");
     if ((autoDet == m_configValues.end()) || (autoDet->m_value != "0")) {
         // Enable all the auto detected libs
-        list.resize(0);
+        vector<string> list;
+        if (getConfigList("AUTODETECT_LIBS", list)) {
+            fastToggleConfigValue("autodetect", true);
+        } else {
+            // If no auto list then just use hard enables
+            fastToggleConfigValue("bzlib", true);
+            fastToggleConfigValue("iconv", true);
+            fastToggleConfigValue("lzma", true);
+            fastToggleConfigValue("schannel", true);
+            fastToggleConfigValue("sdl", true);
+            fastToggleConfigValue("sdl2", true);
+            fastToggleConfigValue("zlib", true);
+
+            // Enable hwaccels by default.
+            fastToggleConfigValue("d3d11va", true);
+            fastToggleConfigValue("dxva2", true);
+
+            string sFileName;
+            if (findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
+                fastToggleConfigValue("cuda", true);
+                fastToggleConfigValue("cuvid", true);
+            }
+            if (findFile(m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
+                fastToggleConfigValue("nvenc", true);
+            }
+        }
+    }
+
+    return buildForcedValues();
+}
+
+bool ConfigGenerator::buildAutoDetectValues()
+{
+    // Check if auto detection is enabled
+    const auto autoDet = getConfigOption("autodetect");
+    if ((autoDet != m_configValues.end())) {
+        // Enable/Disable all the auto detected libs
+        const bool enableAuto = (autoDet->m_value != "0");
+        vector<string> list;
         if (getConfigList("AUTODETECT_LIBS", list)) {
             string sFileName;
             for (const auto& i : list) {
@@ -386,35 +424,11 @@ bool ConfigGenerator::buildDefaultValues()
                     // Just disable
                     enable = false;
                 }
-                fastToggleConfigValue(i, enable);
-            }
-            fastToggleConfigValue("autodetect", true);
-        } else {
-            // If no auto list then just use hard enables
-            fastToggleConfigValue("bzlib", true);
-            fastToggleConfigValue("iconv", true);
-            fastToggleConfigValue("lzma", true);
-            fastToggleConfigValue("schannel", true);
-            fastToggleConfigValue("sdl", true);
-            fastToggleConfigValue("sdl2", true);
-            fastToggleConfigValue("zlib", true);
-
-            // Enable hwaccels by default.
-            fastToggleConfigValue("d3d11va", true);
-            fastToggleConfigValue("dxva2", true);
-
-            string sFileName;
-            if (findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName)) {
-                fastToggleConfigValue("cuda", true);
-                fastToggleConfigValue("cuvid", true);
-            }
-            if (findFile(m_rootDirectory + "compat/nvenc/nvEncodeAPI.h", sFileName)) {
-                fastToggleConfigValue("nvenc", true);
+                toggleConfigValue(i, enable && enableAuto, true);
             }
         }
     }
-
-    return buildForcedValues();
+    return true;
 }
 
 bool ConfigGenerator::buildForcedValues()
@@ -876,8 +890,8 @@ void ConfigGenerator::buildReplaceValues(
         }
     }
     for (auto& newReplaceValue : newReplaceValues) {
-        // Add them to the returned list (done here so that any checks above that test if it is reserved only operate on
-        // the unmodified original list)
+        // Add them to the returned list (done here so that any checks above that test if it is reserved only
+        // operate on the unmodified original list)
         replaceValues[newReplaceValue.first] = newReplaceValue.second;
     }
 

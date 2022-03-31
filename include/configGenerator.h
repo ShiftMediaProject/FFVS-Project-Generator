@@ -252,6 +252,8 @@ private:
      */
     bool buildDefaultValues();
 
+    bool buildAutoDetectValues();
+
     /**
      * Sets up all config values that have a forced value.
      * @return True if it succeeds, false if it fails.

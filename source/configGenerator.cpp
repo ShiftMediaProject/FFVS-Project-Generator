@@ -66,6 +66,9 @@ bool ConfigGenerator::passConfig(const int argc, char** argv)
     if (!buildForcedValues()) {
         return false;
     }
+    if (!buildAutoDetectValues()) {
+        return false;
+    }
     // Perform validation of values
     if (!passCurrentValues()) {
         return false;
@@ -546,14 +549,7 @@ bool ConfigGenerator::changeConfig(const string& option)
                     toggleConfigValue(i, enable);
                 }
             } else if (option2 == "autodetect") {
-                // Change AUTODETECT_LIBS
-                vector<string> list;
-                if (!getConfigList("AUTODETECT_LIBS", list)) {
-                    return false;
-                }
-                for (const auto& i : list) {
-                    toggleConfigValue(i, enable);
-                }
+                toggleConfigValue(option2, enable);
             } else {
                 // Check if the option is a component
                 vector<string> list;
