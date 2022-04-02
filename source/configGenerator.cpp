@@ -123,7 +123,7 @@ bool ConfigGenerator::passConfigureFile()
         m_projectName = "LIBAV";
     }
     // Move to end of header guard (+1 for new line)
-    startPos += 24;
+    startPos += 24 - static_cast<uint>(m_isLibav);
 
     // Build default value list
     DefaultValuesList defaultValues;
@@ -1530,6 +1530,10 @@ bool ConfigGenerator::passEnabledComponents(
     }
     for (const auto& i : configList) {
         auto option = getConfigOption(i);
+        if (option == m_configValues.end()) {
+            outputError("Unknown config option (" + i + ") found in component list (" + list + ")");
+            continue;
+        }
         if (option->m_value == "1") {
             string optionLower = option->m_option;
             transform(optionLower.begin(), optionLower.end(), optionLower.begin(), ::tolower);
@@ -2055,8 +2059,7 @@ bool ConfigGenerator::passDependencyCheck(const ValuesList::iterator& option)
                     auto dep = additionalDependencies.find(i);
                     if (dep == additionalDependencies.end()) {
                         outputInfo("Unknown option in select dependency (" + i + ") for option (" + optionLower + ")");
-                    }
-                    if (!dep->second) {
+                    } else if (!dep->second) {
                         // If any deps are disabled then disable
                         toggleConfigValue(optionLower, false);
                         outputInfo(
