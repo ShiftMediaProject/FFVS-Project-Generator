@@ -640,6 +640,7 @@ bool ProjectGenerator::passProgramMake()
     while (checks >= 1) {
         // Open the input Makefile
         string makeFile = m_projectDir + "MakeFile";
+        m_inputFile.close();
         m_inputFile.open(makeFile);
         if (!m_inputFile.is_open()) {
             outputError("Could not open open MakeFile (" + makeFile + ")");
@@ -697,7 +698,7 @@ bool ProjectGenerator::passProgramMake()
                     }
                 }
             } else if (((findPos = m_inLine.find("OBJS-$(1)")) != string::npos) && (findPos == 0)) {
-                m_inLine = m_inLine.substr(findPos + 5, m_inLine.find(".o", findPos + 9) + 2 - (findPos + 5));
+                m_inLine = m_inLine.substr(findPos + 5, m_inLine.rfind(".o") + 2 - (findPos + 5));
                 if (m_inLine.at(4) == '-') {
                     // Found some dynamic c includes
                     if (!passDCInclude()) {
