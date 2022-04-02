@@ -178,9 +178,11 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& replaceIncludes, Sta
         string newFile = getCopywriteHeader(filename + extension + " file wrapper for " + m_projectName);
         newFile += "\n\
 \n\
-#include \"config.h\"\n\
-#if " + idents +
-            "\n\
+#include \"config.h\"\n";
+        if (m_configHelper.m_configComponentsStart > 0) {
+            newFile += "#include \"config_components.h\"\n";
+        }
+        newFile += "#if " + idents + "\n\
 #   include \"" +
             prettyFile + "\"\n\
 #endif";

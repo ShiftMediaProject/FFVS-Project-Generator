@@ -122,121 +122,135 @@ bool ConfigGenerator::passConfigureFile()
         m_isLibav = true;
         m_projectName = "LIBAV";
     }
-    // Move to end of header guard (+1 for new line)
-    startPos += 24 - static_cast<uint>(m_isLibav);
+    // Move to end of header guard
+    startPos += 23 - static_cast<uint>(m_isLibav);
 
     // Build default value list
     DefaultValuesList defaultValues;
     buildFixedValues(defaultValues);
 
-    // Get each defined option till EOF
-    startPos = m_configureFile.find("#define", startPos);
-    uint configEnd = m_configureFile.find("EOF", startPos);
-    if (configEnd == string::npos) {
-        outputError("Failed finding config.h parameters end");
-        return false;
-    }
-    uint endPos = configEnd;
-    while ((startPos != string::npos) && (startPos < configEnd)) {
-        // Skip white space
-        startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 7);
-        // Get first string
-        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-        const string configName = m_configureFile.substr(startPos, endPos - startPos);
-        // Get second string
-        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
-        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-        string configValue = m_configureFile.substr(startPos, endPos - startPos);
-        // Check if the value is a variable
-        const uint startPos2 = configValue.find('$');
-        if (startPos2 != string::npos) {
-            // Check if it is a function call
-            if (configValue.at(startPos2 + 1) == '(') {
-                endPos = m_configureFile.find(')', startPos);
-                configValue = m_configureFile.substr(startPos, endPos - startPos + 1);
+    for (uint searches = 0; searches < 2; ++searches) {
+        // Get each defined option till EOF
+        uint configEnd = m_configureFile.find("EOF", startPos + 1);
+        startPos = m_configureFile.find("#define", startPos + 1);
+        if (configEnd == string::npos) {
+            outputError("Failed finding config.h parameters end");
+            return false;
+        }
+        uint endPos = configEnd;
+        while ((startPos != string::npos) && (startPos < configEnd)) {
+            // Skip white space
+            startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 7);
+            // Get first string
+            endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+            const string configName = m_configureFile.substr(startPos, endPos - startPos);
+            // Get second string
+            startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+            endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+            string configValue = m_configureFile.substr(startPos, endPos - startPos);
+            // Check if the value is a variable
+            const uint startPos2 = configValue.find('$');
+            if (startPos2 != string::npos) {
+                // Check if it is a function call
+                if (configValue.at(startPos2 + 1) == '(') {
+                    endPos = m_configureFile.find(')', startPos);
+                    configValue = m_configureFile.substr(startPos, endPos - startPos + 1);
+                }
+                // Remove any quotes from the tag if there are any
+                const uint endPos2 =
+                    (configValue.at(configValue.length() - 1) == '"') ? configValue.length() - 1 : configValue.length();
+                // Find and replace the value
+                auto val = defaultValues.find(configValue.substr(startPos2, endPos2 - startPos2));
+                if (val == defaultValues.end()) {
+                    outputError("Unknown configuration operation found (" +
+                        configValue.substr(startPos2, endPos2 - startPos2) + ")");
+                    return false;
+                }
+                // Check if we need to add the quotes back
+                if (configValue.at(0) == '"') {
+                    // Replace the value with the default option in quotations
+                    configValue = '"' + val->second + '"';
+                } else {
+                    // Replace the value with the default option
+                    configValue = val->second;
+                }
             }
-            // Remove any quotes from the tag if there are any
-            const uint endPos2 =
-                (configValue.at(configValue.length() - 1) == '"') ? configValue.length() - 1 : configValue.length();
-            // Find and replace the value
-            auto val = defaultValues.find(configValue.substr(startPos2, endPos2 - startPos2));
-            if (val == defaultValues.end()) {
-                outputError("Unknown configuration operation found (" +
-                    configValue.substr(startPos2, endPos2 - startPos2) + ")");
-                return false;
-            }
-            // Check if we need to add the quotes back
-            if (configValue.at(0) == '"') {
-                // Replace the value with the default option in quotations
-                configValue = '"' + val->second + '"';
-            } else {
-                // Replace the value with the default option
-                configValue = val->second;
-            }
+
+            // Add to the list
+            m_fixedConfigValues.push_back(ConfigPair(configName, "", configValue));
+
+            // Find next
+            startPos = m_configureFile.find("#define", endPos + 1);
         }
 
-        // Add to the list
-        m_fixedConfigValues.push_back(ConfigPair(configName, "", configValue));
-
-        // Find next
-        startPos = m_configureFile.find("#define", endPos + 1);
-    }
-
-    // Find the end of this section
-    configEnd = m_configureFile.find("#endif", configEnd + 1);
-    if (configEnd == string::npos) {
-        outputError("Failed finding config.h header end");
-        return false;
-    }
-
-    // Get the additional config values
-    startPos = m_configureFile.find("print_config", endPos + 3);
-    while ((startPos != string::npos) && (startPos < configEnd)) {
-        // Add these to the config list
-        // Find prefix
-        startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 12);
-        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-        string prefix = m_configureFile.substr(startPos, endPos - startPos);
-        // Skip unneeded var
-        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
-        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-
-        // Find option list
-        startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
-        endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-        string sList = m_configureFile.substr(startPos, endPos - startPos);
-        // Strip the variable prefix from start
-        sList.erase(0, 1);
-
-        // Create option list
-        if (!passConfigList(prefix, "", sList)) {
+        // Find the end of this section
+        configEnd = m_configureFile.find("#endif", configEnd + 1);
+        if (configEnd == string::npos) {
+            outputError("Failed finding config.h header end");
             return false;
         }
 
-        // Check if multiple lines
-        endPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
-        while (m_configureFile.at(endPos) == '\\') {
-            // Skip newline
-            ++endPos;
-            startPos = m_configureFile.find_first_not_of(" \t", endPos + 1);
-            // Check for blank line
-            if (m_configureFile.at(startPos) == '\n') {
-                break;
-            }
+        // Get the additional config values
+        startPos = m_configureFile.find("print_config", endPos + 3);
+        while ((startPos != string::npos) && (startPos < configEnd)) {
+            // Add these to the config list
+            // Find prefix
+            startPos = m_configureFile.find_first_not_of(g_whiteSpace, startPos + 12);
             endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
-            string list = m_configureFile.substr(startPos, endPos - startPos);
+            string prefix = m_configureFile.substr(startPos, endPos - startPos);
+            // Skip unneeded var
+            startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+            endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+
+            // Find option list
+            startPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+            endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+            string sList = m_configureFile.substr(startPos, endPos - startPos);
             // Strip the variable prefix from start
-            list.erase(0, 1);
+            sList.erase(0, 1);
 
             // Create option list
-            if (!passConfigList(prefix, "", list)) {
+            if (!passConfigList(prefix, "", sList)) {
                 return false;
             }
+
+            // Check if multiple lines
             endPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+            while (m_configureFile.at(endPos) == '\\') {
+                // Skip newline
+                ++endPos;
+                startPos = m_configureFile.find_first_not_of(" \t", endPos + 1);
+                // Check for blank line
+                if (m_configureFile.at(startPos) == '\n') {
+                    break;
+                }
+                endPos = m_configureFile.find_first_of(g_whiteSpace, startPos + 1);
+                string list = m_configureFile.substr(startPos, endPos - startPos);
+                // Strip the variable prefix from start
+                list.erase(0, 1);
+
+                // Create option list
+                if (!passConfigList(prefix, "", list)) {
+                    return false;
+                }
+                endPos = m_configureFile.find_first_not_of(g_whiteSpace, endPos + 1);
+            }
+
+            // Get next
+            startPos = m_configureFile.find("print_config", startPos + 1);
         }
 
-        // Get next
-        startPos = m_configureFile.find("print_config", startPos + 1);
+        if (searches == 0) {
+            // Search for newer config_components.h
+            startPos = m_configureFile.find("#define FFMPEG_CONFIG_COMPONENTS_H");
+            if (startPos == string::npos) {
+                break;
+            }
+            // Move to end of header guard
+            startPos += 34;
+            // Set start of component section
+            m_configComponentsStart = m_configValues.size();
+        }
     }
     // Mark the end of the config list. Any elements added after this are considered temporary and should not be
     // exported
@@ -822,20 +836,21 @@ bool ConfigGenerator::outputConfig()
     string configureFileASM = header2 + '\n';
 
     // Output all internal options
-    for (const auto& i : m_configValues) {
-        string sTagName = i.m_prefix + i.m_option;
+    auto endConfig = (m_configComponentsStart > 0) ? m_configComponentsStart : m_configValuesEnd;
+    for (auto i = m_configValues.begin(); i < m_configValues.begin() + endConfig; ++i) {
+        string sTagName = i->m_prefix + i->m_option;
         // Check for forced replacement (only if attribute is not disabled)
         string addConfig;
-        if ((i.m_value != "0") && (m_replaceList.find(sTagName) != m_replaceList.end())) {
+        if ((i->m_value != "0") && (m_replaceList.find(sTagName) != m_replaceList.end())) {
             addConfig = m_replaceList[sTagName];
         } else {
-            addConfig = "#define " + sTagName + ' ' + i.m_value;
+            addConfig = "#define " + sTagName + ' ' + i->m_value;
         }
         configureFile += addConfig + '\n';
-        if ((i.m_value != "0") && (m_replaceListASM.find(sTagName) != m_replaceListASM.end())) {
+        if ((i->m_value != "0") && (m_replaceListASM.find(sTagName) != m_replaceListASM.end())) {
             configureFileASM += m_replaceListASM[sTagName] + '\n';
         } else {
-            configureFileASM += "%define " + sTagName + ' ' + i.m_value + '\n';
+            configureFileASM += "%define " + sTagName + ' ' + i->m_value + '\n';
         }
     }
 
@@ -851,6 +866,34 @@ bool ConfigGenerator::outputConfig()
     if (!writeToFile(configFile, configureFileASM)) {
         outputError("Failed opening output asm configure file (" + configFile + ")");
         return false;
+    }
+
+    if (m_configComponentsStart > 0) {
+        // Output config_components.h
+        outputLine("  Outputting config_components.h...");
+        string componentsFile = fileHeader;
+        componentsFile += "\n#ifndef FFMPEG_CONFIG_COMPONENTS_H\n";
+        componentsFile += "#define FFMPEG_CONFIG_COMPONENTS_H\n";
+        for (auto i = m_configValues.begin() + m_configComponentsStart; i < m_configValues.begin() + m_configValuesEnd;
+             ++i) {
+            string sTagName = i->m_prefix + i->m_option;
+            // Check for forced replacement (only if attribute is not disabled)
+            string addConfig;
+            if ((i->m_value != "0") && (m_replaceList.find(sTagName) != m_replaceList.end())) {
+                addConfig = m_replaceList[sTagName];
+            } else {
+                addConfig = "#define " + sTagName + ' ' + i->m_value;
+            }
+            componentsFile += addConfig + '\n';
+        }
+        // Output end header guard
+        componentsFile += "#endif /* FFMPEG_CONFIG_COMPONENTS_H */\n";
+        // Write output files
+        configFile = m_solutionDirectory + "config_components.h";
+        if (!writeToFile(configFile, componentsFile)) {
+            outputError("Failed opening output configure file (" + configFile + ")");
+            return false;
+        }
     }
 
     // Output avconfig.h

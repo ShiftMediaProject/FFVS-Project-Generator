@@ -59,7 +59,8 @@ private:
 
     ValuesList m_fixedConfigValues;
     ValuesList m_configValues;
-    uint m_configValuesEnd{};
+    uint m_configComponentsStart{0};
+    uint m_configValuesEnd{0};
     string m_configureFile;
     bool m_isLibav{false};
     string m_projectName;
