@@ -277,7 +277,7 @@ private:
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
         StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const;
 
-    void outputTemplateTags(string& projectTemplate) const;
+    void outputTemplateTags(string& projectTemplate, bool winrt = false) const;
 
     void outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
         string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,

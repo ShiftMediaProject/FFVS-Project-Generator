@@ -289,7 +289,7 @@ bool ProjectGenerator::outputProject()
 
     // Replace all template tag arguments
     outputTemplateTags(projectFile);
-    outputTemplateTags(projectFileWinRT);
+    outputTemplateTags(projectFileWinRT, true);
 
     // Write output project
     string outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + ".vcxproj";
@@ -704,7 +704,7 @@ bool ProjectGenerator::outputSolution()
     return true;
 }
 
-void ProjectGenerator::outputTemplateTags(string& projectTemplate) const
+void ProjectGenerator::outputTemplateTags(string& projectTemplate, const bool winrt) const
 {
     // Change all occurrences of template_in with project name
     const string searchTag = "template_in";
@@ -728,13 +728,17 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate) const
     }
 
     // Set the project key
+    string projectName = m_projectName;
+    if (winrt) {
+        projectName += "_winrt";
+    }
     const string projectGuid = "<ProjectGuid>{";
     findPos = projectTemplate.find(projectGuid);
     if (findPos != string::npos) {
         map<string, string> keys;
         buildProjectGUIDs(keys);
         findPos += projectGuid.length();
-        projectTemplate.replace(findPos, keys[m_projectName].length(), keys[m_projectName]);
+        projectTemplate.replace(findPos, keys[projectName].length(), keys[projectName]);
     }
 }
 
