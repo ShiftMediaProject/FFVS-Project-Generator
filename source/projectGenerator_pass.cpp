@@ -24,11 +24,16 @@
 
 bool ProjectGenerator::passStaticIncludeObject(uint& startPos, uint& endPos, StaticList& staticIncludes)
 {
+    startPos = m_inLine.find_first_not_of(".\\/", startPos); // Skip any ./ or ../
+    if (startPos == string::npos) {
+        endPos = startPos;
+        return true; // skip this line as its empty
+    }
     // Add the found string to internal storage
     endPos = m_inLine.find_first_of(". \t", startPos);
     if ((endPos != string::npos) && (m_inLine.at(endPos) == '.')) {
         // Skip any ./ or ../
-        const uint endPos2 = m_inLine.find_first_not_of(".\\", endPos + 1);
+        const uint endPos2 = m_inLine.find_first_not_of(".\\/", endPos + 1);
         if ((endPos2 != string::npos) && (endPos2 > endPos + 1)) {
             endPos = m_inLine.find_first_of(". \t", endPos2 + 1);
         }
@@ -98,7 +103,7 @@ bool ProjectGenerator::passStaticIncludeLine(uint startPos, StaticList& staticIn
 bool ProjectGenerator::passStaticInclude(const uint length, StaticList& staticIncludes)
 {
     // Remove the identifier and '='
-    uint startPos = m_inLine.find_first_not_of(" +=:", length);
+    uint startPos = m_inLine.find_first_not_of("+=: \t", length);
     if (!passStaticIncludeLine(startPos, staticIncludes)) {
         return true;
     }
