@@ -531,7 +531,11 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
             }
         }
         string finalDCEOutFile = getCopywriteHeader(m_projectName + " DCE definitions") + '\n';
-        finalDCEOutFile += "\n#include \"config.h\"\n#include \"stdint.h\"\n\n";
+        finalDCEOutFile += "\n#include \"config.h\"\n#include \"stdint.h\"\n";
+        if (m_configHelper.m_configComponentsStart > 0) {
+            finalDCEOutFile += "#include \"config_components.h\"\n";
+        }
+        finalDCEOutFile += '\n';
         // Add all header files (goes backwards to avoid bug in header include order in avcodec between vp9.h and
         // h264pred.h)
         for (auto i = includedHeaders.end(); i > includedHeaders.begin();) {

@@ -1555,6 +1555,12 @@ bool ConfigGenerator::passEnabledComponents(
     output += getCopywriteHeader("Available items from " + nameNice);
     output += '\n';
 
+    // Output includes
+    output += "#include \"config.h\"\n";
+    if (m_configComponentsStart > 0) {
+        output += "#include \"config_components.h\"\n";
+    }
+
     // Output header
     output += "static const " + structName + " *" + name + "[] = {\n";
 
