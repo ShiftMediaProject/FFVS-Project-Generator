@@ -70,6 +70,28 @@ bool ProjectGenerator::runMSVC(
         } else if ((i.find(':') == string::npos) && (i.find_first_of("./%") != 0)) {
             i.insert(0, "./");
         }
+        // Clean duplicate '//'
+        findPos2 = i.find("//");
+        while (findPos2 != string::npos) {
+            i.erase(findPos2, 1);
+            // get next
+            findPos2 = i.find("//");
+        }
+        // Remove ../ not at start of path
+        findPos2 = i.find("/../");
+        while (findPos2 != string::npos) {
+            // Get the previous '/'
+            uint findPos3 = i.rfind('/', findPos2 - 1);
+            findPos3 = (findPos3 != string::npos) ? findPos3 : 0;
+            if (i.find_first_not_of('.', findPos3 + 1) < findPos2) {
+                i.erase(findPos3, findPos2 - findPos3 + 3);
+                // get next
+                findPos2 = i.find("/../", findPos3);
+            } else {
+                // get next
+                findPos2 = i.find("/../", findPos2 + 1);
+            }
+        }
         extraCl += " /I\"" + i + '\"';
     }
     string tempFolder = m_tempDirectory + m_projectName;
