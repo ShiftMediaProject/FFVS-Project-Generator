@@ -354,7 +354,7 @@ bool ConfigGenerator::changeConfig(const string& option)
         outputLine(helpOptions);
         // Add in custom standard string
         outputLine("Standard options:");
-        // outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
+        outputLine("  --prefix=PREFIX          install in PREFIX [../../../msvc/]");
         // outputLine("  --bindir=DIR             install binaries in DIR [PREFIX/bin]");
         // outputLine("  --libdir=DIR             install libs in DIR [PREFIX/lib]");
         // outputLine("  --incdir=DIR             install includes in DIR [PREFIX/include]");
@@ -376,7 +376,27 @@ bool ConfigGenerator::changeConfig(const string& option)
         }
         return false;
     }
-    if (option.find("--rootdir") == 0) {
+    if (option.find("--prefix") == 0) {
+        // Check for correct command syntax
+        if (option.at(8) != '=') {
+            outputError("Incorrect prefix syntax (" + option + ")");
+            outputError("Excepted syntax (--prefix=PREFIX)", false);
+            return false;
+        }
+        // A output dir has been specified
+        string value = option.substr(9);
+        m_outDirectory = value;
+        // Convert '\' to '/'
+        replace(m_outDirectory.begin(), m_outDirectory.end(), '\\', '/');
+        // Check if a directory has been passed
+        if (m_outDirectory.length() == 0) {
+            m_outDirectory = "./";
+        }
+        // Check if directory has trailing '/'
+        if (m_outDirectory.back() != '/') {
+            m_outDirectory += '/';
+        }
+    } else if (option.find("--rootdir") == 0) {
         // Check for correct command syntax
         if (option.at(9) != '=') {
             outputError("Incorrect rootdir syntax (" + option + ")");
