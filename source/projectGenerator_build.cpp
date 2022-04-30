@@ -245,8 +245,18 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
 {
     // Add hard dependencies
     string dep;
-    if (findFile(m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h", dep)) {
-        includeDirs.push_back("$(ProjectDir)/../compat/atomics/win32/");
+    string atomicCompatFile = m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h";
+    if (findFile(atomicCompatFile, dep)) {
+        m_configHelper.makeFileProjectRelative(atomicCompatFile, atomicCompatFile);
+        uint pos = atomicCompatFile.rfind('/'); // Get path only
+        atomicCompatFile = atomicCompatFile.substr(0, ++pos);
+        includeDirs.push_back("$(ProjectDir)/" + atomicCompatFile);
+    }
+
+    // Add root directory
+    if (m_configHelper.m_rootDirectory != "./" && m_configHelper.m_rootDirectory != "../") {
+        m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, dep);
+        includeDirs.push_back("$(ProjectDir)/" + dep);
     }
 
     // Determine only those dependencies that are valid for current project

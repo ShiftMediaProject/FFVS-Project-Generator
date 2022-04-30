@@ -38,12 +38,27 @@
 
 bool ProjectGenerator::passAllMake()
 {
-    // Copy the required header files to output directory
-    if (!copyResourceFile(TEMPLATE_PROPS_ID, m_configHelper.m_solutionDirectory + "smp_deps.props", true)) {
+    // Copy the required props files to output directory
+    string propsFile, propsFileWinRT;
+    if (!loadFromResourceFile(TEMPLATE_PROPS_ID, propsFile) ||
+        !loadFromResourceFile(TEMPLATE_PROPS_WINRT_ID, propsFileWinRT)) {
+        return false;
+    }
+
+    // Update template tags
+    outputPropsTags(propsFile);
+    outputPropsTags(propsFileWinRT);
+
+    // Write output props
+    string outPropsFile = m_configHelper.m_solutionDirectory + "smp_deps.props";
+    if (!writeToFile(outPropsFile, propsFile, true)) {
         outputError("Failed writing to output location. Make sure you have the appropriate user permissions.");
         return false;
     }
-    copyResourceFile(TEMPLATE_PROPS_WINRT_ID, m_configHelper.m_solutionDirectory + "smp_winrt_deps.props", true);
+    outPropsFile = m_configHelper.m_solutionDirectory + "smp_winrt_deps.props";
+    if (!writeToFile(outPropsFile, propsFileWinRT, true)) {
+        return false;
+    }
 
     // Loop through each library make file
     vector<string> libraries;
@@ -727,6 +742,34 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, const bool wi
         findPos = projectTemplate.find(shortSearchTag, findPos + 1);
     }
 
+    // Change all occurrences of template_outdir with configured output directory
+    string outDir = m_configHelper.m_outDirectory;
+    replace(outDir.begin(), outDir.end(), '/', '\\');
+    if (outDir.at(0) == '.') {
+        outDir = "$(ProjectDir)" + outDir; // Make any relative paths based on project dir
+    }
+    const string outSearchTag = "template_outdir";
+    findPos = projectTemplate.find(outSearchTag);
+    while (findPos != string::npos) {
+        // Replace
+        projectTemplate.replace(findPos, outSearchTag.length(), outDir);
+        // Get next
+        findPos = projectTemplate.find(outSearchTag, findPos + 1);
+    }
+
+    // Change all occurrences of template_rootdir with configured output directory
+    string rootDir = m_configHelper.m_rootDirectory;
+    m_configHelper.makeFileProjectRelative(rootDir, rootDir);
+    replace(rootDir.begin(), rootDir.end(), '/', '\\');
+    const string rootSearchTag = "template_rootdir";
+    findPos = projectTemplate.find(rootSearchTag);
+    while (findPos != string::npos) {
+        // Replace
+        projectTemplate.replace(findPos, rootSearchTag.length(), rootDir);
+        // Get next
+        findPos = projectTemplate.find(rootSearchTag, findPos + 1);
+    }
+
     // Set the project key
     string projectName = m_projectName;
     if (winrt) {
@@ -739,6 +782,26 @@ void ProjectGenerator::outputTemplateTags(string& projectTemplate, const bool wi
         buildProjectGUIDs(keys);
         findPos += projectGuid.length();
         projectTemplate.replace(findPos, keys[projectName].length(), keys[projectName]);
+    }
+}
+
+void ProjectGenerator::outputPropsTags(string& projectTemplate) const
+{
+    // Since we reuse props file from SMP they do not contain standard tags and instead we must do a string replace
+
+    // Change all occurrences of template_outdir with configured output directory
+    string outDir = m_configHelper.m_outDirectory;
+    replace(outDir.begin(), outDir.end(), '/', '\\');
+    if (outDir.at(0) == '.') {
+        outDir = "$(ProjectDir)" + outDir; // Make any relative paths based on project dir
+    }
+    const string outSearchTag = R"($(ProjectDir)..\..\..\msvc\)";
+    uint findPos = projectTemplate.find(outSearchTag);
+    while (findPos != string::npos) {
+        // Replace
+        projectTemplate.replace(findPos, outSearchTag.length(), outDir);
+        // Get next
+        findPos = projectTemplate.find(outSearchTag, findPos + 1);
     }
 }
 
@@ -1233,20 +1296,23 @@ mkdir \"$(OutDir)\"\\include\\";
     transform(licenseName.begin(), licenseName.end(), licenseName.begin(), tolower);
     const string licenseEnd = " \"$(OutDir)\"\\licenses\\" + licenseName + ".txt";
     const string prebuild = "\r\n    <PreBuildEvent>\r\n\
-      <Command>if exist ..\\config.h (\r\n\
-del ..\\config.h\r\n\
+      <Command>if exist template_rootdirconfig.h (\r\n\
+del template_rootdirconfig.h\r\n\
 )\r\n\
-if exist ..\\version.h (\r\n\
-del ..\\version.h\r\n\
+if exist template_rootdirversion.h (\r\n\
+del template_rootdirversion.h\r\n\
 )\r\n\
-if exist ..\\config.asm (\r\n\
-del ..\\config.asm\r\n\
+if exist template_rootdirconfig.asm (\r\n\
+del template_rootdirconfig.asm\r\n\
 )\r\n\
-if exist ..\\libavutil\\avconfig.h (\r\n\
-del ..\\libavutil\\avconfig.h\r\n\
+if exist template_rootdirconfig_components.h (\r\n\
+del template_rootdirconfig_components.h\r\n\
 )\r\n\
-if exist ..\\libavutil\\ffversion.h (\r\n\
-del ..\\libavutil\\ffversion.h\r\n\
+if exist template_rootdirlibavutil\\avconfig.h (\r\n\
+del template_rootdirlibavutil\\avconfig.h\r\n\
+)\r\n\
+if exist template_rootdirlibavutil\\ffversion.h (\r\n\
+del template_rootdirlibavutil\\ffversion.h\r\n\
 )";
     const string prebuildDir = "\r\nif exist \"$(OutDir)\"\\include\\" + m_projectName + " (\r\n\
 rd /s /q \"$(OutDir)\"\\include\\" +
@@ -1258,16 +1324,16 @@ cd $(ProjectDir)\r\n\
     // Get the correct license file
     string licenseFile;
     if (m_configHelper.isConfigOptionEnabled("nonfree")) {
-        licenseFile = "..\\COPYING.GPLv3"; // Technically this has no license as it is unredistributable
-                                           // but we get the closest thing for now
+        licenseFile = "template_rootdirCOPYING.GPLv3"; // Technically this has no license as it is unredistributable
+                                                       // but we get the closest thing for now
     } else if (m_configHelper.isConfigOptionEnabled("gplv3")) {
-        licenseFile = "..\\COPYING.GPLv3";
+        licenseFile = "template_rootdirCOPYING.GPLv3";
     } else if (m_configHelper.isConfigOptionEnabled("lgplv3")) {
-        licenseFile = "..\\COPYING.LGPLv3";
+        licenseFile = "template_rootdirCOPYING.LGPLv3";
     } else if (m_configHelper.isConfigOptionEnabled("gpl")) {
-        licenseFile = "..\\COPYING.GPLv2";
+        licenseFile = "template_rootdirCOPYING.GPLv2";
     } else {
-        licenseFile = "..\\COPYING.LGPLv2.1";
+        licenseFile = "template_rootdirCOPYING.LGPLv2.1";
     }
     // Generate the pre build and post build string
     string additional;
@@ -1423,7 +1489,7 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     if (m_configHelper.isASMEnabled() && (m_includesASM.size() > 0)) {
         string definesASM = "\r\n\
     <NASM>\r\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\..\\;$(ProjectDir)\\..\\template_in\\x86;%(IncludePaths)</IncludePaths>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\$(ProjectName)\\x86;%(IncludePaths)</IncludePaths>\r\n\
       <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
       <GenerateDebugInformation>false</GenerateDebugInformation>\r\n\
     </NASM>";

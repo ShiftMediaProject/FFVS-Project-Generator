@@ -277,7 +277,18 @@ private:
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
         StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const;
 
+    /**
+     * Replace occurrences of known tags in string.
+     * @param [in,out] projectTemplate The project file in string form.
+     * @param          winrt           Whether this is a winrt project file.
+     */
     void outputTemplateTags(string& projectTemplate, bool winrt = false) const;
+
+    /**
+     * Replace occurrences of features in a props file.
+     * @param [in,out] projectTemplate The project file in string form.
+     */
+    void outputPropsTags(string& projectTemplate) const;
 
     void outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
         string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,
