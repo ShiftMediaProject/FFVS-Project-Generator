@@ -77,10 +77,11 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                     findPos2 += 10;
                     findPos += 2;
                     string templateFile = file.substr(findPos2, findPos - findPos2);
-                    // check if file contains current project
-                    uint projName = templateFile.find(m_projectName);
+                    // Split filename from any directory structures
+                    replace(templateFile.begin(), templateFile.end(), '\\', '/');
+                    uint projName = templateFile.rfind('/');
                     if (projName != string::npos) {
-                        templateFile = templateFile.substr(projName + m_projectName.length() + 1);
+                        templateFile = templateFile.substr(projName + 1);
                     }
                     if (templateFile.length() >= 3) {
                         string found;
