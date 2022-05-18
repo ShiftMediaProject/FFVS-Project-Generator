@@ -45,16 +45,21 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
     findFiles(m_projectDir + "*.cpp", searchFiles, recurse);
 #endif
     // Ensure we can add extra items to the list without needing reallocs
-    searchFiles.reserve((searchFiles.size() * 3) + 250);
+    searchFiles.reserve(((searchFiles.size() + m_includesH.size()) * 3) + 500);
 
     // Check for DCE constructs
     map<string, DCEParams> foundDCEUsage;
     set<string> nonDCEUsage;
     StaticList preProcFiles;
-    // Search through each included file
     for (auto itFile = searchFiles.begin(); itFile < searchFiles.end(); ++itFile) {
-        // Open the input file
         m_configHelper.makeFileGeneratorRelative(*itFile, *itFile);
+        if (itFile->find("./") == 0) {
+            *itFile = itFile->substr(2);
+        }
+    }
+    // Search through each included file
+    for (auto itFile = searchFiles.cbegin(); itFile < searchFiles.cend(); ++itFile) {
+        // Open the input file
         string file;
         if (!loadFromFile(*itFile, file)) {
             return false;
@@ -96,7 +101,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                                 if (!findFile(templateFile, found)) {
                                     templateFile = itFile->substr(0, itFile->rfind('/') + 1) + back;
                                     if (!findFile(templateFile, found)) {
-                                        templateFile = m_configHelper.m_solutionDirectory + '/' + back;
+                                        templateFile = m_configHelper.m_solutionDirectory + back;
                                         if (!findFile(templateFile, found)) {
                                             // Fail only if this is a c file
                                             if (ext == extensions[0]) {
@@ -110,9 +115,10 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                             }
                         }
                         // Add the file to the list
-                        if (templateFile.length() >= 3 &&
-                            find(searchFiles.begin(), searchFiles.end(), templateFile) == searchFiles.end()) {
-                            m_configHelper.makeFileProjectRelative(templateFile, templateFile);
+                        if (templateFile.length() >= 3) {
+                            if (templateFile.find("./") == 0) {
+                                templateFile = templateFile.substr(2);
+                            }
                             if (find(searchFiles.begin(), searchFiles.end(), templateFile) == searchFiles.end()) {
                                 searchFiles.push_back(templateFile);
                             }
@@ -132,9 +138,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
     findFiles(m_projectDir + "*.c", searchFiles, recurse);
     findFiles(m_projectDir + "*.cpp", searchFiles, recurse);
     // Ensure we can add extra items to the list without needing reallocs
-    if (searchFiles.capacity() < searchFiles.size() + 250) {
-        searchFiles.reserve(searchFiles.size() + 250);
-    }
+    searchFiles.reserve(searchFiles.size() + 750);
 
     // Check all configurations are enabled early to avoid later lookups of unused functions
     for (auto i = foundDCEUsage.begin(); i != foundDCEUsage.end();) {
