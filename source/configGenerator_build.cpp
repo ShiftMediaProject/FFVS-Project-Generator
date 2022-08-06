@@ -575,6 +575,21 @@ void ConfigGenerator::buildReplaceValues(
 #else\n\
 #   define CONFIG_VP9_DXVA2_HWACCEL 0\n\
 #endif";
+    replaceValues["CONFIG_AV1_D3D11VA_HWACCEL"] = "#if defined(NTDDI_WIN10_FE)\n\
+#   define CONFIG_AV1_D3D11VA_HWACCEL 1\n\
+#else\n\
+#   define CONFIG_AV1_D3D11VA_HWACCEL 0\n\
+#endif";
+    replaceValues["CONFIG_AV1_D3D11VA2_HWACCEL"] = "#if defined(NTDDI_WIN10_FE)\n\
+#   define CONFIG_AV1_D3D11VA2_HWACCEL 1\n\
+#else\n\
+#   define CONFIG_AV1_D3D11VA2_HWACCEL 0\n\
+#endif";
+    replaceValues["CONFIG_AV1_DXVA2_HWACCEL"] = "#if defined(NTDDI_WIN10_FE)\n\
+#   define CONFIG_AV1_DXVA2_HWACCEL 1\n\
+#else\n\
+#   define CONFIG_AV1_DXVA2_HWACCEL 0\n\
+#endif";
     replaceValues["HAVE_OPENCL_D3D11"] = "#if defined(NTDDI_WIN8)\n\
 #   define HAVE_OPENCL_D3D11 1\n\
 #else\n\
@@ -982,7 +997,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["const_nan"] = true;
     additionalDependencies["CreateDIBSection"] = true;
     additionalDependencies["dv1394"] = false;
-    additionalDependencies["DXVA_PicParams_AV1"] = false;
+    additionalDependencies["DXVA_PicParams_AV1"] = true; // Technically these require a compatible win sdk version
+    // but we check for that in the replace values that use these builtins
     additionalDependencies["DXVA_PicParams_HEVC"] = true;
     additionalDependencies["DXVA_PicParams_VP9"] = true;
     additionalDependencies["dxva2api_h"] = true;
