@@ -894,6 +894,7 @@ bool ConfigGenerator::outputConfig()
         string componentsFile = fileHeader;
         componentsFile += "\n#ifndef FFMPEG_CONFIG_COMPONENTS_H\n";
         componentsFile += "#define FFMPEG_CONFIG_COMPONENTS_H\n";
+        componentsFile += "#include \"config.h\"\n";
         for (auto i = m_configValues.begin() + m_configComponentsStart; i < m_configValues.begin() + m_configValuesEnd;
              ++i) {
             string sTagName = i->m_prefix + i->m_option;
