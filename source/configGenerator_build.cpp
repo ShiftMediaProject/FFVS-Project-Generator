@@ -182,6 +182,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("d3d11_h", true);
     fastToggleConfigValue("direct_h", true);
     fastToggleConfigValue("dos_paths", true);
+    fastToggleConfigValue("DPI_AWARENESS_CONTEXT", true);
     fastToggleConfigValue("dxgidebug_h", true);
     fastToggleConfigValue("dxva_h", true);
     fastToggleConfigValue("dxva2api_cobj", true);
@@ -198,6 +199,7 @@ bool ConfigGenerator::buildDefaultValues()
     fastToggleConfigValue("GetStdHandle", true);
     fastToggleConfigValue("GetProcessTimes", true);
     fastToggleConfigValue("GetSystemTimeAsFileTime", true);
+    fastToggleConfigValue("IDXGIOUTPUT5", true);
     fastToggleConfigValue("io_h", true);
     fastToggleConfigValue("inline_asm_labels", true);
     fastToggleConfigValue("isatty", true);
@@ -599,6 +601,16 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_GETPROCESSAFFINITYMASK 1\n\
 #else\n\
 #   define HAVE_GETPROCESSAFFINITYMASK 0\n\
+#endif";
+    replaceValues["HAVE_IDXGIOUTPUT5"] = "#if defined(NTDDI_WIN10)\n\
+#   define HAVE_IDXGIOUTPUT5 1\n\
+#else\n\
+#   define HAVE_IDXGIOUTPUT5 0\n\
+#endif";
+    replaceValues["HAVE_DPI_AWARENESS_CONTEXT"] = "#if defined(NTDDI_WIN10_RS1)\n\
+#   define HAVE_DPI_AWARENESS_CONTEXT 1\n\
+#else\n\
+#   define HAVE_DPI_AWARENESS_CONTEXT 0\n\
 #endif";
 
     // Build values specific for WinRT builds
@@ -1007,6 +1019,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["IBaseFilter"] = true;
     additionalDependencies["ID3D11VideoDecoder"] = true;
     additionalDependencies["ID3D11VideoContext"] = true;
+    additionalDependencies["DXGI_OUTDUPL_FRAME_INFO"] = true;
+    additionalDependencies["IDXGIOutput1"] = true;
     additionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
     additionalDependencies["linux_fb_h"] = false;
     additionalDependencies["linux_videodev_h"] = false;
