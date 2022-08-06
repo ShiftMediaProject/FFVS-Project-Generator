@@ -179,7 +179,7 @@ popd\n";
         for (uint i = 0; i < numClCalls; i++) {
             launchBat += "cl.exe ";
             launchBat += extraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" +
-                runCommands + " /c /MP /w /nologo";
+                runCommands + " /c /MP /w /nologo /utf-8";
             uint uiStartPos = totalPos;
             for (; totalPos < min(uiStartPos + rowSize, j.second.size()); totalPos++) {
                 if (runType == 0) {
