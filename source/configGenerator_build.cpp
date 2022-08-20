@@ -486,6 +486,7 @@ void ConfigGenerator::buildReplaceValues(
     DefaultValuesList& replaceValues, string& header, DefaultValuesList& replaceValuesASM)
 {
     header = "#ifdef _WIN32\n\
+#   define WIN32_LEAN_AND_MEAN\n\
 #   include <sdkddkver.h>\n\
 #   include <winapifamily.h>\n\
 #endif";
