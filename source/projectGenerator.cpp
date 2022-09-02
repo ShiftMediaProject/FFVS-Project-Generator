@@ -415,6 +415,7 @@ void ProjectGenerator::outputProjectCleanup()
     m_includesC.clear();
     m_includesASM.clear();
     m_includesH.clear();
+    m_includesRC.clear();
     m_includesCU.clear();
     m_libs.clear();
     m_unknowns.clear();
@@ -953,11 +954,14 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     string resourceFile;
     if (findSourceFile(m_projectName.substr(3) + "res", ".rc", resourceFile)) {
         m_configHelper.makeFileProjectRelative(resourceFile, resourceFile);
-        StaticList resources;
-        resources.push_back(resourceFile);
-        outputSourceFileType(resources, "ResourceCompile", "Resource", projectTemplate, filterTemplate, foundObjects,
-            foundFilters, false, false, true);
+        if (find(m_includesRC.begin(), m_includesRC.end(), resourceFile) == m_includesRC.end()) {
+            m_includesRC.push_back(resourceFile);
+        }
     }
+
+    // Ouptut RC files
+    outputSourceFileType(m_includesRC, "ResourceCompile", "Resource", projectTemplate, filterTemplate, foundObjects,
+        foundFilters, false, false, true);
 
     // Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
     if (!m_includesASM.empty()) {

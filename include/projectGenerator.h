@@ -38,6 +38,7 @@ private:
     StaticList m_includesC;
     StaticList m_includesASM;
     StaticList m_includesH;
+    StaticList m_includesRC;
     StaticList m_includesCU;
     UnknownList m_replaceIncludes;
     StaticList m_libs;
@@ -275,7 +276,7 @@ private:
     bool createReplaceFiles(const StaticList& replaceIncludes, StaticList& existingIncludes);
 
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
-        StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const;
+        StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU) const;
 
     /**
      * Replace occurrences of known tags in string.

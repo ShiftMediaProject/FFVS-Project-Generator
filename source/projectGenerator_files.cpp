@@ -99,7 +99,8 @@ bool ProjectGenerator::checkProjectFiles()
     }
 
     // Check the output Unknown Includes and find there corresponding file
-    if (!findProjectFiles(m_includes, m_includesC, m_includesCPP, m_includesASM, m_includesH, m_includesCU)) {
+    if (!findProjectFiles(
+            m_includes, m_includesC, m_includesCPP, m_includesASM, m_includesH, m_includesRC, m_includesCU)) {
         return false;
     }
 
@@ -113,8 +114,8 @@ bool ProjectGenerator::checkProjectFiles()
     for (auto& include : m_replaceIncludes) {
         replaceIncludes.push_back(include.first);
     }
-    if (!findProjectFiles(
-            replaceIncludes, replaceCIncludes, replaceCPPIncludes, replaceASMIncludes, m_includesH, m_includesCU)) {
+    if (!findProjectFiles(replaceIncludes, replaceCIncludes, replaceCPPIncludes, replaceASMIncludes, m_includesH,
+            m_includesRC, m_includesCU)) {
         return false;
     }
     // Need to create local files for any replace objects
@@ -201,7 +202,7 @@ bool ProjectGenerator::createReplaceFiles(const StaticList& replaceIncludes, Sta
 }
 
 bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
-    StaticList& includesASM, StaticList& includesH, StaticList& includesCU) const
+    StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU) const
 {
     for (const auto& include : includes) {
         string retFileName;
@@ -237,6 +238,14 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
                 continue;
             }
             includesH.push_back(retFileName);
+        } else if (findSourceFile(include, ".rc", retFileName)) {
+            // Found a H File to include
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            if (find(includesRC.begin(), includesRC.end(), retFileName) != includesRC.end()) {
+                // skip this item
+                continue;
+            }
+            includesRC.push_back(retFileName);
         } else if (include.find(".ptx") != string::npos) {
             // Found a CUDA file
             string fileName = include.substr(0, include.find(".ptx"));
