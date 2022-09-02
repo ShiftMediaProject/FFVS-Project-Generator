@@ -269,29 +269,32 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         if (i.second && m_configHelper.isConfigOptionEnabled(i.first)) {
             // Add in the additional include directories
             if (i.first == "libopus") {
-                includeDirs.push_back("$(OutDir)/include/opus");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/opus");
+                includeDirs.push_back("$(OutDir)/include/opus/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/opus/");
             } else if (i.first == "libfreetype") {
-                includeDirs.push_back("$(OutDir)/include/freetype2");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/freetype2");
+                includeDirs.push_back("$(OutDir)/include/freetype2/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/freetype2/");
             } else if (i.first == "libfribidi") {
-                includeDirs.push_back("$(OutDir)/include/fribidi");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi");
+                includeDirs.push_back("$(OutDir)/include/fribidi/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi/");
                 definesStatic.push_back("FRIBIDI_LIB_STATIC");
             } else if (i.first == "libilbc") {
                 definesStatic.push_back("ILBC_STATIC_DEFINE");
             } else if (i.first == "libx264") {
                 definesShared.push_back("X264_API_IMPORTS");
             } else if (i.first == "libxml2") {
-                includeDirs.push_back("$(OutDir)/include/libxml2");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2");
+                includeDirs.push_back("$(OutDir)/include/libxml2/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2/");
                 definesStatic.push_back("LIBXML_STATIC");
+            } else if (i.first == "libmfx") {
+                includeDirs.push_back("$(OutDir)/include/mfx/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/mfx/");
             } else if ((i.first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2")) {
-                includeDirs.push_back("$(OutDir)/include/SDL");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
+                includeDirs.push_back("$(OutDir)/include/SDL/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL/");
             } else if (i.first == "sdl2") {
-                includeDirs.push_back("$(OutDir)/include/SDL");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL");
+                includeDirs.push_back("$(OutDir)/include/SDL/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL/");
             } else if (i.first == "opengl" && !winrt) {
                 // Requires glext headers to be installed in include dir (does not require the libs)
             } else if (i.first == "opencl" && !winrt) {
