@@ -998,8 +998,6 @@ void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
     reservedItems.emplace_back("small");
     reservedItems.emplace_back("lto");
     reservedItems.emplace_back("pic");
-    reservedItems.emplace_back("uwp");
-    reservedItems.emplace_back("winrt");
 }
 
 void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies)

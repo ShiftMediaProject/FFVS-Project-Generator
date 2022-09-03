@@ -25,7 +25,7 @@
 #include <sstream>
 #include <utility>
 
-#define TEMPLATE_SLN_ID 101
+#define TEMPLATE_SLN_WINRT_ID 101
 #define TEMPLATE_VCXPROJ_ID 102
 #define TEMPLATE_FILTERS_ID 103
 #define TEMPLATE_PROG_VCXPROJ_ID 104
@@ -35,6 +35,7 @@
 #define TEMPLATE_PROPS_ID 108
 #define TEMPLATE_PROPS_WINRT_ID 109
 #define TEMPLATE_FILE_PROPS_ID 110
+#define TEMPLATE_SLN_NOWINRT_ID 111
 
 bool ProjectGenerator::passAllMake()
 {
@@ -247,9 +248,12 @@ bool ProjectGenerator::outputProject()
     if (!writeToFile(outFiltersFile, filtersFile, true)) {
         return false;
     }
-    outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj.filters";
-    if (!writeToFile(outFiltersFile, filtersFile, true)) {
-        return false;
+    const bool winrtEnabled = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
+    if (winrtEnabled) {
+        outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj.filters";
+        if (!writeToFile(outFiltersFile, filtersFile, true)) {
+            return false;
+        }
     }
 
     // Open the input temp project file
@@ -311,8 +315,11 @@ bool ProjectGenerator::outputProject()
     if (!writeToFile(outProjectFile, projectFile, true)) {
         return false;
     }
-    outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj";
-    return writeToFile(outProjectFile, projectFileWinRT, true);
+    if (winrtEnabled) {
+        outProjectFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj";
+        return writeToFile(outProjectFile, projectFileWinRT, true);
+    }
+    return true;
 }
 
 bool ProjectGenerator::outputProgramProject(const string& destinationFile, const string& destinationFilterFile)
@@ -457,10 +464,18 @@ bool ProjectGenerator::outputSolution()
     }
 
     outputLine("  Generating solution file...");
+    const bool winrtEnabled =
+        m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
     // Open the input temp project file
     string solutionFile;
-    if (!loadFromResourceFile(TEMPLATE_SLN_ID, solutionFile)) {
-        return false;
+    if (winrtEnabled) {
+        if (!loadFromResourceFile(TEMPLATE_SLN_WINRT_ID, solutionFile)) {
+            return false;
+        }
+    } else {
+        if (!loadFromResourceFile(TEMPLATE_SLN_NOWINRT_ID, solutionFile)) {
+            return false;
+        }
     }
 
     map<string, string> keys;
@@ -488,9 +503,9 @@ bool ProjectGenerator::outputSolution()
     for (const auto& i : m_projectLibs) {
         // Check if this is a library or a program
         if (programList.find(i.first) == programList.end()) {
-            for (uint winrt = 0; winrt < 2; ++winrt) {
+            for (uint winrt = 0; winrt < (winrtEnabled ? 2 : 1); ++winrt) {
                 string name = i.first;
-                if (winrt) {
+                if (winrt > 0) {
                     name += "_winrt";
                 }
                 // Check if this library has a known key (to lazy to auto generate at this time)
@@ -510,14 +525,14 @@ bool ProjectGenerator::outputSolution()
                 projectAdd += projectEnd;
 
                 // Add the key to the used key list
-                addedKeys.emplace_back(keys[name], winrt);
+                addedKeys.emplace_back(keys[name], winrt > 0);
 
                 // Add the dependencies
                 if (i.second.size() > 0) {
                     projectAdd += depend;
                     for (auto& j : i.second) {
                         string name2 = j;
-                        if (winrt) {
+                        if (winrt > 0) {
                             name2 += "_winrt";
                         }
                         // Check if this library has a known key
@@ -601,12 +616,18 @@ bool ProjectGenerator::outputSolution()
     string configPlatform = "\r\n		{";
     string configPlatform2 = "}.";
     string configPlatform3 = "|";
-    string buildConfigs[10] = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL",
+    vector<string> buildConfigs = {"Debug", "DebugDLL", "DebugDLLWinRT", "DebugWinRT", "Release", "ReleaseDLL",
         "ReleaseDLLStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
-    string buildConfigsNoWinRT[10] = {"Debug", "DebugDLL", "DebugDLL", "Debug", "Release", "ReleaseDLL",
+    vector<string> buildConfigsNoWinRT = {"Debug", "DebugDLL", "DebugDLL", "Debug", "Release", "ReleaseDLL",
         "ReleaseDLLStaticDeps", "ReleaseDLL", "ReleaseDLLStaticDeps", "Release"};
-    string buildConfigsWinRT[10] = {"DebugWinRT", "DebugDLLWinRT", "DebugDLLWinRT", "DebugWinRT", "ReleaseWinRT",
+    vector<string> buildConfigsWinRT = {"DebugWinRT", "DebugDLLWinRT", "DebugDLLWinRT", "DebugWinRT",
+        "ReleaseWinRT",
         "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
+    if (!winrtEnabled) {
+        buildConfigs = {"Debug", "DebugDLL", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps"};
+        buildConfigsNoWinRT = buildConfigs;
+        buildConfigsWinRT = buildConfigs;
+    }
     string buildArchsSol[2] = {"x86", "x64"};
     string buildArchs[2] = {"Win32", "x64"};
     string buildTypes[2] = {".ActiveCfg = ", ".Build.0 = "};
@@ -614,7 +635,7 @@ bool ProjectGenerator::outputSolution()
     // Add the lib keys
     for (const auto& i : addedKeys) {
         // loop over build configs
-        for (uint j = 0; j < sizeof(buildConfigs) / sizeof(buildConfigs[0]); j++) {
+        for (uint j = 0; j < buildConfigs.size(); j++) {
             // loop over build archs
             for (uint k = 0; k < sizeof(buildArchsSol) / sizeof(buildArchsSol[0]); k++) {
                 // loop over build types
@@ -641,7 +662,7 @@ bool ProjectGenerator::outputSolution()
     // Add the program keys
     for (const auto& i : addedPrograms) {
         // Loop over build configs
-        for (uint j = 0; j < sizeof(buildConfigs) / sizeof(buildConfigs[0]); j++) {
+        for (uint j = 0; j < buildConfigs.size(); j++) {
             // Loop over build archs
             for (uint k = 0; k < sizeof(buildArchsSol) / sizeof(buildArchsSol[0]); k++) {
                 // Loop over build types
