@@ -1455,7 +1455,7 @@ void ProjectGenerator::outputLibDirs(const StaticList& lib32Dirs, const StaticLi
             i += "%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>";
         }
         const string search[] = {"<Link>", "<Lib>"};
-        for (uint i = 0; i < 1; ++i) {
+        for (uint i = 0; i < 2; ++i) {
             uint arch32Or64 = 0; // start with 32 (assumes projects are ordered 32 then 64 recursive)
             uint findPos = projectTemplate.find(search[i]);
             while (findPos != string::npos) {

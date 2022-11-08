@@ -75,6 +75,18 @@ bool ConfigGenerator::passConfig(const int argc, char** argv)
     }
     // Super ensure forced values
     buildForcedValues();
+
+    // Force enable QSV
+    auto opt = getConfigOptionPrefixed("CONFIG_LIBVPL");
+    if ((opt != m_configValues.end()) && opt->m_value == "1") {
+        for (auto i = m_configValues.begin(); i != m_configValues.end(); ++i) {
+            string sTagName = i->m_prefix + i->m_option;
+            if (sTagName.find("QSV") != string::npos) {
+                i->m_value = "1";
+            }
+        }
+    }
+
     return true;
 }
 
