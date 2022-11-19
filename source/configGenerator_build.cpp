@@ -1074,6 +1074,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
         additionalDependencies["atomics_native"] = true;
     }
     additionalDependencies["MFX_CODEC_VP9"] = isConfigOptionEnabled("libmfx");
+    bool bNvenc = isConfigOptionEnabled("nvenc");
+    additionalDependencies["NV_ENC_PIC_PARAMS_AV1"] = bNvenc;
 }
 
 void ConfigGenerator::buildInterDependencies(InterDependencies& interDependencies)
