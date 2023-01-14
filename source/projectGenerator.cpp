@@ -248,7 +248,8 @@ bool ProjectGenerator::outputProject()
     if (!writeToFile(outFiltersFile, filtersFile, true)) {
         return false;
     }
-    const bool winrtEnabled = m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
+    const bool winrtEnabled =
+        m_configHelper.isConfigOptionEnabled("winrt") || m_configHelper.isConfigOptionEnabled("uwp");
     if (winrtEnabled) {
         outFiltersFile = m_configHelper.m_solutionDirectory + m_projectName + "_winrt.vcxproj.filters";
         if (!writeToFile(outFiltersFile, filtersFile, true)) {
@@ -620,8 +621,7 @@ bool ProjectGenerator::outputSolution()
         "ReleaseDLLStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
     vector<string> buildConfigsNoWinRT = {"Debug", "DebugDLL", "DebugDLL", "Debug", "Release", "ReleaseDLL",
         "ReleaseDLLStaticDeps", "ReleaseDLL", "ReleaseDLLStaticDeps", "Release"};
-    vector<string> buildConfigsWinRT = {"DebugWinRT", "DebugDLLWinRT", "DebugDLLWinRT", "DebugWinRT",
-        "ReleaseWinRT",
+    vector<string> buildConfigsWinRT = {"DebugWinRT", "DebugDLLWinRT", "DebugDLLWinRT", "DebugWinRT", "ReleaseWinRT",
         "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseDLLWinRT", "ReleaseDLLWinRTStaticDeps", "ReleaseWinRT"};
     if (!winrtEnabled) {
         buildConfigs = {"Debug", "DebugDLL", "Release", "ReleaseDLL", "ReleaseDLLStaticDeps"};
@@ -829,7 +829,7 @@ void ProjectGenerator::outputPropsTags(string& projectTemplate) const
 
 void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
     string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,
-    bool checkExisting, bool staticOnly, bool sharedOnly) const
+    bool checkExisting, bool staticOnly, bool sharedOnly, bool bit32Only, bool bit64Only) const
 {
     // Declare constant strings used in output files
     const string itemGroup = "\r\n  <ItemGroup>";
@@ -844,6 +844,7 @@ void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& 
     const string source = filterType + " Files";
     const string filterEnd = "</Filter>";
     const string excludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string excludeConfigPlatform = "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
     const string buildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
     const string buildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
         "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
@@ -908,6 +909,16 @@ void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& 
                     typeFilesTemp += buildConfig[j];
                     typeFilesTemp += excludeConfigEnd;
                 }
+            } else if (bit32Only || bit64Only) {
+                typeFilesTemp += includeClose;
+                closed = true;
+                typeFilesTemp += excludeConfigPlatform;
+                if (bit32Only) {
+                    typeFilesTemp += "Win32";
+                } else if (bit64Only) {
+                    typeFilesTemp += "x64";
+                }
+                typeFilesTemp += excludeConfigEnd;
             }
 
             // Several input source files have the same name so we need to explicitly specify an output object file
@@ -980,7 +991,7 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
         }
     }
 
-    // Ouptut RC files
+    // Output RC files
     outputSourceFileType(m_includesRC, "ResourceCompile", "Resource", projectTemplate, filterTemplate, foundObjects,
         foundFilters, false, false, true);
 

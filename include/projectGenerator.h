@@ -319,7 +319,8 @@ private:
 
     void outputSourceFileType(StaticList& fileList, const string& type, const string& filterType,
         string& projectTemplate, string& filterTemplate, StaticList& foundObjects, set<string>& foundFilters,
-        bool checkExisting, bool staticOnly = false, bool sharedOnly = false) const;
+        bool checkExisting, bool staticOnly = false, bool sharedOnly = false, bool bit32Only = false,
+        bool bit64Only = false) const;
 
     void outputSourceFiles(string& projectTemplate, string& filterTemplate);
 
