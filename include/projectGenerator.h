@@ -106,42 +106,68 @@ private:
     bool passDynamicInclude(uint length, StaticList& includes);
 
     /**
-     * Pass a static source include line from current makefile.
+     * Pass a static source include line from current makefile that is wrapped in a reserved conditional.
+     * @param condition The pre-processor condition applied to the current line.
+     * @param list      The file list to add any found files to when the condition evaluates to 'true'.
+     * @param replace   The file list to add any found files to when the condition is a reserved value.
+     * @param offset    The offset to start passing (used to separate different file tags).
      * @return True if it succeeds, false if it fails.
      */
-    bool passCInclude();
+    bool passCondition(const string& condition, StaticList& list, UnknownList& replace, uint offset = 0);
+
+    /**
+     * Pass a dynamic source include line from current makefile that is wrapped in a reserved conditional.
+     * @param condition The pre-processor condition applied to the current line.
+     * @param list      The file list to add any found files to when the condition evaluates to 'true'.
+     * @param replace   The file list to add any found files to when the condition is a reserved value.
+     * @param offset    The offset to start passing (used to separate different file tags).
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passDCondition(const string& condition, StaticList& list, UnknownList& replace, uint offset = 0);
+
+    /**
+     * Pass a static source include line from current makefile.
+     * @param condition (Optional) The pre-processor condition applied to the current line.
+     * @return True if it succeeds, false if it fails.
+     */
+    bool passCInclude(const string& condition = "");
 
     /**
      * Pass a dynamic source include line from current makefile.
+     * @param condition (Optional) The pre-processor condition applied to the current line.
      * @return True if it succeeds, false if it fails.
      */
-    bool passDCInclude();
+    bool passDCInclude(const string& condition = "");
 
     /**
      * Pass a static asm include line from current makefile.
      * @param offset The offset to start passing (used to separate old yasm and x86asm).
+     * @param condition (Optional) The pre-processor condition applied to the current line.
      * @return True if it succeeds, false if it fails.
      */
-    bool passASMInclude(uint offset);
+    bool passASMInclude(uint offset, const string& condition = "");
 
     /**
      * Pass a dynamic asm include line from current makefile.
      * @param offset The offset to start passing (used to separate old yasm and x86asm).
+     * @param condition (Optional) The pre-processor condition applied to the current line.
      * @return True if it succeeds, false if it fails.
      */
-    bool passDASMInclude(uint offset);
+    bool passDASMInclude(uint offset, const string& condition = "");
 
     /**
      * Pass a static mmx include line from current makefile.
+     * @param condition (Optional) The pre-processor condition applied to the current line.
      * @return True if it succeeds, false if it fails.
      */
-    bool passMMXInclude();
+    bool passMMXInclude(const string& condition = "");
 
     /**
      * Pass a dynamic mmx include line from current makefile.
+     * @param condition (Optional) The pre-processor condition applied to the current line.
      * @return True if it succeeds, false if it fails.
      */
-    bool passDMMXInclude();
+    bool passDMMXInclude(const string& condition = "");
 
     /**
      * Pass a static header include line from current makefile.
