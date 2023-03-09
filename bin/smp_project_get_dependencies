@@ -5,7 +5,7 @@ SET PASSDEPENDENCIES=%~1
 
 REM Check if git is installed and available
 IF "%MSVC_VER%"=="" (
-    git status >NUL 2>&1
+    WHERE git.exe >NUL
     IF ERRORLEVEL 1 (
         ECHO A working copy of git was not found. To use this script you must first install git for windows.
         GOTO exitOnError
@@ -69,7 +69,7 @@ IF EXIST "%REPONAME%" (
     REM  Once updated the repo needs to be reset to correct the local line endings
     cd %REPONAME%
     git config --local core.autocrlf false
-    git rm --cached -r . --quiet
+    git rm --cached --ignore-unmatch -r . --quiet
     git reset --hard --quiet
     cd ..\
 )
