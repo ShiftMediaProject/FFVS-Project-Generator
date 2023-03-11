@@ -1049,7 +1049,7 @@ void ConfigGenerator::makeFileGeneratorRelative(const string& fileName, string& 
     }
     makePathsRelative(path, "./", retFileName);
     // Check if relative to current dir
-    if (retFileName.find("./") == 0) {
+    if (retFileName.length() > 2 && retFileName.find("./") == 0) {
         retFileName = retFileName.substr(2);
     }
     retFileName += file;
