@@ -5,7 +5,7 @@ SET PASSDEPENDENCIES=%~1
 
 REM Check if git is installed and available
 IF "%MSVC_VER%"=="" (
-    WHERE git.exe >NUL
+    git status >NUL 2>&1
     IF ERRORLEVEL 1 (
         ECHO A working copy of git was not found. To use this script you must first install git for windows.
         GOTO exitOnError
