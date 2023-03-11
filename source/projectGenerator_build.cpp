@@ -428,7 +428,8 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libkvazaar"] = (m_projectName == "libavcodec");
     projectDeps["libmfx"] = ((m_projectName == "libavutil") && findSourceFile("hwcontext_qsv", ".h", notUsed)) ||
         (m_projectName == "libavcodec") ||
-        ((m_projectName == "libavfilter") && findSourceFile("vf_deinterlace_qsv", ".c", notUsed)) ||
+        ((m_projectName == "libavfilter") &&
+            (findSourceFile("vf_deinterlace_qsv", ".c", notUsed) || findSourceFile("vf_stack_qsv", ".c", notUsed))) ||
         (m_projectName == "ffmpeg") || (m_projectName == "avconv");
     projectDeps["libmodplug"] = (m_projectName == "libavformat");
     projectDeps["libmp3lame"] = (m_projectName == "libavcodec");
