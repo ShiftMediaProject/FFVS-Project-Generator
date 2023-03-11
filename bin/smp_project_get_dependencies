@@ -69,7 +69,7 @@ IF EXIST "%REPONAME%" (
     REM  Once updated the repo needs to be reset to correct the local line endings
     cd %REPONAME%
     git config --local core.autocrlf false
-    git rm --cached -r . --quiet
+    git rm --cached --ignore-unmatch -r . --quiet
     git reset --hard --quiet
     cd ..\
 )
@@ -151,3 +151,4 @@ IF %ERRORLEVEL% == 0 IF "%~1"=="" PAUSE
 
 :return
 EXIT /B %ERROR%
+
