@@ -37,6 +37,13 @@ private:
         bool isShared = false;
         bool is32 = false;
         bool is64 = false;
+
+        ConfigConds(bool istatic, bool ishared, bool i32, bool i64)
+            : isStatic(istatic)
+            , isShared(ishared)
+            , is32(i32)
+            , is64(i64)
+        {}
     };
     using ConditionalList = map<string, ConfigConds>;
     ifstream m_inputFile;

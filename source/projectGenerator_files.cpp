@@ -208,7 +208,7 @@ bool ProjectGenerator::createReplaceFiles(
         }
         // Check for config requirement that can be handled by VS (i.e. static/shared|32/64bit)
         if ((isShared || isStatic || is32 || is64) && !hasOther) {
-            conditionalIncludes.emplace(replaceInclude, ConfigConds{isStatic, isShared, is32, is64});
+            conditionalIncludes.emplace(replaceInclude, ConfigConds(isStatic, isShared, is32, is64));
             continue;
         }
         // Create new file to wrap input object
