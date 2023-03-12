@@ -191,18 +191,23 @@ bool ProjectGenerator::createReplaceFiles(
                 hasOther = true;
             }
         }
+        // Check if already a conditional file
+        auto j = conditionalIncludes.find(replaceInclude);
+        if (j != conditionalIncludes.end()) {
+            if (hasOther) {
+                conditionalIncludes.erase(j);
+            } else if (j->second.isStatic != isStatic || j->second.isShared != isShared || j->second.is32 != is32 ||
+                j->second.is64 != is64) {
+                outputError("Duplicate conditional files found with different conditions (" + replaceInclude + ")");
+                // TODO: Remove and make wrapped
+                return false;
+            } else {
+                // skip this item
+                continue;
+            }
+        }
         // Check for config requirement that can be handled by VS (i.e. static/shared|32/64bit)
         if ((isShared || isStatic || is32 || is64) && !hasOther) {
-            // Check if already a conditional file
-            auto j = conditionalIncludes.find(replaceInclude);
-            if (j != conditionalIncludes.end()) {
-                if (j->second.isStatic != isStatic || j->second.isShared != isShared || j->second.is32 != is32 ||
-                    j->second.is64 != is64) {
-                    outputError("Duplicate conditional files found with different conditions (" + replaceInclude + ")");
-                    // TODO: Remove and make wrapped
-                    return false;
-                }
-            }
             conditionalIncludes.emplace(replaceInclude, ConfigConds{isStatic, isShared, is32, is64});
             continue;
         }
