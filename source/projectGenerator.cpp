@@ -507,7 +507,7 @@ bool ProjectGenerator::outputSolution()
     for (const auto& i : m_projectLibs) {
         // Check if this is a library or a program
         if (programList.find(i.first) == programList.end()) {
-            for (uint winrt = 0; winrt < (winrtEnabled ? 2 : 1); ++winrt) {
+            for (uint winrt = 0; winrt < (winrtEnabled ? 2U : 1U); ++winrt) {
                 string name = i.first;
                 if (winrt > 0) {
                     name += "_winrt";
@@ -1640,7 +1640,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
         }
         // Create List of additional dependencies
         string addDeps[4]; // debug, release, debugDll, releaseDll
-        for (auto i = libs.begin() + m_projectLibs[m_projectName].size(); i < libs.end(); ++i) {
+        for (auto i = libs.begin() + (size_t)m_projectLibs[m_projectName].size(); i < libs.end(); ++i) {
             addDeps[0] += *i;
             addDeps[0] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addDeps[1] += *i;
@@ -1658,7 +1658,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
         }
         // Add to Additional Dependencies
         const string libLink2[2] = {"<Link>", "<Lib>"};
-        for (uint linkLib = 0; linkLib < (!program ? 2 : 1); linkLib++) {
+        for (uint linkLib = 0; linkLib < (!program ? 2U : 1U); linkLib++) {
             // loop over each debug/release sequence
             uint findPos = 0;
             for (uint debugRelease = 0; debugRelease < 2; debugRelease++) {
