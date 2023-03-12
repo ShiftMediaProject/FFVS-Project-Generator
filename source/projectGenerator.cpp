@@ -422,6 +422,9 @@ void ProjectGenerator::outputProjectCleanup()
     m_includesCPP.clear();
     m_includesC.clear();
     m_includesASM.clear();
+    m_includesConditionalCPP.clear();
+    m_includesConditionalC.clear();
+    m_includesConditionalASM.clear();
     m_includesH.clear();
     m_includesRC.clear();
     m_includesCU.clear();
@@ -914,9 +917,9 @@ void ProjectGenerator::outputSourceFileType(StaticList& fileList, const string& 
                 closed = true;
                 typeFilesTemp += excludeConfigPlatform;
                 if (bit32Only) {
-                    typeFilesTemp += "Win32";
-                } else if (bit64Only) {
                     typeFilesTemp += "x64";
+                } else {
+                    typeFilesTemp += "Win32";
                 }
                 typeFilesTemp += excludeConfigEnd;
             }
@@ -1004,14 +1007,41 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
             outputError("Assembly files found in project but assembly is disabled");
         }
     }
+    if (!m_includesConditionalASM.empty()) {
+        if (m_configHelper.isASMEnabled()) {
+            StaticList fileList;
+            for (auto& i : m_includesConditionalASM) {
+                fileList.clear();
+                fileList.emplace_back(i.first);
+                outputSourceFileType(fileList, (m_configHelper.m_useNASM) ? "NASM" : "YASM", "Source", projectTemplate,
+                    filterTemplate, foundObjects, foundFilters, false, i.second.isStatic, i.second.isShared,
+                    i.second.is32, i.second.is64);
+            }
+        } else {
+            outputError("Assembly files found in project but assembly is disabled");
+        }
+    }
 
     // Output C files
     outputSourceFileType(
         m_includesC, "ClCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters, true);
+    StaticList fileList;
+    for (auto& i : m_includesConditionalC) {
+        fileList.clear();
+        fileList.emplace_back(i.first);
+        outputSourceFileType(fileList, "ClCompile", "Source", projectTemplate, filterTemplate, foundObjects,
+            foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
+    }
 
     // Output C++ files
     outputSourceFileType(
         m_includesCPP, "ClCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters, true);
+    for (auto& i : m_includesConditionalCPP) {
+        fileList.clear();
+        fileList.emplace_back(i.first);
+        outputSourceFileType(fileList, "ClCompile", "Source", projectTemplate, filterTemplate, foundObjects,
+            foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
+    }
 
     // Output CUDA files
     if (!m_includesCU.empty()) {

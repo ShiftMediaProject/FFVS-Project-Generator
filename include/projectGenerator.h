@@ -31,12 +31,23 @@ class ProjectGenerator
 private:
     using StaticList = vector<string>;
     using UnknownList = map<string, StaticList>;
+    struct ConfigConds
+    {
+        bool isStatic = false;
+        bool isShared = false;
+        bool is32 = false;
+        bool is64 = false;
+    };
+    using ConditionalList = map<string, ConfigConds>;
     ifstream m_inputFile;
     string m_inLine;
     StaticList m_includes;
     StaticList m_includesCPP;
     StaticList m_includesC;
     StaticList m_includesASM;
+    ConditionalList m_includesConditionalCPP;
+    ConditionalList m_includesConditionalC;
+    ConditionalList m_includesConditionalASM;
     StaticList m_includesH;
     StaticList m_includesRC;
     StaticList m_includesCU;
@@ -299,7 +310,14 @@ private:
 
     bool checkProjectFiles();
 
-    bool createReplaceFiles(const StaticList& replaceIncludes, StaticList& existingIncludes);
+    /**
+     * Builds '_wrap' files to wrap source files in a conditional compilation statement.
+     * @param replaceIncludes              The list of files to scan.
+     * @param [in,out] existingIncludes    The list of existing processed files.
+     * @param [in,out] conditionalIncludes The list of existing conditional files.
+     */
+    bool createReplaceFiles(
+        const StaticList& replaceIncludes, StaticList& existingIncludes, ConditionalList& conditionalIncludes);
 
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
         StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU) const;
