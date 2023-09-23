@@ -278,6 +278,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                 includeDirs.push_back("$(OutDir)/include/fribidi/");
                 includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi/");
                 definesStatic.push_back("FRIBIDI_LIB_STATIC");
+            } else if (i.first == "libharfbuzz") {
+                includeDirs.push_back("$(OutDir)/include/harfbuzz/");
+                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/harfbuzz/");
             } else if (i.first == "libilbc") {
                 definesStatic.push_back("ILBC_STATIC_DEFINE");
             } else if (i.first == "libx264") {
@@ -423,6 +426,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libfribidi"] = (m_projectName == "libavfilter");
     projectDeps["libgme"] = (m_projectName == "libavformat");
     projectDeps["libgsm"] = (m_projectName == "libavcodec");
+    projectDeps["libharfbuzz"] = (m_projectName == "libavfilter");
     projectDeps["libiec61883"] = (m_projectName == "libavdevice");
     projectDeps["libilbc"] = (m_projectName == "libavcodec");
     projectDeps["libkvazaar"] = (m_projectName == "libavcodec");
