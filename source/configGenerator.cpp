@@ -1363,6 +1363,9 @@ bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& p
             // Hacky fix for detecting a macro define of const
             start += 14;
         }
+        if ((findFile.at(start) == 's') && (findFile.find("struct ", start) == start)) {
+            start += 7;
+        }
         // Check for search tag
         start = findFile.find_first_not_of(g_whiteSpace, start);
         if ((findFile.at(start) != param2.at(0)) || (findFile.find(param2, start) != start)) {
