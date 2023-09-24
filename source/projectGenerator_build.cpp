@@ -399,7 +399,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libfontconfig"] = (m_projectName == "libavfilter");
     projectDeps["ffnvcodec"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["frei0r"] = (m_projectName == "libavfilter");
-    projectDeps["gcrypt"] = (m_projectName == "libavformat");
+    projectDeps["gcrypt"] = (m_projectName == "libavformat") || (m_projectName == "libavutil");
     projectDeps["gmp"] = (m_projectName == "libavformat");
     projectDeps["gnutls"] = (m_projectName == "libavformat");
     projectDeps["iconv"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
@@ -499,7 +499,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
         (m_projectName == "ffmpeg") || (m_projectName == "avconv") || (m_projectName == "ffplay") ||
         (m_projectName == "avplay") || (m_projectName == "ffprobe") || (m_projectName == "avprobe");
     projectDeps["opengl"] = (m_projectName == "libavdevice");
-    projectDeps["openssl"] = (m_projectName == "libavformat");
+    projectDeps["openssl"] = (m_projectName == "libavformat") || (m_projectName == "libavutil");
     projectDeps["schannel"] = (m_projectName == "libavformat");
     projectDeps["sdl"] = (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     projectDeps["sdl2"] =
