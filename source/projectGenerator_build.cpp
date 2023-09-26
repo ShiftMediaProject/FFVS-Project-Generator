@@ -195,6 +195,8 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 }
             } else if (i == "wincrypt") {
                 addLibs.push_back("Advapi32"); // Add the additional required libs
+            } else if (i == "libvpl") {
+                addLibs.push_back("vpl"); // Add the additional required libs
             } else {
                 // By default just use the lib name and prefix with lib if not already
                 if (i.find("lib") == 0) {
@@ -348,7 +350,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                             "NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path.",
                             false);
                     }
-                    // Only add if it hasn’t already been added
+                    // Only add if it hasnï¿½t already been added
                     if (find(includeDirs.begin(), includeDirs.end(), "$(CUDA_PATH)/include/") == includeDirs.end()) {
                         includeDirs.push_back("$(CUDA_PATH)/include/");
                     }
@@ -363,13 +365,22 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                         outputWarning(
                             "Either the CUDA SDK is not installed or the environment variable is missing.", false);
                     }
-                    // Only add if it hasn’t already been added
+                    // Only add if it hasnï¿½t already been added
                     if (find(includeDirs.begin(), includeDirs.end(), "$(CUDA_PATH)/include/") == includeDirs.end()) {
                         includeDirs.push_back("$(CUDA_PATH)/include/");
                         lib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
                         lib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
                     }
                 }
+            } else if (i.first == "libvpl" && !winrt) {
+                if (!findEnvironmentVariable("ONEAPI_ROOT")) {
+                    outputWarning("Could not find the OneAPI environment variable.");
+                    outputWarning(
+                        "Either the OneAPI SDK is not installed or the environment variable is missing.", false);
+                }
+                includeDirs.push_back("$(ONEAPI_ROOT)/vpl/latest/include/vpl/");
+                lib32Dirs.push_back("$(ONEAPI_ROOT)/vpl/latest/lib/x86");
+                lib64Dirs.push_back("$(ONEAPI_ROOT)/vpl/latest/lib");
             }
         }
     }
@@ -506,6 +517,10 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
         (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     projectDeps["vapoursynth"] = m_projectName.compare("libavformat");
     projectDeps["zlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
+    projectDeps["libvpl"] = ((m_projectName == "libavutil") && findSourceFile("hwcontext_qsv", ".h", notUsed)) ||
+        (m_projectName == "libavcodec") ||
+        ((m_projectName == "libavfilter") && findSourceFile("vf_deinterlace_qsv", ".c", notUsed)) ||
+        (m_projectName == "ffmpeg") || (m_projectName == "avconv");
 }
 
 void ProjectGenerator::buildProjectGUIDs(map<string, string>& keys) const
