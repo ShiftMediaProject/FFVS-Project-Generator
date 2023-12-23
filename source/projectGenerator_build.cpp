@@ -120,9 +120,19 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 addLibs.push_back("Bcrypt"); // Add the additional required libs
             } else if (i == "bzlib") {
                 lib = "libbz2";
+            } else if (i == "d3d12va") {
+                if (winrt) {
+                    if (std::find(addLibs.cbegin(), addLibs.cend(), "dxgi") == addLibs.cend()) {
+                        addLibs.push_back("dxgi");
+                    }
+                    addLibs.push_back("d3d12");
+                }
+                // doesn't need any additional libs
             } else if (i == "d3d11va") {
                 if (winrt) {
-                    addLibs.push_back("dxgi");
+                    if (std::find(addLibs.cbegin(), addLibs.cend(), "dxgi") == addLibs.cend()) {
+                        addLibs.push_back("dxgi");
+                    }
                     addLibs.push_back("d3d11");
                 }
                 // doesn't need any additional libs
@@ -393,6 +403,7 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["cuda_nvcc"] = (m_projectName == "libavfilter");
     projectDeps["cuvid"] =
         (m_projectName == "libavcodec") || (m_projectName == "ffmpeg") || (m_projectName == "avconv");
+    projectDeps["d3d12va"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["d3d11va"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["dxva2"] = (m_projectName == "libavutil") || (m_projectName == "libavcodec");
     projectDeps["decklink"] = (m_projectName == "libavdevice");

@@ -279,6 +279,7 @@ bool ConfigGenerator::buildDefaultValues()
             fastToggleConfigValue("zlib", true);
 
             // Enable hwaccels by default.
+            fastToggleConfigValue("d3d12va", true);
             fastToggleConfigValue("d3d11va", true);
             fastToggleConfigValue("dxva2", true);
 
@@ -336,6 +337,8 @@ bool ConfigGenerator::buildAutoDetectValues()
                 } else if (i == "cuda_llvm" || i == "cuda_nvcc") {
                     // Not currently supported
                     enable = false;
+                } else if (i == "d3d12va") {
+                    enable = true;
                 } else if (i == "d3d11va") {
                     enable = true;
                 } else if (i == "dxva2") {
@@ -557,6 +560,16 @@ void ConfigGenerator::buildReplaceValues(
 #   define HAVE_STRUCT_POLLFD 1\n\
 #else\n\
 #   define HAVE_STRUCT_POLLFD 0\n\
+#endif";
+    replaceValues["CONFIG_D3D12VA"] = "#if defined(NTDDI_WIN10_TH2)\n\
+#   define CONFIG_D3D12VA 1\n\
+#else\n\
+#   define CONFIG_D3D12VA 0\n\
+#endif";
+    replaceValues["CONFIG_AV1_D3D12VA_HWACCEL"] = "#if defined(NTDDI_WIN10_FE)\n\
+#   define CONFIG_AV1_D3D12VA_HWACCEL 1\n\
+#else\n\
+#   define CONFIG_AV1_D3D12VA_HWACCEL 0\n\
 #endif";
     replaceValues["CONFIG_D3D11VA"] = "#if defined(NTDDI_WIN8)\n\
 #   define CONFIG_D3D11VA 1\n\
@@ -1018,6 +1031,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["IBaseFilter"] = true;
     additionalDependencies["ID3D11VideoDecoder"] = true;
     additionalDependencies["ID3D11VideoContext"] = true;
+    additionalDependencies["ID3D12Device"] = true;
+    additionalDependencies["ID3D12VideoDecoder"] = true;
     additionalDependencies["DXGI_OUTDUPL_FRAME_INFO"] = true;
     additionalDependencies["IDXGIOutput1"] = true;
     additionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
