@@ -205,6 +205,10 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 }
             } else if (i == "wincrypt") {
                 addLibs.push_back("Advapi32"); // Add the additional required libs
+            } else if (i == "vaapi") {
+                addLibs.push_back("va");
+            } else if (i == "vaapi_win32") {
+                addLibs.push_back("va_win32");
             } else {
                 // By default just use the lib name and prefix with lib if not already
                 if (i.find("lib") == 0) {
@@ -515,6 +519,8 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["sdl"] = (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
     projectDeps["sdl2"] =
         (m_projectName == "libavdevice") || (m_projectName == "ffplay") || (m_projectName == "avplay");
+    projectDeps["vaapi"] = (m_projectName == "libavcodec") || (m_projectName == "libavfilter") || (m_projectName == "libavutil");
+    projectDeps["vaapi_win32"] = (m_projectName == "libavcodec") || (m_projectName == "libavfilter") || (m_projectName == "libavutil");
     projectDeps["vapoursynth"] = m_projectName.compare("libavformat");
     projectDeps["zlib"] = (m_projectName == "libavformat") || (m_projectName == "libavcodec");
 }

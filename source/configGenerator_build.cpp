@@ -465,6 +465,10 @@ bool ConfigGenerator::buildForcedValues()
         fastToggleConfigValue("w32threads", true);
     }
 
+    if (isConfigOptionEnabled("vaapi")) {
+        fastToggleConfigValue("vaapi_win32", true);
+    }
+
     return true;
 }
 
@@ -1052,7 +1056,9 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["vdpau_vdpau_x11_h"] = false;
     additionalDependencies["vfw32"] = true;
     additionalDependencies["vfwcap_defines"] = true;
-    additionalDependencies["VADecPictureParameterBufferAV1_bit_depth_idx"] = false;
+    additionalDependencies["VAPictureParameterBufferHEVC"] = true;
+    additionalDependencies["VADecPictureParameterBufferVP9_bit_depth"] = true;
+    additionalDependencies["VADecPictureParameterBufferAV1_bit_depth_idx"] = true;
     additionalDependencies["VideoDecodeAcceleration_VDADecoder_h"] = false;
     additionalDependencies["X11_extensions_Xvlib_h"] = false;
     additionalDependencies["X11_extensions_XvMClib_h"] = false;
@@ -1063,13 +1069,14 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["CUVIDHEVCPICPARAMS"] = bCuvid;
     additionalDependencies["CUVIDVC1PICPARAMS"] = bCuvid;
     additionalDependencies["CUVIDVP9PICPARAMS"] = bCuvid;
-    additionalDependencies["VAEncPictureParameterBufferH264"] = false;
+    additionalDependencies["VAEncPictureParameterBufferH264"] = true;
     additionalDependencies["videotoolbox_encoder"] = false;
-    additionalDependencies["VAEncPictureParameterBufferHEVC"] = false;
-    additionalDependencies["VAEncPictureParameterBufferJPEG"] = false;
-    additionalDependencies["VAEncPictureParameterBufferMPEG2"] = false;
-    additionalDependencies["VAEncPictureParameterBufferVP8"] = false;
-    additionalDependencies["VAEncPictureParameterBufferVP9"] = false;
+    additionalDependencies["VAEncPictureParameterBufferHEVC"] = true;
+    additionalDependencies["VAEncPictureParameterBufferJPEG"] = true;
+    additionalDependencies["VAEncPictureParameterBufferMPEG2"] = true;
+    additionalDependencies["VAEncPictureParameterBufferVP8"] = true;
+    additionalDependencies["VAEncPictureParameterBufferVP9"] = true;
+    additionalDependencies["VAEncPictureParameterBufferAV1"] = true;
     additionalDependencies["ole32"] = true;
     additionalDependencies["shell32"] = true;
     additionalDependencies["wincrypt"] = true;
