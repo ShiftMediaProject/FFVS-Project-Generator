@@ -84,9 +84,9 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                     string templateFile = file.substr(findPos2, findPos - findPos2);
                     // Split filename from any directory structures
                     replace(templateFile.begin(), templateFile.end(), '\\', '/');
-                    uint projName = templateFile.rfind('/');
+                    uint projName = templateFile.rfind(m_projectName + '/');
                     if (projName != string::npos) {
-                        templateFile = templateFile.substr(projName + 1);
+                        templateFile = templateFile.substr(projName + 1 + m_projectName.length());
                     }
                     if (templateFile.length() >= 3) {
                         string found;
