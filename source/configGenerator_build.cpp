@@ -351,6 +351,8 @@ bool ConfigGenerator::buildAutoDetectValues()
                     enable = findFile(sFileName, sFileName);
                 } else if (i == "jack") {
                     enable = false;
+                } else if (i == "libdrm") {
+                    enable = false;
                 } else if (i == "libxcb") {
                     enable = false;
                 } else if (i == "libxcb_shm") {
