@@ -647,9 +647,9 @@ bool ProjectGenerator::passMake()
                 } else if (m_inLine.substr(0, 5) == "endif") {
                     // Reset the current condition
                     condition.clear();
-                } else if (m_inLine.substr(0, 7) == "include") {
+                } else if (m_inLine.substr(0, 7) == "include" || m_inLine.substr(0, 8) == "-include") {
                     // Need to append the included file to makefile list
-                    uint startPos = m_inLine.find_first_not_of(" \t", 7);
+                    uint startPos = m_inLine.find_first_not_of(" \t", 7 + (m_inLine[0] == '-' ? 1 : 0));
                     uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
                     endPos = (endPos == string::npos) ? endPos : endPos - startPos;
                     string newMake = m_inLine.substr(startPos, endPos);
@@ -658,15 +658,17 @@ bool ProjectGenerator::passMake()
                     while (startPos != string::npos) {
                         endPos = newMake.find(')', startPos + 1);
                         if (endPos == string::npos) {
-                            outputInfo("Invalid token (" + newMake + ")");
+                            outputError("Invalid token in include (" + newMake + ")");
                             return false;
                         }
                         ++endPos;
                         string token = newMake.substr(startPos, endPos - startPos);
                         if (token == "$(SRC_PATH)") {
                             newMake.replace(startPos, endPos - startPos, m_configHelper.m_rootDirectory);
+                        } else if (token == "$(ARCH)") {
+                            newMake.replace(startPos, endPos - startPos, "x86");
                         } else {
-                            outputInfo("Unknown token (" + token + ")");
+                            outputError("Unknown token in include (" + token + ")");
                             return false;
                         }
                         startPos = newMake.find('$', startPos);
