@@ -71,7 +71,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
 {
     // Add any forced dependencies
     if (m_projectName == "libavformat" && !winrt) {
-        addLibs.push_back("ws2_32"); // Add the additional required libs
+        addLibs.emplace_back("ws2_32"); // Add the additional required libs
     }
 
     // Determine only those dependencies that are valid for current project
@@ -117,23 +117,23 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
             } else if (i == "avisynth") {
                 // doesn't need any additional libs
             } else if (i == "bcrypt") {
-                addLibs.push_back("Bcrypt"); // Add the additional required libs
+                addLibs.emplace_back("Bcrypt"); // Add the additional required libs
             } else if (i == "bzlib") {
                 lib = "libbz2";
             } else if (i == "d3d12va") {
                 if (winrt) {
                     if (std::find(addLibs.cbegin(), addLibs.cend(), "dxgi") == addLibs.cend()) {
-                        addLibs.push_back("dxgi");
+                        addLibs.emplace_back("dxgi");
                     }
-                    addLibs.push_back("d3d12");
+                    addLibs.emplace_back("d3d12");
                 }
                 // doesn't need any additional libs
             } else if (i == "d3d11va") {
                 if (winrt) {
                     if (std::find(addLibs.cbegin(), addLibs.cend(), "dxgi") == addLibs.cend()) {
-                        addLibs.push_back("dxgi");
+                        addLibs.emplace_back("dxgi");
                     }
-                    addLibs.push_back("d3d11");
+                    addLibs.emplace_back("d3d11");
                 }
                 // doesn't need any additional libs
             } else if (i == "dxva2") {
@@ -143,7 +143,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
             } else if (i == "libfdk_aac") {
                 lib = "libfdk-aac";
             } else if (i == "libnpp") {
-                addLibs.push_back("nppi"); // Add the additional required libs
+                addLibs.emplace_back("nppi"); // Add the additional required libs
                 // CUDA 7.5 onwards only provides npp for x64
             } else if (i == "libxvid") {
                 lib = "libxvidcore";
@@ -158,19 +158,19 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                     }
                 }
                 if (list == libs.end()) {
-                    libs.push_back("libcrypto");
+                    libs.emplace_back("libcrypto");
                 }
             } else if (i == "decklink") {
                 // Doesn't need any additional libs
             } else if (i == "opengl") {
-                addLibs.push_back("Opengl32"); // Add the additional required libs
+                addLibs.emplace_back("Opengl32"); // Add the additional required libs
             } else if (i == "opencl") {
                 string fileName;
                 if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", fileName)) {
-                    addLibs.push_back("OpenCL"); // Add the additional required libs
+                    addLibs.emplace_back("OpenCL"); // Add the additional required libs
                 }
             } else if (i == "openal") {
-                addLibs.push_back("OpenAL32"); // Add the additional required libs
+                addLibs.emplace_back("OpenAL32"); // Add the additional required libs
             } else if (i == "ffnvcodec") {
                 // Doesn't require any additional libs
             } else if (i == "nvenc") {
@@ -179,7 +179,7 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", fileName)) {
-                    addLibs.push_back("cuda"); // Add the additional required libs
+                    addLibs.emplace_back("cuda"); // Add the additional required libs
                 }
             } else if (i == "cuda_sdk" || i == "cuda_nvcc") {
                 // Doesn't require any additional libs
@@ -187,24 +187,24 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_nvcuvid.h", fileName)) {
-                    addLibs.push_back("nvcuvid"); // Add the additional required libs
+                    addLibs.emplace_back("nvcuvid"); // Add the additional required libs
                 }
             } else if ((i == "nvdec") || (i == "nvenc")) {
                 // Doesn't need any additional libs
             } else if (i == "mediafoundation") {
-                addLibs.push_back("mfplat");
-                addLibs.push_back("mfuuid");
+                addLibs.emplace_back("mfplat");
+                addLibs.emplace_back("mfuuid");
                 if (!winrt) {
-                    addLibs.push_back("strmiids");
+                    addLibs.emplace_back("strmiids");
                 }
             } else if (i == "schannel") {
-                addLibs.push_back("Secur32"); // Add the additional required libs
+                addLibs.emplace_back("Secur32"); // Add the additional required libs
             } else if (i == "sdl") {
                 if (!m_configHelper.isConfigOptionValid("sdl2")) {
-                    libs.push_back("libsdl"); // Only add if not sdl2
+                    libs.emplace_back("libsdl"); // Only add if not sdl2
                 }
             } else if (i == "wincrypt") {
-                addLibs.push_back("Advapi32"); // Add the additional required libs
+                addLibs.emplace_back("Advapi32"); // Add the additional required libs
             } else {
                 // By default just use the lib name and prefix with lib if not already
                 if (i.find("lib") == 0) {
@@ -238,12 +238,12 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
             if (m_configHelper.isConfigOptionEnabled(i)) {
                 // Add the additional required libs
                 if (i == "dshow_indev") {
-                    addLibs.push_back("strmiids");
+                    addLibs.emplace_back("strmiids");
                 } else if (i == "vfwcap_indev") {
-                    addLibs.push_back("vfw32");
-                    addLibs.push_back("shlwapi");
+                    addLibs.emplace_back("vfw32");
+                    addLibs.emplace_back("shlwapi");
                 } else if ((i == "wasapi_indev") || (i == "wasapi_outdev")) {
-                    addLibs.push_back("ksuser");
+                    addLibs.emplace_back("ksuser");
                 }
             }
         }
@@ -289,35 +289,32 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         if (i.second && m_configHelper.isConfigOptionEnabled(i.first)) {
             // Add in the additional include directories
             if (i.first == "libopus") {
-                includeDirs.push_back("$(OutDir)/include/opus/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/opus/");
+                includeDirs.emplace_back("$(OutDir)/include/opus/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/opus/");
             } else if (i.first == "libfreetype") {
-                includeDirs.push_back("$(OutDir)/include/freetype2/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/freetype2/");
+                includeDirs.emplace_back("$(OutDir)/include/freetype2/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/freetype2/");
             } else if (i.first == "libfribidi") {
-                includeDirs.push_back("$(OutDir)/include/fribidi/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/fribidi/");
-                definesStatic.push_back("FRIBIDI_LIB_STATIC");
+                includeDirs.emplace_back("$(OutDir)/include/fribidi/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/fribidi/");
+                definesStatic.emplace_back("FRIBIDI_LIB_STATIC");
             } else if (i.first == "libharfbuzz") {
-                includeDirs.push_back("$(OutDir)/include/harfbuzz/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/harfbuzz/");
+                includeDirs.emplace_back("$(OutDir)/include/harfbuzz/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/harfbuzz/");
             } else if (i.first == "libilbc") {
-                definesStatic.push_back("ILBC_STATIC_DEFINE");
+                definesStatic.emplace_back("ILBC_STATIC_DEFINE");
             } else if (i.first == "libx264") {
-                definesShared.push_back("X264_API_IMPORTS");
+                definesShared.emplace_back("X264_API_IMPORTS");
             } else if (i.first == "libxml2") {
-                includeDirs.push_back("$(OutDir)/include/libxml2/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/libxml2/");
-                definesStatic.push_back("LIBXML_STATIC");
+                includeDirs.emplace_back("$(OutDir)/include/libxml2/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/libxml2/");
+                definesStatic.emplace_back("LIBXML_STATIC");
             } else if (i.first == "libmfx") {
-                includeDirs.push_back("$(OutDir)/include/mfx/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/mfx/");
-            } else if ((i.first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2")) {
-                includeDirs.push_back("$(OutDir)/include/SDL/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL/");
-            } else if (i.first == "sdl2") {
-                includeDirs.push_back("$(OutDir)/include/SDL/");
-                includeDirs.push_back("$(ProjectDir)/../../prebuilt/include/SDL/");
+                includeDirs.emplace_back("$(OutDir)/include/mfx/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/mfx/");
+            } else if (i.first == "sdl2" || ((i.first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2"))) {
+                includeDirs.emplace_back("$(OutDir)/include/SDL/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/SDL/");
             } else if (i.first == "opengl" && !winrt) {
                 // Requires glext headers to be installed in include dir (does not require the libs)
             } else if (i.first == "opencl" && !winrt) {
@@ -325,17 +322,17 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                 if (!findFile(m_configHelper.m_rootDirectory + "compat/opencl/cl.h", fileName)) {
                     // Need to check for the existence of environment variables
                     if (findEnvironmentVariable("AMDAPPSDKROOT")) {
-                        includeDirs.push_back("$(AMDAPPSDKROOT)/include/");
-                        lib32Dirs.push_back("$(AMDAPPSDKROOT)/lib/Win32");
-                        lib64Dirs.push_back("$(AMDAPPSDKROOT)/lib/x64");
+                        includeDirs.emplace_back("$(AMDAPPSDKROOT)/include/");
+                        lib32Dirs.emplace_back("$(AMDAPPSDKROOT)/lib/Win32");
+                        lib64Dirs.emplace_back("$(AMDAPPSDKROOT)/lib/x64");
                     } else if (findEnvironmentVariable("INTELOCLSDKROOT")) {
-                        includeDirs.push_back("$(INTELOCLSDKROOT)/include/");
-                        lib32Dirs.push_back("$(INTELOCLSDKROOT)/lib/x86");
-                        lib64Dirs.push_back("$(INTELOCLSDKROOT)/lib/x64");
+                        includeDirs.emplace_back("$(INTELOCLSDKROOT)/include/");
+                        lib32Dirs.emplace_back("$(INTELOCLSDKROOT)/lib/x86");
+                        lib64Dirs.emplace_back("$(INTELOCLSDKROOT)/lib/x64");
                     } else if (findEnvironmentVariable("CUDA_PATH")) {
-                        includeDirs.push_back("$(CUDA_PATH)/include/");
-                        lib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                        lib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+                        includeDirs.emplace_back("$(CUDA_PATH)/include/");
+                        lib32Dirs.emplace_back("$(CUDA_PATH)/lib/Win32");
+                        lib64Dirs.emplace_back("$(CUDA_PATH)/lib/x64");
                     } else {
                         outputWarning("Could not find an OpenCl SDK environment variable.");
                         outputWarning(
@@ -352,9 +349,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                         "Either the OpenAL SDK is not installed or the environment variable is missing.", false);
                     outputWarning("Using the default environment variable of 'OPENAL_SDK'.", false);
                 }
-                includeDirs.push_back("$(OPENAL_SDK)/include/");
-                lib32Dirs.push_back("$(OPENAL_SDK)/libs/Win32");
-                lib64Dirs.push_back("$(OPENAL_SDK)/lib/Win64");
+                includeDirs.emplace_back("$(OPENAL_SDK)/include/");
+                lib32Dirs.emplace_back("$(OPENAL_SDK)/libs/Win32");
+                lib64Dirs.emplace_back("$(OPENAL_SDK)/lib/Win64");
             } else if (i.first == "nvenc" && !winrt) {
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
@@ -368,12 +365,12 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                             "NVENC requires CUDA to be installed with NVENC headers made available in the CUDA SDK include path.",
                             false);
                     }
-                    // Only add if it hasn’t already been added
+                    // Only add if it hasn't already been added
                     if (find(includeDirs.begin(), includeDirs.end(), "$(CUDA_PATH)/include/") == includeDirs.end()) {
-                        includeDirs.push_back("$(CUDA_PATH)/include/");
+                        includeDirs.emplace_back("$(CUDA_PATH)/include/");
                     }
                 }
-            } else if ((i.first == "cuda") || (i.first == "cuvid") && !winrt) {
+            } else if (((i.first == "cuda") || (i.first == "cuvid")) && !winrt) {
                 string fileName;
                 if (!m_configHelper.isConfigOptionEnabled("ffnvcodec") &&
                     !findFile(m_configHelper.m_rootDirectory + "compat/cuda/dynlink_cuda.h", fileName)) {
@@ -383,11 +380,11 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                         outputWarning(
                             "Either the CUDA SDK is not installed or the environment variable is missing.", false);
                     }
-                    // Only add if it hasn’t already been added
+                    // Only add if it hasn't already been added
                     if (find(includeDirs.begin(), includeDirs.end(), "$(CUDA_PATH)/include/") == includeDirs.end()) {
-                        includeDirs.push_back("$(CUDA_PATH)/include/");
-                        lib32Dirs.push_back("$(CUDA_PATH)/lib/Win32");
-                        lib64Dirs.push_back("$(CUDA_PATH)/lib/x64");
+                        includeDirs.emplace_back("$(CUDA_PATH)/include/");
+                        lib32Dirs.emplace_back("$(CUDA_PATH)/lib/Win32");
+                        lib64Dirs.emplace_back("$(CUDA_PATH)/lib/x64");
                     }
                 }
             }

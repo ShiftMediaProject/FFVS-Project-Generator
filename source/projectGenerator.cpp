@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <sstream>
 #include <utility>
 
 #define TEMPLATE_SLN_WINRT_ID 101
@@ -1089,7 +1088,7 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     filterTemplate.insert(findPosFilt, addFilters);
 }
 
-bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs)
+bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
 {
     outputLine("  Generating project exports file (" + m_projectName + ")...");
     string exportList;
@@ -1344,7 +1343,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs)
     return true;
 }
 
-void ProjectGenerator::outputBuildEvents(string& projectTemplate)
+void ProjectGenerator::outputBuildEvents(string& projectTemplate) const
 {
     // After </Lib> and </Link> and the post and then pre build events
     const string libLink[2] = {"</Lib>", "</Link>"};
@@ -1639,7 +1638,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
         }
         // Create List of additional dependencies
         string addDeps[4]; // debug, release, debugDll, releaseDll
-        for (auto i = libs.begin() + (size_t)m_projectLibs[m_projectName].size(); i < libs.end(); ++i) {
+        for (auto i = libs.begin() + m_projectLibs[m_projectName].size(); i < libs.end(); ++i) {
             addDeps[0] += *i;
             addDeps[0] += (!winrt) ? "d.lib;" : "d_winrt.lib;";
             addDeps[1] += *i;

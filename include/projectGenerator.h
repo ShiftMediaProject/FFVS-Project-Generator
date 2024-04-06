@@ -350,7 +350,7 @@ private:
 
     void outputSourceFiles(string& projectTemplate, string& filterTemplate);
 
-    bool outputProjectExports(const StaticList& includeDirs);
+    bool outputProjectExports(const StaticList& includeDirs) const;
 
     /**
      * Executes a batch script to perform operations using a compiler based on current configuration.
@@ -389,7 +389,7 @@ private:
      * Output additional build events to the project.
      * @param [in,out] projectTemplate The project template.
      */
-    void outputBuildEvents(string& projectTemplate);
+    void outputBuildEvents(string& projectTemplate) const;
 
     /**
      * Output additional include search directories to project.

@@ -584,39 +584,39 @@ void ProjectGenerator::outputProjectDCEFindFunctions(const string& file, const s
     StaticList funcIdents = {"ff_"};
     if ((m_projectName == "ffmpeg") || (m_projectName == "ffplay") || (m_projectName == "ffprobe") ||
         (m_projectName == "avconv") || (m_projectName == "avplay") || (m_projectName == "avprobe")) {
-        funcIdents.push_back("avcodec_");
-        funcIdents.push_back("avdevice_");
-        funcIdents.push_back("avfilter_");
-        funcIdents.push_back("avformat_");
-        funcIdents.push_back("avutil_");
-        funcIdents.push_back("av_");
-        funcIdents.push_back("avresample_");
-        funcIdents.push_back("postproc_");
-        funcIdents.push_back("swri_");
-        funcIdents.push_back("swresample_");
-        funcIdents.push_back("swscale_");
-        funcIdents.push_back("rgb2rgb_");
+        funcIdents.emplace_back("avcodec_");
+        funcIdents.emplace_back("avdevice_");
+        funcIdents.emplace_back("avfilter_");
+        funcIdents.emplace_back("avformat_");
+        funcIdents.emplace_back("avutil_");
+        funcIdents.emplace_back("av_");
+        funcIdents.emplace_back("avresample_");
+        funcIdents.emplace_back("postproc_");
+        funcIdents.emplace_back("swri_");
+        funcIdents.emplace_back("swresample_");
+        funcIdents.emplace_back("swscale_");
+        funcIdents.emplace_back("rgb2rgb_");
     } else if (m_projectName == "libavcodec") {
-        funcIdents.push_back("avcodec_");
+        funcIdents.emplace_back("avcodec_");
     } else if (m_projectName == "libavdevice") {
-        funcIdents.push_back("avdevice_");
+        funcIdents.emplace_back("avdevice_");
     } else if (m_projectName == "libavfilter") {
-        funcIdents.push_back("avfilter_");
+        funcIdents.emplace_back("avfilter_");
     } else if (m_projectName == "libavformat") {
-        funcIdents.push_back("avformat_");
+        funcIdents.emplace_back("avformat_");
     } else if (m_projectName == "libavutil") {
-        funcIdents.push_back("avutil_");
-        funcIdents.push_back("av_");
+        funcIdents.emplace_back("avutil_");
+        funcIdents.emplace_back("av_");
     } else if (m_projectName == "libavresample") {
-        funcIdents.push_back("avresample_");
+        funcIdents.emplace_back("avresample_");
     } else if (m_projectName == "libpostproc") {
-        funcIdents.push_back("postproc_");
+        funcIdents.emplace_back("postproc_");
     } else if (m_projectName == "libswresample") {
-        funcIdents.push_back("swri_");
-        funcIdents.push_back("swresample_");
+        funcIdents.emplace_back("swri_");
+        funcIdents.emplace_back("swresample_");
     } else if (m_projectName == "libswscale") {
-        funcIdents.push_back("swscale_");
-        funcIdents.push_back("rgb2rgb_");
+        funcIdents.emplace_back("swscale_");
+        funcIdents.emplace_back("rgb2rgb_");
     }
     struct InternalDCEParams
     {

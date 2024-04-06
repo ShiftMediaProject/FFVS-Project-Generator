@@ -1015,7 +1015,7 @@ void ConfigGenerator::buildReservedValues(vector<string>& reservedItems)
     reservedItems.emplace_back("pic");
 }
 
-void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies)
+void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDependencies) const
 {
     additionalDependencies.clear();
     additionalDependencies["android"] = false;

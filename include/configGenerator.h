@@ -157,7 +157,7 @@ private:
      * Creates a list of additional config option dependencies that are not available as actual config options.
      * @param [out] additionalDependencies The additional dependencies.
      */
-    void buildAdditionalDependencies(DependencyList& additionalDependencies);
+    void buildAdditionalDependencies(DependencyList& additionalDependencies) const;
 
     /**
      * Creates a list of additional dependencies between config options (in addition to _deps lists).
