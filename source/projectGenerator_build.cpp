@@ -254,8 +254,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
     StaticList& definesShared, StaticList& definesStatic, const bool winrt) const
 {
     // Add hard dependencies
-    string dep;
+    string projRoot = "$(ProjectDir)/";
     string atomicCompatFile = m_configHelper.m_rootDirectory + "compat/atomics/win32/stdatomic.h";
+    string dep;
     if (findFile(atomicCompatFile, dep)) {
         m_configHelper.makeFileProjectRelative(atomicCompatFile, atomicCompatFile);
         uint pos = atomicCompatFile.rfind('/'); // Get path only
@@ -266,8 +267,17 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
     // Add root directory
     if (m_configHelper.m_rootDirectory != "./" && m_configHelper.m_rootDirectory != "../") {
         m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, dep);
-        includeDirs.push_back("$(ProjectDir)/" + dep);
+        projRoot += dep;
+        includeDirs.push_back(projRoot);
     }
+    
+    // Add subdirectory include dirs
+    for (const auto& sub : m_subDirs) {
+        includeDirs.push_back(projRoot + m_projectName + '/' + sub + '/');
+    }
+    if (!m_subDirs.empty()) {
+        includeDirs.push_back(projRoot + m_projectName + '/');
+    }  
 
     // Determine only those dependencies that are valid for current project
     map<string, bool> projectDeps;

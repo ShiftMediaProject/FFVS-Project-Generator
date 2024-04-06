@@ -63,6 +63,7 @@ private:
     UnknownList m_unknowns;
     string m_projectName;
     string m_projectDir;
+    StaticList m_subDirs;
 
     map<string, StaticList> m_projectLibs;
 

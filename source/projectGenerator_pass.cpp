@@ -672,6 +672,32 @@ bool ProjectGenerator::passMake()
                         startPos = newMake.find('$', startPos);
                     }
                     makeFiles.push_back(newMake);
+                    // Add to internal list of known subdirectories
+                    const uint rootPos = newMake.find(m_configHelper.m_rootDirectory); 
+                    if (rootPos != string::npos) {
+                        newMake.erase(rootPos, m_configHelper.m_rootDirectory.length());
+                    }
+                    const uint projPos = newMake.find(m_projectName + '/');
+                    if (projPos != string::npos) {
+                        newMake.erase(projPos, m_projectName.length() + 1);
+                    }
+                    // Clean duplicate '//'
+                    uint findPos2 = newMake.find("//");
+                    while (findPos2 != string::npos) {
+                        newMake.erase(findPos2, 1);
+                        // get next
+                        findPos2 = newMake.find("//");
+                    }
+                    if (newMake[0] == '/') {
+                        newMake.erase(0, 1);
+                    }
+                    findPos2 = newMake.rfind('/');
+                    if (findPos2 != string::npos) {
+                        newMake.erase(findPos2);
+                    }
+                    if (!newMake.empty()) {
+                        m_subDirs.push_back(newMake);
+                    }
                 }
             }
             m_inputFile.close();

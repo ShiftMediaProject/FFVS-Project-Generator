@@ -68,6 +68,8 @@ bool ProjectGenerator::passAllMake()
         // Check if library is enabled
         if (m_configHelper.isConfigOptionEnabled(i)) {
             m_projectDir = m_configHelper.m_rootDirectory + "lib" + i + "/";
+            const uint pos = m_projectDir.rfind('/', m_projectDir.length() - 2) + 1;
+            m_projectName = m_projectDir.substr(pos, m_projectDir.length() - 1 - pos);
             // Locate the project dir for specified library
             string retFileName;
             if (!findFile(m_projectDir + "MakeFile", retFileName)) {
@@ -185,10 +187,6 @@ void ProjectGenerator::errorFunc(const bool cleanupFiles)
 
 bool ProjectGenerator::outputProject()
 {
-    // Output the generated files
-    const uint pos = m_projectDir.rfind('/', m_projectDir.length() - 2) + 1;
-    m_projectName = m_projectDir.substr(pos, m_projectDir.length() - 1 - pos);
-
     // Check all files are correctly located
     if (!checkProjectFiles()) {
         return false;
@@ -431,6 +429,7 @@ void ProjectGenerator::outputProjectCleanup()
     m_libs.clear();
     m_unknowns.clear();
     m_projectDir.clear();
+    m_subDirs.clear();
 }
 
 bool ProjectGenerator::outputSolution()
