@@ -154,6 +154,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x86\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>template_ind</TargetName>
@@ -162,6 +163,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x64\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
     <TargetName>template_ind</TargetName>
@@ -170,6 +172,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x86\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|x64'">
     <TargetName>template_ind</TargetName>
@@ -178,6 +181,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x64\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>template_in</TargetName>
@@ -186,6 +190,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x86\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>template_in</TargetName>
@@ -194,6 +199,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x64\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
     <TargetName>template_in</TargetName>
@@ -202,6 +208,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x86\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
     <TargetName>template_in</TargetName>
@@ -210,6 +217,7 @@
     <LocalDebuggerWorkingDirectory>$(OutDir)\bin\x64\</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetFileName)</LocalDebuggerCommand>
     <MSBuildWarningsAsMessages>MSB8012</MSBuildWarningsAsMessages>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
