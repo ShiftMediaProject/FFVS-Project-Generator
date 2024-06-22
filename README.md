@@ -20,16 +20,16 @@ Pre-built executables are available from the [releases](https://github.com/Shift
 
 ## Generating Custom Project Files
 
-This project comes with the ffmpeg_generator program which can be used to build custom project files.
+This project comes with the project_generate program which can be used to build custom project files.
 This program accepts many of the configuration parameters that are supported by FFmpegs standard configure script (see FFmpegs documentation for more details).
-These options can be used to disable/enable specific options that define how FFmpeg is built. Using ffmpeg_generator a new project can be built using these options.
+These options can be used to disable/enable specific options that define how FFmpeg is built. Using project_generate a new project can be built using these options.
 
-To generate a custom project using different configuration options simply build ffmpeg_generator and then run it by passing in the desired config options. In order for the generator to run it must have access to the ffmpeg source files that should be built into the new generated project. The generator will search for the source **configure** file in order to find what options are avilable for the current sources. This file must be accessible for the program to run, if the generator cannot find the configure files location then the input command option **--rootdir=** can be used to specify its location.
+To generate a custom project using different configuration options simply build project_generate and then run it by passing in the desired config options. In order for the generator to run it must have access to the ffmpeg source files that should be built into the new generated project. The generator will search for the source **configure** file in order to find what options are avilable for the current sources. This file must be accessible for the program to run, if the generator cannot find the configure files location then the input command option **--rootdir=** can be used to specify its location.
 
 For example to build FFmpeg without any additional dependencies:
 
 ```
-ffmpeg_generator.exe --enable-gpl --enable-version3 --disable-bzlib --disable-iconv --disable-zlib --disable-lzma --disable-sdl --toolchain=msvc
+project_generate.exe --enable-gpl --enable-version3 --disable-bzlib --disable-iconv --disable-zlib --disable-lzma --disable-sdl --toolchain=msvc
 ```
 
 As well as enabling/disabling dependency libraries, specific config options can also be enabled/disabled. For instance a project that does not require yasm can be built by passing **--disable-yasm**. Specific FFmpeg programs can also be disabled such as **--disable-ffprobe** which will prevent a project file being generated for the FFmpeg program ffprobe.
