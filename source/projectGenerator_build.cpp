@@ -263,6 +263,13 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         atomicCompatFile = atomicCompatFile.substr(0, ++pos);
         includeDirs.push_back("$(ProjectDir)/" + atomicCompatFile);
     }
+    string bitCompatFile = m_configHelper.m_rootDirectory + "compat/stdbit/stdbit.h";
+    if (findFile(bitCompatFile, dep)) {
+        m_configHelper.makeFileProjectRelative(bitCompatFile, bitCompatFile);
+        uint pos = bitCompatFile.rfind('/'); // Get path only
+        bitCompatFile = bitCompatFile.substr(0, ++pos);
+        includeDirs.push_back("$(ProjectDir)/" + bitCompatFile);
+    }
 
     // Add root directory
     if (m_configHelper.m_rootDirectory != "./" && m_configHelper.m_rootDirectory != "../") {
