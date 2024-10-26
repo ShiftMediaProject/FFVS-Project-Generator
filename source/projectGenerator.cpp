@@ -1068,7 +1068,8 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
         "bf017c32-250d-47da-b7e6-d5a5091cb1e6", "fd9e10e9-18f6-437d-b5d7-17290540c8b8",
         "f026e68e-ff14-4bf4-8758-6384ac7bcfaf", "a2d068fe-f5d5-4b6f-95d4-f15631533341",
         "8a4a673d-2aba-4d8d-a18e-dab035e5c446", "0dcfb38d-54ca-4ceb-b383-4662f006eca9",
-        "57bf1423-fb68-441f-b5c1-f41e6ae5fa9c"};
+        "57bf1423-fb68-441f-b5c1-f41e6ae5fa9c", "bda0568e-a423-4fcc-affe-6ba7c2a40f78",
+        "60d9e8db-aa53-43bc-852b-44f83e68a787", "63a40443-4e21-4bd2-9e25-595f5d5857c9"};
 
     // get start position in file
     uint findPosFilt = filterTemplate.find("</ItemGroup>");
