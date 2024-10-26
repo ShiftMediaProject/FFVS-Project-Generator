@@ -499,6 +499,8 @@ void ConfigGenerator::buildReplaceValues(
     // Add to config.h only list
     replaceValues["CC_IDENT"] = "#if defined(__INTEL_COMPILER)\n\
 #   define CC_IDENT \"icl\"\n\
+#elif defined(__clang__)\n\
+#   define CC_IDENT \"clang-cl\"\n\
 #else\n\
 #   define CC_IDENT \"msvc\"\n\
 #endif";
@@ -548,7 +550,7 @@ void ConfigGenerator::buildReplaceValues(
 #else\n\
 #   define HAVE_FAST_64BIT 0\n\
 #endif";
-    replaceValues["HAVE_INLINE_ASM"] = "#if defined(__INTEL_COMPILER)\n\
+    replaceValues["HAVE_INLINE_ASM"] = "#if defined(__INTEL_COMPILER) || defined(__clang__)\n\
 #   define HAVE_INLINE_ASM 1\n\
 #else\n\
 #   define HAVE_INLINE_ASM 0\n\
