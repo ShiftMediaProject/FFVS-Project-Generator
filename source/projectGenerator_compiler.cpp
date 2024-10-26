@@ -177,15 +177,35 @@ popd\n";
 
         // Split calls into groups of 50 to prevent batch file length limit
         for (uint i = 0; i < numClCalls; i++) {
-            launchBat += "cl.exe ";
-            launchBat += extraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" +
-                runCommands + " /c /MP /w /nologo /utf-8";
             uint uiStartPos = totalPos;
+            // Create list of files for this batch
+            vector<string> compileFiles;
+            vector<string> extraIncludeDirs;
+            compileFiles.reserve(rowSize);
+            string extraExtraCl;
             for (; totalPos < min(uiStartPos + rowSize, j.second.size()); totalPos++) {
                 if (runType == 0) {
                     m_configHelper.makeFileGeneratorRelative(j.second[totalPos], j.second[totalPos]);
                 }
-                launchBat += " \"" + j.second[totalPos] + "\"";
+                compileFiles.push_back(j.second[totalPos]);
+                // Add any additional include dirs based on file paths (this is required for 'wrap' files)
+                const auto dirPos = j.second[totalPos].rfind('/');
+                if (dirPos != string::npos) {
+                    string directory = j.second[totalPos].substr(0, dirPos + 1);
+                    if (directory != m_configHelper.m_rootDirectory + m_projectName + '/' &&
+                            find(includeDirs2.begin(), includeDirs2.end(), directory) ==
+                            includeDirs2.end() &&
+                        find(extraIncludeDirs.begin(), extraIncludeDirs.end(), directory) == extraIncludeDirs.end()) {
+                        extraIncludeDirs.push_back(directory);
+                        extraExtraCl += " /I\"" + directory + '\"';
+                    }
+                }
+            }
+            launchBat += "cl.exe ";
+            launchBat += extraCl + extraExtraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" +
+                runCommands + " /c /MP /w /nologo /utf-8";
+            for (const auto& file : compileFiles) {
+                launchBat += " \"" + file + "\"";
             }
             launchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
