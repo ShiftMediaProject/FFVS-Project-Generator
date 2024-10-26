@@ -271,13 +271,10 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         includeDirs.push_back(projRoot);
     }
     
-    // Add subdirectory include dirs
-    for (const auto& sub : m_subDirs) {
-        includeDirs.push_back(projRoot + m_projectName + '/' + sub + '/');
-    }
+    // Add subdirectory include dirs (m_subDirs cannot be used as it creates clashes with identically named files)
     if (!m_subDirs.empty()) {
         includeDirs.push_back(projRoot + m_projectName + '/');
-    }  
+    }
 
     // Determine only those dependencies that are valid for current project
     map<string, bool> projectDeps;
