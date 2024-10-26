@@ -1035,6 +1035,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["ID3D11VideoContext"] = true;
     additionalDependencies["ID3D12Device"] = true;
     additionalDependencies["ID3D12VideoDecoder"] = true;
+    additionalDependencies["ID3D12VideoEncoder"] = true;
+    additionalDependencies["d3d12_encoder_feature"] = true;
     additionalDependencies["DXGI_OUTDUPL_FRAME_INFO"] = true;
     additionalDependencies["IDXGIOutput1"] = true;
     additionalDependencies["libcrystalhd_libcrystalhd_if_h"] = false;
