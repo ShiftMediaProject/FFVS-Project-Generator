@@ -166,6 +166,10 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
             compare = "0";
         }
         startPos = m_inLine.find_first_not_of(".\\/", startPos); // Skip any ./ or ../
+        if (startPos == string::npos) {
+            // Multi line statement, well get it on the next line
+            return true;
+        }
         endPos = m_inLine.find_first_of(" \t", startPos);
         endPos = m_inLine.rfind('.', endPos); // Include any additional extensions
         // Add the found string to internal storage
