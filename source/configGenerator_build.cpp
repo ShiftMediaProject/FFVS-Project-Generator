@@ -575,6 +575,11 @@ void ConfigGenerator::buildReplaceValues(
 #else\n\
 #   define CONFIG_AV1_D3D12VA_HWACCEL 0\n\
 #endif";
+    replaceValues["CONFIG_D3D12VA_ENCODE"] = "#if CONFIG_D3D12VA && defined(NTDDI_WIN10_NI)\n\
+#   define CONFIG_D3D12VA_ENCODE 1\n\
+#else\n\
+#   define CONFIG_D3D12VA_ENCODE 0\n\
+#endif";
     replaceValues["CONFIG_D3D11VA"] = "#if defined(NTDDI_WIN8)\n\
 #   define CONFIG_D3D11VA 1\n\
 #else\n\
