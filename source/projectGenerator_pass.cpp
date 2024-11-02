@@ -38,23 +38,23 @@ bool ProjectGenerator::passStaticIncludeObject(uint& startPos, uint& endPos, Sta
             endPos = m_inLine.find_first_of(". \t", endPos2 + 1);
         }
     }
-    string sTag = m_inLine.substr(startPos, endPos - startPos);
-    if (sTag.find('$') != string::npos) {
+    string tag = m_inLine.substr(startPos, endPos - startPos);
+    if (tag.find('$') != string::npos) {
         // Invalid include. Occurs when include is actually a variable
         startPos += 2;
-        sTag = m_inLine.substr(startPos, m_inLine.find(')', startPos) - startPos);
+        tag = m_inLine.substr(startPos, m_inLine.find(')', startPos) - startPos);
         // Check if additional variable (This happens when a string should be prepended to existing items within tag.)
         string tag2;
-        if (sTag.find(':') != string::npos) {
-            startPos = sTag.find(":%=");
+        if (tag.find(':') != string::npos) {
+            startPos = tag.find(":%=");
             const uint startPos2 = startPos + 3;
-            endPos = sTag.find('%', startPos2);
-            tag2 = sTag.substr(startPos2, endPos - startPos2);
-            sTag = sTag.substr(0, startPos);
+            endPos = tag.find('%', startPos2);
+            tag2 = tag.substr(startPos2, endPos - startPos2);
+            tag = tag.substr(0, startPos);
         }
         // Get variable contents
         vector<string> files;
-        m_configHelper.buildObjects(sTag, files);
+        m_configHelper.buildObjects(tag, files);
         if (tag2.length() > 0) {
             // Prepend the full library path
             for (auto file = files.begin(); file < files.end(); ++file) {
@@ -66,16 +66,16 @@ bool ProjectGenerator::passStaticIncludeObject(uint& startPos, uint& endPos, Sta
             // Check if object already included in internal list
             if (find(m_includesC.begin(), m_includesC.end(), *file) == m_includesC.end()) {
                 staticIncludes.push_back(*file);
-                // outputInfo("Found C Static: '" + *vitFile + "'");
+                outputInfo("Found C Static: '" + *file + "'");
             }
         }
         return true;
     }
 
     // Check if object already included in internal list
-    if (find(staticIncludes.begin(), staticIncludes.end(), sTag) == staticIncludes.end()) {
-        staticIncludes.push_back(sTag);
-        // outputInfo("Found Static: '" + sTag + "'");
+    if (find(staticIncludes.begin(), staticIncludes.end(), tag) == staticIncludes.end()) {
+        staticIncludes.push_back(tag);
+        outputInfo("Found Static: '" + tag + "'");
     }
     return true;
 }
@@ -145,8 +145,7 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
                     }
                     if (option->m_value == "1") {
                         includes.push_back(*object);
-                        // outputInfo("Found Dynamic: '" + *vitObject + "', '" + "( " + ident + " && " + sDynInc + " )"
-                        // + "'");
+                        outputInfo("Found Dynamic: '" + *object + "', '" + "( " + ident + " && " + dynInc + " )" + "'");
                     }
                 }
             }
@@ -188,10 +187,10 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
                 // Check if the config option is for a reserved type
                 if (m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
                     m_replaceIncludes[tag].push_back(compare == "1" ? ident : "!" + ident);
-                    // outputInfo("Found Dynamic Replace: '" + sTag + "', '" + ident + "'");
+                    outputInfo("Found Dynamic Replace: '" + tag + "', '" + ident + "'");
                 } else {
                     includes.push_back(tag);
-                    // outputInfo("Found Dynamic: '" + sTag + "', '" + ident + "'");
+                    outputInfo("Found Dynamic: '" + tag + "', '" + ident + "'");
                 }
             }
         }
