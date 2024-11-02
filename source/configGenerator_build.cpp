@@ -415,7 +415,16 @@ bool ConfigGenerator::buildAutoDetectValues()
                 } else if (i == "videotoolbox_hwaccel") {
                     enable = false;
                 } else if (i == "vulkan") {
-                    enable = true;
+                    enable = false;
+                    if (findEnvironmentVariable("VULKAN_SDK")) {
+                        enable = true;
+                    } else {
+                        string fileName;
+                        makeFileGeneratorRelative(m_outDirectory + "include/vulkan/vulkan.h", fileName);
+                        if (findFile(fileName, fileName)) {
+                            enable = true;
+                        }
+                    }
                 } else if (i == "libglslang" || i == " libshaderc" ||
                     i == " spirv_compiler") {
                     // Not currently supported
