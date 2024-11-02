@@ -187,7 +187,7 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
                 m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
                 // Check if the config option is for a reserved type
                 if (m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
-                    m_replaceIncludes[tag].push_back(ident);
+                    m_replaceIncludes[tag].push_back(compare == "1" ? ident : "!" + ident);
                     // outputInfo("Found Dynamic Replace: '" + sTag + "', '" + ident + "'");
                 } else {
                     includes.push_back(tag);
