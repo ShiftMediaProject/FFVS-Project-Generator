@@ -183,7 +183,8 @@ bool ProjectGenerator::passDynamicIncludeObject(uint& startPos, uint& endPos, st
                     "Unknown dynamic configuration option (" + ident + ") used when passing object (" + tag + ")");
                 return true;
             }
-            if (option->m_value == compare) {
+            if (option->m_value == compare ||
+                m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
                 // Check if the config option is for a reserved type
                 if (m_configHelper.m_replaceList.find(ident) != m_configHelper.m_replaceList.end()) {
                     m_replaceIncludes[tag].push_back(ident);
