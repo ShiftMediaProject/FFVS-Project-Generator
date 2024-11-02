@@ -329,7 +329,8 @@ bool ConfigGenerator::buildAutoDetectValues()
                 } else if (i == "crystalhd") {
                     enable = false;
                 } else if (i == "cuda" || i == "cuvid") {
-                    enable = findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName);
+                    enable = (findFile(m_rootDirectory + "compat/cuda/dynlink_loader.h", sFileName) &&
+                        findFile(m_rootDirectory + "compat/cuda/dynlink_cuda.h", sFileName));
                     if (!enable) {
                         makeFileGeneratorRelative(m_outDirectory + "include/ffnvcodec/dynlink_cuda.h", sFileName);
                         enable = findFile(sFileName, sFileName);
@@ -414,6 +415,9 @@ bool ConfigGenerator::buildAutoDetectValues()
                 } else if (i == "videotoolbox_hwaccel") {
                     enable = false;
                 } else if (i == "vulkan") {
+                    enable = true;
+                } else if (i == "libglslang" || i == " libshaderc" ||
+                    i == " spirv_compiler") {
                     // Not currently supported
                     enable = false;
                 } else if (i == "w32threads") {
@@ -825,6 +829,14 @@ void ConfigGenerator::buildReplaceValues(
 #   define CONFIG_OPENAL 1\n\
 #else\n\
 #   define CONFIG_OPENAL 0\n\
+#endif";
+        }
+        opt = getConfigOptionPrefixed("CONFIG_VULKAN");
+        if ((opt != m_configValues.end()) && opt->m_value == "1") {
+            replaceValues["CONFIG_VULKAN"] = "#if " + winrtDefine + "\n\
+#   define CONFIG_VULKAN 1\n\
+#else\n\
+#   define CONFIG_VULKAN 0\n\
 #endif";
         }
     }

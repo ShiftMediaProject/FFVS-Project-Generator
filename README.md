@@ -69,20 +69,26 @@ However the following is a list of extra dependency options that require externa
 	1. Download either the "Intel OpenCL SDK", "AMD OpenCL SDK" or the "NVIDIA CUDA SDK" from their respective suppliers.
 	2. Install the downloaded SDK wherever desired.
 3. ffnvcodec/nvdec/nvenc (requires nv-codec-headers)
-    1. Download the nv-codec-headers repository from https://github.com/FFmpeg/nv-codec-headers
-    2. Save the contents of the nv-codec-headers repositories "include" folder into "OutputDir/include/*".
+	1. Download the nv-codec-headers repository from https://github.com/FFmpeg/nv-codec-headers
+	2. Save the contents of the nv-codec-headers repositories "include" folder into "OutputDir/include/*".
 5. cuda-sdk (requires latest NVIDIA CUDA SDK)
-    1. Download the NVIDIA CUDA SDK from the NVIDIA website
-    2. Install the downloaded SDK wherever desired.
+	1. Download the NVIDIA CUDA SDK from the NVIDIA website
+	2. Install the downloaded SDK wherever desired.
 6. amf (requires Advanced Media Framework (AMF) SDK headers)
-    1. Download the AMF repository from https://github.com/GPUOpen-LibrariesAndSDKs/AMF
-    2. Save the contents of the AMF repositories "amf/public/include" into "OutputDir/include/AMF/*".
+	1. Download the AMF repository from https://github.com/GPUOpen-LibrariesAndSDKs/AMF
+	2. Save the contents of the AMF repositories "amf/public/include" into "OutputDir/include/AMF/*".
 7. decklink (requires Blackmagic DeckLink SDK)
 	1. Download the "Blackmagic DeckLink SDK" from the Blackmagic website.
 	2. Extract the downloaded SDK wherever desired.
-    3. Run the following command from a Visual Studio developer command prompt in the "Win/include" folder:
-    midl /win32 /h DeckLinkAPI.h DeckLinkAPI.idl
-    4. Copy the newly created "DeckLinkAPI.h" and "DeckLinkAPI_i.c" files to *OutputDir*/include/*.
+	3. Run the following command from a Visual Studio developer command prompt in the "Win/include" folder:
+	midl /win32 /h DeckLinkAPI.h DeckLinkAPI.idl
+	4. Copy the newly created "DeckLinkAPI.h" and "DeckLinkAPI_i.c" files to *OutputDir*/include/*.
+8. vulkan (requires Vulkan headers or Vulkan SDK)
+	1. Download the Vulkan SDK from https://www.lunarg.com/vulkan-sdk/
+	2. Install the downloaded SDK wherever desired.
+	or
+	1. Download the vulkan-headers repository from https://github.com/KhronosGroup/Vulkan-Headers
+	2. Save the contents of the vulkan-headers repositories "include" folder into "OutputDir/include/*".
  
 Any dependencies supplied by ShiftMediaProject should be downloaded next to the FFmpeg folder as they will use the same OutputDir location. Projects to build each dependency can be found in the respective repository **./SMP** directories.
 
