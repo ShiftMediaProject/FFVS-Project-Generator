@@ -1562,7 +1562,7 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     if (m_configHelper.isASMEnabled() && (m_includesASM.size() > 0)) {
         string definesASM = "\r\n\
     <NASM>\r\n\
-      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\$(ProjectName)\\x86;%(IncludePaths)</IncludePaths>\r\n\
+      <IncludePaths>$(ProjectDir);$(ProjectDir)\\template_rootdir;$(ProjectDir)\\template_rootdir\\" + m_projectName + "\\x86;%(IncludePaths)</IncludePaths>\r\n\
       <PreIncludeFiles>config.asm;%(PreIncludeFiles)</PreIncludeFiles>\r\n\
       <GenerateDebugInformation>false</GenerateDebugInformation>\r\n\
     </NASM>";
