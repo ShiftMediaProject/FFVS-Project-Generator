@@ -225,9 +225,11 @@ bool ProjectGenerator::passDynamicInclude(const uint length, StaticList& include
     const uint endPos = m_inLine.find(')', startPos);
     string ident = m_inLine.substr(startPos, endPos - startPos);
     // Find the included obj
-    startPos = m_inLine.find_first_not_of("+=: \t", endPos + 1);
-    if (!passDynamicIncludeLine(startPos, ident, includes)) {
-        return false;
+    startPos = m_inLine.find_first_not_of("+=: \t\\", endPos + 1);
+    if (startPos != string::npos) {
+        if (!passDynamicIncludeLine(startPos, ident, includes)) {
+            return false;
+        }
     }
     // Check if this is a multi line declaration
     while (m_inLine.back() == '\\') {
