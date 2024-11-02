@@ -1089,9 +1089,8 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     filterTemplate.insert(findPosFilt, addFilters);
 }
 
-bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
+bool ProjectGenerator::findExportsList(StaticList& exportPrefixes) const
 {
-    outputLine("  Generating project exports file (" + m_projectName + ")...");
     string exportList;
     if (!findFile(this->m_projectDir + "/*.v", exportList)) {
         outputError("Failed finding project exports (" + m_projectName + ")");
@@ -1103,8 +1102,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
     loadFromFile(this->m_projectDir + exportList, exportsFile);
 
     // Search for start of global tag
-    string global = "global:";
-    StaticList exportStrings;
+    const string global = "global:";
     uint findPos = exportsFile.find(global);
     if (findPos != string::npos) {
         // Remove everything outside the global section
@@ -1128,12 +1126,22 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
         findPos = 0;
         findPos2 = exportsFile.find(';');
         while (findPos2 != string::npos) {
-            exportStrings.push_back(exportsFile.substr(findPos, findPos2 - findPos));
+            exportPrefixes.push_back(exportsFile.substr(findPos, findPos2 - findPos));
             findPos = findPos2 + 1;
             findPos2 = exportsFile.find(';', findPos);
         }
+        return true;
     } else {
         outputError("Failed finding global start in project exports (" + exportList + ")");
+        return false;
+    }
+}
+
+bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
+{
+    outputLine("  Generating project exports file (" + m_projectName + ")...");
+    StaticList exportStrings;
+    if (!findExportsList(exportStrings)) {
         return false;
     }
 
@@ -1195,7 +1203,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
             // ID is a 2 or 3 character sequence used to uniquely identify the object
 
             // Check if it is a wild card search
-            findPos = j.find('*');
+            uint findPos = j.find('*');
             if (findPos != string::npos) {
                 // Strip the wild card (Note: assumes wild card is at the end!)
                 string search = j.substr(0, findPos);
@@ -1288,7 +1296,7 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
         // Search through file for module exports
         for (const auto& j : exportStrings) {
             // Check if it is a wild card search
-            findPos = j.find('*');
+            uint findPos = j.find('*');
             const string invalidChars = ",.(){}[]`'\"+-*/!@#$%^&*<>|;\\= \r\n\t";
             if (findPos != string::npos) {
                 // Strip the wild card (Note: assumes wild card is at the end!)

@@ -349,7 +349,17 @@ private:
         bool bit64Only = false) const;
 
     void outputSourceFiles(string& projectTemplate, string& filterTemplate);
+        
+    /**
+     * Find and load the list of function exports prefixes.
+     * @param [out] exportPrefixes The list of loaded export prefixes.
+     */
+    bool findExportsList(StaticList& exportPrefixes) const;
 
+    /**
+     * Generate a module definition file.
+     * @param includeDirs The list of current directories to look for included files.
+     */
     bool outputProjectExports(const StaticList& includeDirs) const;
 
     /**
