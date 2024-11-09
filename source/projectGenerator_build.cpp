@@ -460,6 +460,8 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libdavs2"] = (m_projectName == "libavcodec");
     projectDeps["libdc1394"] = (m_projectName == "libavdevice");
     projectDeps["libdcadec"] = (m_projectName == "libavcodec");
+    projectDeps["libdvdread"] = (m_projectName == "libavformat");
+    projectDeps["libdvdnav"] = (m_projectName == "libavformat");
     projectDeps["libfaac"] = (m_projectName == "libavcodec");
     projectDeps["libfdk_aac"] = (m_projectName == "libavcodec");
     projectDeps["libflite"] = (m_projectName == "libavfilter");
