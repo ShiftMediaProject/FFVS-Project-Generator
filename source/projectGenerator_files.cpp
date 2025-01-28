@@ -142,7 +142,7 @@ bool ProjectGenerator::createReplaceFiles(
         }
         // Convert file to format required to search ReplaceIncludes
         const uint extPos = replaceInclude.rfind('.');
-        const uint cutPos = replaceInclude.find('/', 5) + 1;
+        const uint cutPos = replaceInclude.rfind('/') + 1;
         string filename = replaceInclude.substr(cutPos, extPos - cutPos);
         string extension = replaceInclude.substr(extPos);
         string outFile = m_configHelper.m_solutionDirectory + m_projectName + "/" + filename + "_wrap" + extension;
