@@ -1426,6 +1426,14 @@ bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>
         search = "extern const AVFilter ff_";
         start = findFile.find(search);
     }
+    if (start == string::npos) {
+        search = "extern FFFilter ff_";
+        start = findFile.find(search);
+    }
+    if (start == string::npos) {
+        search = "extern const FFFilter ff_";
+        start = findFile.find(search);
+    }
     while (start != string::npos) {
         // Find the start and end of the tag
         start += search.length();
