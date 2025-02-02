@@ -279,7 +279,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         projRoot += dep;
         includeDirs.push_back(projRoot);
     }
-    
+
     // Add subdirectory include dirs (m_subDirs cannot be used as it creates clashes with identically named files)
     if (!m_subDirs.empty()) {
         includeDirs.push_back(projRoot + m_projectName + '/');
@@ -405,10 +405,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                     } else {
                         outputWarning("Could not find the Vulkan headers.");
                         outputWarning(
-                            "Either the Vulkan SDK is not installed or the environment variable is missing or the headers are not installed in a known location.", false);
-                        outputWarning(
-                            "Vulkan requires the Vulkan headers to be available in the include path.",
+                            "Either the Vulkan SDK is not installed or the environment variable is missing or the headers are not installed in a known location.",
                             false);
+                        outputWarning("Vulkan requires the Vulkan headers to be available in the include path.", false);
                     }
                 }
             }

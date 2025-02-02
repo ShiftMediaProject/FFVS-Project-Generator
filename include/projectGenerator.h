@@ -55,9 +55,14 @@ private:
     ConditionalList m_includesConditionalCPP;
     ConditionalList m_includesConditionalC;
     ConditionalList m_includesConditionalASM;
+    ConditionalList m_includesConditionalCU;
+    ConditionalList m_includesConditionalCL;
+    ConditionalList m_includesConditionalCOMP;
     StaticList m_includesH;
     StaticList m_includesRC;
     StaticList m_includesCU;
+    StaticList m_includesCL;
+    StaticList m_includesCOMP;
     UnknownList m_replaceIncludes;
     StaticList m_libs;
     UnknownList m_unknowns;
@@ -328,7 +333,8 @@ private:
         const StaticList& replaceIncludes, StaticList& existingIncludes, ConditionalList& conditionalIncludes);
 
     bool findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
-        StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU) const;
+        StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU,
+        StaticList& includesCL, StaticList& includesCOMP) const;
 
     /**
      * Replace occurrences of known tags in string.
@@ -349,7 +355,7 @@ private:
         bool bit64Only = false) const;
 
     void outputSourceFiles(string& projectTemplate, string& filterTemplate);
-        
+
     /**
      * Find and load the list of function exports prefixes.
      * @param [out] exportPrefixes The list of loaded export prefixes.

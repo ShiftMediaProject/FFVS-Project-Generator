@@ -422,9 +422,14 @@ void ProjectGenerator::outputProjectCleanup()
     m_includesConditionalCPP.clear();
     m_includesConditionalC.clear();
     m_includesConditionalASM.clear();
+    m_includesConditionalCU.clear();
+    m_includesConditionalCL.clear();
+    m_includesConditionalCOMP.clear();
     m_includesH.clear();
     m_includesRC.clear();
     m_includesCU.clear();
+    m_includesCL.clear();
+    m_includesCOMP.clear();
     m_libs.clear();
     m_unknowns.clear();
     m_projectDir.clear();
@@ -1047,9 +1052,36 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
             // outputSourceFileType(
             //    m_includesCU, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
             //    true);
+            /*for (auto& i : m_includesConditionalCU) {
+                fileList.clear();
+                fileList.emplace_back(i.first);
+                outputSourceFileType(fileList, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects,
+                    foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
+            }*/
             outputError("CUDA files detected in project. CUDA compilation is not currently supported");
         } else {
             outputError("CUDA files found in project but CUDA is disabled");
+        }
+    }
+
+    // Output CL files
+    if (!m_includesCL.empty()) {
+        if (m_configHelper.isOpenCLEnabled()) {
+            // TODO: Embed source file as c file (ffmpeg uses tools/source2c for this)
+            outputError(
+                "OpenCL shader files detected in project. OpenCL shader compilation is not currently supported");
+        } else {
+            outputError("OpenCL shader files found in project but opencl is disabled");
+        }
+    }
+
+    // Output COMP files
+    if (!m_includesCOMP.empty()) {
+        if (m_configHelper.isSPIRVEnabled()) {
+            // TODO: Embed source file as c file (ffmpeg uses tools/source2c for this)
+            outputError("SPIRV shader files detected in project. Compute shader compilation is not currently supported");
+        } else {
+            outputError("SPIRV shader files found in project but spirv is disabled");
         }
     }
 

@@ -1864,6 +1864,17 @@ bool ConfigGenerator::isCUDAEnabled() const
     return isConfigOptionValidPrefixed("CONFIG_CUDA_NVCC") || isConfigOptionValidPrefixed("CONFIG_CUDA_SDK");
 }
 
+bool ConfigGenerator::isOpenCLEnabled() const
+{
+    return isConfigOptionValidPrefixed("CONFIG_OPENCL");
+}
+
+bool ConfigGenerator::isSPIRVEnabled() const
+{
+    return isConfigOptionValidPrefixed("CONFIG_VULKAN") &&
+        (isConfigOptionValidPrefixed("CONFIG_LIBGLSLANG") || isConfigOptionValidPrefixed("CONFIG_LIBSHADERC"));
+}
+
 bool ConfigGenerator::getMinWindowsVersion(uint& major, uint& minor) const
 {
     const string search = "cppflags -D_WIN32_WINNT=0x";

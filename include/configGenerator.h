@@ -334,6 +334,18 @@ private:
     bool isCUDAEnabled() const;
 
     /**
+     * Queries if opencl compilation is enabled.
+     * @returns True if opencl is enabled, false if not.
+     */
+    bool isOpenCLEnabled() const;
+
+    /**
+     * Queries if spirv compilation is enabled.
+     * @returns True if spirv is enabled, false if not.
+     */
+    bool isSPIRVEnabled() const;
+
+    /**
      * Gets minimum supported windows version from config file.
      * @param [out] major The version number major.
      * @param [out] minor The version number minor.

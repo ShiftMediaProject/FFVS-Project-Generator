@@ -425,8 +425,7 @@ bool ConfigGenerator::buildAutoDetectValues()
                             enable = true;
                         }
                     }
-                } else if (i == "libglslang" || i == " libshaderc" ||
-                    i == "spirv_compiler") {
+                } else if (i == "libglslang" || i == " libshaderc" || i == "spirv_compiler") {
                     // Not currently supported
                     enable = false;
                 } else if (i == "w32threads") {

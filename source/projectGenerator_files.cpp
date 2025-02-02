@@ -99,8 +99,8 @@ bool ProjectGenerator::checkProjectFiles()
     }
 
     // Check the output Unknown Includes and find there corresponding file
-    if (!findProjectFiles(
-            m_includes, m_includesC, m_includesCPP, m_includesASM, m_includesH, m_includesRC, m_includesCU)) {
+    if (!findProjectFiles(m_includes, m_includesC, m_includesCPP, m_includesASM, m_includesH, m_includesRC,
+            m_includesCU, m_includesCL, m_includesCOMP)) {
         return false;
     }
 
@@ -110,12 +110,13 @@ bool ProjectGenerator::checkProjectFiles()
     }
 
     // Check all source files associated with replaced config values
-    StaticList replaceIncludes, replaceCPPIncludes, replaceCIncludes, replaceASMIncludes;
+    StaticList replaceIncludes, replaceCPPIncludes, replaceCIncludes, replaceASMIncludes, replaceCUIncludes,
+        replaceCLIncludes, replaceCOMPIncludes;
     for (auto& include : m_replaceIncludes) {
         replaceIncludes.push_back(include.first);
     }
     if (!findProjectFiles(replaceIncludes, replaceCIncludes, replaceCPPIncludes, replaceASMIncludes, m_includesH,
-            m_includesRC, m_includesCU)) {
+            m_includesRC, replaceCUIncludes, replaceCLIncludes, replaceCOMPIncludes)) {
         return false;
     }
     // Need to create local files for any replace objects
@@ -126,6 +127,15 @@ bool ProjectGenerator::checkProjectFiles()
         return false;
     }
     if (!createReplaceFiles(replaceASMIncludes, m_includesASM, m_includesConditionalASM)) {
+        return false;
+    }
+    if (!createReplaceFiles(replaceCUIncludes, m_includesCU, m_includesConditionalCU)) {
+        return false;
+    }
+    if (!createReplaceFiles(replaceCLIncludes, m_includesCL, m_includesConditionalCL)) {
+        return false;
+    }
+    if (!createReplaceFiles(replaceCOMPIncludes, m_includesCOMP, m_includesConditionalCOMP)) {
         return false;
     }
     return true;
@@ -247,12 +257,13 @@ bool ProjectGenerator::createReplaceFiles(
 }
 
 bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& includesC, StaticList& includesCPP,
-    StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU) const
+    StaticList& includesASM, StaticList& includesH, StaticList& includesRC, StaticList& includesCU,
+    StaticList& includesCL, StaticList& includesCOMP) const
 {
     for (const auto& include : includes) {
         string retFileName;
         if (findSourceFile(include, ".c", retFileName)) {
-            // Found a C File to include
+            // Found a C file to include
             m_configHelper.makeFileProjectRelative(retFileName, retFileName);
             if (find(includesC.begin(), includesC.end(), retFileName) != includesC.end()) {
                 // skip this item
@@ -260,7 +271,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
             }
             includesC.push_back(retFileName);
         } else if (findSourceFile(include, ".cpp", retFileName)) {
-            // Found a C++ File to include
+            // Found a C++ file to include
             m_configHelper.makeFileProjectRelative(retFileName, retFileName);
             if (find(includesCPP.begin(), includesCPP.end(), retFileName) != includesCPP.end()) {
                 // skip this item
@@ -268,7 +279,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
             }
             includesCPP.push_back(retFileName);
         } else if (findSourceFile(include, ".asm", retFileName)) {
-            // Found a ASM File to include
+            // Found a ASM file to include
             m_configHelper.makeFileProjectRelative(retFileName, retFileName);
             if (find(includesASM.begin(), includesASM.end(), retFileName) != includesASM.end()) {
                 // skip this item
@@ -276,7 +287,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
             }
             includesASM.push_back(retFileName);
         } else if (findSourceFile(include, ".h", retFileName)) {
-            // Found a H File to include
+            // Found a H file to include
             m_configHelper.makeFileProjectRelative(retFileName, retFileName);
             if (find(includesH.begin(), includesH.end(), retFileName) != includesH.end()) {
                 // skip this item
@@ -284,7 +295,7 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
             }
             includesH.push_back(retFileName);
         } else if (findSourceFile(include, ".rc", retFileName)) {
-            // Found a H File to include
+            // Found a resource file to include
             m_configHelper.makeFileProjectRelative(retFileName, retFileName);
             if (find(includesRC.begin(), includesRC.end(), retFileName) != includesRC.end()) {
                 // skip this item
@@ -303,6 +314,22 @@ bool ProjectGenerator::findProjectFiles(const StaticList& includes, StaticList& 
                 }
                 includesCU.push_back(retFileName);
             }
+        } else if (findSourceFile(include, ".cl", retFileName)) {
+            // Found a opencl shader file to include
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            if (find(includesCL.begin(), includesCL.end(), retFileName) != includesCL.end()) {
+                // skip this item
+                continue;
+            }
+            includesCL.push_back(retFileName);
+        } else if (findSourceFile(include, ".comp", retFileName)) {
+            // Found a compute shader file to include
+            m_configHelper.makeFileProjectRelative(retFileName, retFileName);
+            if (find(includesCOMP.begin(), includesCOMP.end(), retFileName) != includesCOMP.end()) {
+                // skip this item
+                continue;
+            }
+            includesCOMP.push_back(retFileName);
         } else {
             outputError("Could not find valid source file for object (" + include + ")");
             return false;
