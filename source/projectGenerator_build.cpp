@@ -274,11 +274,9 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
     }
 
     // Add root directory
-    if (m_configHelper.m_rootDirectory != "./" && m_configHelper.m_rootDirectory != "../") {
-        m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, dep);
-        projRoot += dep;
-        includeDirs.push_back(projRoot);
-    }
+    m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, dep);
+    projRoot += dep;
+    includeDirs.push_back(projRoot);
 
     // Add subdirectory include dirs (m_subDirs cannot be used as it creates clashes with identically named files)
     if (!m_subDirs.empty()) {

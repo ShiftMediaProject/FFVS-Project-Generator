@@ -1180,23 +1180,13 @@ bool ProjectGenerator::outputProjectExports(const StaticList& includeDirs) const
     // Split each source file into different directories to avoid name clashes
     map<string, StaticList> directoryObjects;
     for (const auto& i : m_includesC) {
-        // Several input source files have the same name so we need to explicitly specify an output object file
-        // otherwise they will clash
-        uint pos = i.rfind("../");
-        pos = (pos == string::npos) ? 0 : pos + 3;
-        uint pos2 = i.rfind('/');
-        pos2 = (pos2 == string::npos) ? string::npos : pos2 - pos;
-        string folderName = i.substr(pos, pos2);
+        uint pos = i.rfind('/');
+        string folderName = i.substr(0, pos);
         directoryObjects[folderName].push_back(i);
     }
     for (const auto& i : m_includesCPP) {
-        // Several input source files have the same name so we need to explicitly specify an output object file
-        // otherwise they will clash
-        uint pos = i.rfind("../");
-        pos = (pos == string::npos) ? 0 : pos + 3;
-        uint pos2 = i.rfind('/');
-        pos2 = (pos2 == string::npos) ? string::npos : pos2 - pos;
-        string folderName = i.substr(pos, pos2);
+        uint pos = i.rfind('/');
+        string folderName = i.substr(0, pos);
         directoryObjects[folderName].push_back(i);
     }
 

@@ -92,7 +92,7 @@ bool ProjectGenerator::outputProjectDCE(const StaticList& includeDirs)
                             templateFile = m_projectDir + back;
                             if (!findFile(templateFile, found)) {
                                 templateFile = (m_configHelper.m_rootDirectory.length() > 0) ?
-                                    m_configHelper.m_rootDirectory + '/' + back :
+                                    m_configHelper.m_rootDirectory + back :
                                     back;
                                 if (!findFile(templateFile, found)) {
                                     templateFile = m_configHelper.m_solutionDirectory + m_projectName + '/' + back;

@@ -391,10 +391,12 @@ bool ConfigGenerator::changeConfig(const string& option)
         // Check if a directory has been passed
         if (m_outDirectory.length() == 0) {
             m_outDirectory = "./";
-        }
-        // Check if directory has trailing '/'
-        if (m_outDirectory.back() != '/') {
-            m_outDirectory += '/';
+        } else {
+            makePathsRelative(m_outDirectory, "./", m_outDirectory);
+            // Check if directory has trailing '/'
+            if (m_outDirectory.back() != '/') {
+                m_outDirectory += '/';
+            }
         }
     } else if (option.find("--rootdir") == 0) {
         // Check for correct command syntax
@@ -411,10 +413,12 @@ bool ConfigGenerator::changeConfig(const string& option)
         // Check if a directory has been passed
         if (m_rootDirectory.length() == 0) {
             m_rootDirectory = "./";
-        }
-        // Check if directory has trailing '/'
-        if (m_rootDirectory.back() != '/') {
-            m_rootDirectory += '/';
+        } else {
+            makePathsRelative(m_rootDirectory, "./", m_rootDirectory);
+            // Check if directory has trailing '/'
+            if (m_rootDirectory.back() != '/') {
+                m_rootDirectory += '/';
+            }
         }
         // rootdir is passed before all other options are set up so must skip any other remaining steps
         return true;
@@ -433,10 +437,12 @@ bool ConfigGenerator::changeConfig(const string& option)
         // Check if a directory has been passed
         if (m_solutionDirectory.length() == 0) {
             m_solutionDirectory = "./";
-        }
-        // Check if directory has trailing '/'
-        if (m_solutionDirectory.back() != '/') {
-            m_solutionDirectory += '/';
+        } else {
+            makePathsRelative(m_solutionDirectory, "./", m_solutionDirectory);
+            // Check if directory has trailing '/'
+            if (m_solutionDirectory.back() != '/') {
+                m_solutionDirectory += '/';
+            }
         }
     } else if (option == "--dce-only") {
         // This has no parameters and just sets internal value

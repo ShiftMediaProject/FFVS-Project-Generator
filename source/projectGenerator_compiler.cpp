@@ -175,7 +175,7 @@ popd\n";
             runCommands = "/EP /P";
         }
 
-        // Split calls into groups of 50 to prevent batch file length limit
+        // Split calls into groups of `rowSize` to prevent batch file length limit
         for (uint i = 0; i < numClCalls; i++) {
             uint uiStartPos = totalPos;
             // Create list of files for this batch
@@ -192,9 +192,11 @@ popd\n";
                 const auto dirPos = j.second[totalPos].rfind('/');
                 if (dirPos != string::npos) {
                     string directory = j.second[totalPos].substr(0, dirPos + 1);
+                    if (directory.find(".") != 0) {
+                        directory = "./" + directory;
+                    }
                     if (directory != m_configHelper.m_rootDirectory + m_projectName + '/' &&
-                            find(includeDirs2.begin(), includeDirs2.end(), directory) ==
-                            includeDirs2.end() &&
+                        find(includeDirs2.begin(), includeDirs2.end(), directory) == includeDirs2.end() &&
                         find(extraIncludeDirs.begin(), extraIncludeDirs.end(), directory) == extraIncludeDirs.end()) {
                         extraIncludeDirs.push_back(directory);
                         extraExtraCl += " /I\"" + directory + '\"';
@@ -202,8 +204,9 @@ popd\n";
                 }
             }
             launchBat += "cl.exe ";
-            launchBat += extraCl + extraExtraCl + R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" +
-                runCommands + " /c /MP /w /nologo /utf-8";
+            launchBat += extraCl + extraExtraCl +
+                R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" + runCommands +
+                " /c /MP /w /nologo /utf-8";
             for (const auto& file : compileFiles) {
                 launchBat += " \"" + file + "\"";
             }
