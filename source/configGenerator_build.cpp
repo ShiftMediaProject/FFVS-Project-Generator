@@ -426,7 +426,7 @@ bool ConfigGenerator::buildAutoDetectValues()
                         }
                     }
                 } else if (i == "libglslang" || i == " libshaderc" ||
-                    i == " spirv_compiler") {
+                    i == "spirv_compiler") {
                     // Not currently supported
                     enable = false;
                 } else if (i == "w32threads") {
@@ -1123,6 +1123,10 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["MFX_CODEC_VP9"] = isConfigOptionEnabled("libmfx");
     bool bNvenc = isConfigOptionEnabled("nvenc");
     additionalDependencies["NV_ENC_PIC_PARAMS_AV1"] = bNvenc;
+    const auto spirv = getConfigOption("spirv_compiler");
+    if ((spirv == m_configValues.end())) {
+        additionalDependencies["spirv_compiler"] = false;
+    }
 }
 
 void ConfigGenerator::buildInterDependencies(InterDependencies& interDependencies)
