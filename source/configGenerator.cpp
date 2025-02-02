@@ -1411,7 +1411,10 @@ bool ConfigGenerator::passFindThingsExtern(const string& param1, const string& p
 bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>& returnList) const
 {
     // s/^extern AVFilter ff_([avfsinkrc]{2,5})_([a-zA-Z0-9_]+);/\2_filter/p
-    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p from 4.4 onwards
+    // Changed in 4.4+ to:
+    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p
+    // Changed in 7.2+ to:
+    // s/^extern const FFFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p
     // Need to find and open the specified file
     const string file = m_rootDirectory + param1;
     string findFile;
@@ -1420,11 +1423,15 @@ bool ConfigGenerator::passFindFiltersExtern(const string& param1, vector<string>
     }
 
     // Find the search pattern in the file
-    string search = "extern AVFilter ff_";
+    string search = "extern const FFFilter ff_";
     uint start = findFile.find(search);
     if (start == string::npos) {
         search = "extern const AVFilter ff_";
         start = findFile.find(search);
+        if (start == string::npos) {
+            search = "extern AVFilter ff_";
+            start = findFile.find(search);
+        }
     }
     while (start != string::npos) {
         // Find the start and end of the tag
@@ -1502,7 +1509,10 @@ bool ConfigGenerator::passFilterOut(
 bool ConfigGenerator::passFullFilterName(const string& param1, string& returnString) const
 {
     // sed -n "s/^extern AVFilter ff_\([avfsinkrc]\{2,5\}\)_$1;/\1_$1/p"
-    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p from 4.4 onwards
+    // Changed in 4.4+ to:
+    // s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p
+    // Changed in 7.2+ to:
+    // s/^extern const FFFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p
     // Need to find and open the specified file
     const string file = m_rootDirectory + "libavfilter/allfilters.c";
     string findFile;
@@ -1511,11 +1521,15 @@ bool ConfigGenerator::passFullFilterName(const string& param1, string& returnStr
     }
 
     // Find the search pattern in the file
-    string search = "extern AVFilter ff_";
+    string search = "extern const FFFilter ff_";
     uint start = findFile.find(search);
     if (start == string::npos) {
         search = "extern const AVFilter ff_";
         start = findFile.find(search);
+        if (start == string::npos) {
+            search = "extern AVFilter ff_";
+            start = findFile.find(search);
+        }
     }
     while (start != string::npos) {
         // Find the start and end of the tag
