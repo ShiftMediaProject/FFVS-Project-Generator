@@ -205,7 +205,7 @@ popd\n";
             }
             launchBat += "cl.exe ";
             launchBat += extraCl + extraExtraCl +
-                R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" )" + runCommands +
+                R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" /D"_UCRT_NOISY_NAN" )" + runCommands +
                 " /c /MP /w /nologo /utf-8";
             for (const auto& file : compileFiles) {
                 launchBat += " \"" + file + "\"";
