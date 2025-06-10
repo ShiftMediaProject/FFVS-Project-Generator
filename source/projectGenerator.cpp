@@ -1001,11 +1001,11 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     outputSourceFileType(m_includesRC, "ResourceCompile", "Resource", projectTemplate, filterTemplate, foundObjects,
         foundFilters, false, false, true);
 
-    // Output ASM files in specific item group (must go first as asm does not allow for custom obj filename)
+    // Output ASM files in specific item group
     if (!m_includesASM.empty()) {
         if (m_configHelper.isASMEnabled()) {
             outputSourceFileType(m_includesASM, (m_configHelper.m_useNASM) ? "NASM" : "YASM", "Source", projectTemplate,
-                filterTemplate, foundObjects, foundFilters, false);
+                filterTemplate, foundObjects, foundFilters, true);
         } else {
             outputError("Assembly files found in project but assembly is disabled");
         }
