@@ -35,6 +35,7 @@
 #define TEMPLATE_PROPS_WINRT_ID 109
 #define TEMPLATE_FILE_PROPS_ID 110
 #define TEMPLATE_SLN_NOWINRT_ID 111
+#define BIN2C_EXE_ID 112
 
 bool ProjectGenerator::passAllMake()
 {
@@ -1049,16 +1050,15 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output CUDA files
     if (!m_includesCU.empty()) {
         if (m_configHelper.isCUDAEnabled()) {
-            // outputSourceFileType(
-            //    m_includesCU, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
-            //    true);
-            /*for (auto& i : m_includesConditionalCU) {
+            outputCUDASourceFiles(m_includesCU, projectTemplate, filterTemplate, foundObjects, foundFilters);
+            
+            // Process conditional CUDA files
+            for (auto& i : m_includesConditionalCU) {
                 fileList.clear();
                 fileList.emplace_back(i.first);
-                outputSourceFileType(fileList, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects,
-                    foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
-            }*/
-            outputError("CUDA files detected in project. CUDA compilation is not currently supported");
+                outputCUDASourceFiles(fileList, projectTemplate, filterTemplate, foundObjects, foundFilters, 
+                    i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
+            }
         } else {
             outputError("CUDA files found in project but CUDA is disabled");
         }
@@ -1082,6 +1082,40 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
             outputError("SPIRV shader files detected in project. Compute shader compilation is not currently supported");
         } else {
             outputError("SPIRV shader files found in project but spirv is disabled");
+        }
+    }
+
+    // Process resource files (HTML/CSS) from OBJS-resman
+    StaticList resourceFiles;
+    auto resmanIt = m_unknowns.find("OBJS-resman");
+    if (resmanIt != m_unknowns.end()) {
+        for (const auto& resFile : resmanIt->second) {
+            // Convert .o extension back to source file
+            string sourceFile = resFile;
+            if (sourceFile.length() > 2 && sourceFile.substr(sourceFile.length() - 2) == ".o") {
+                sourceFile = sourceFile.substr(0, sourceFile.length() - 2);
+                // Check if this is a resource file we can process
+                if (sourceFile.find(".html") != string::npos || sourceFile.find(".css") != string::npos) {
+                    resourceFiles.push_back(sourceFile);
+                    
+                    // Copy bin2c.exe if needed for resource processing
+                    static bool bin2cCopied = false;
+                    if (!bin2cCopied) {
+                        string bin2cContent;
+                        if (loadFromResourceFile(BIN2C_EXE_ID, bin2cContent)) {
+                            string bin2cPath = m_configHelper.m_solutionDirectory + "bin2c.exe";
+                            if (writeToFile(bin2cPath, bin2cContent, true)) {
+                                bin2cCopied = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Process resource files if any were found
+        if (!resourceFiles.empty()) {
+            outputResourceSourceFiles(resourceFiles, projectTemplate, filterTemplate, foundObjects, foundFilters);
         }
     }
 
@@ -1388,7 +1422,7 @@ mkdir \"$(OutDir)\"\\include\\";
     const string copyEnd = " \"$(OutDir)\"\\include\\";
     const string license = "\r\nmkdir \"$(OutDir)\"\\licenses";
     string licenseName = m_configHelper.m_projectName;
-    transform(licenseName.begin(), licenseName.end(), licenseName.begin(), tolower);
+    transform(licenseName.begin(), licenseName.end(), licenseName.begin(), ::tolower);
     const string licenseEnd = " \"$(OutDir)\"\\licenses\\" + licenseName + ".txt";
     const string prebuild = "\r\n    <PreBuildEvent>\r\n\
       <Command>if exist template_rootdirconfig.h (\r\n\
@@ -1631,10 +1665,391 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     }
 }
 
+void ProjectGenerator::outputCUDASourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+    StaticList& foundObjects, set<string>& foundFilters, bool staticOnly, bool sharedOnly, bool bit32Only, bool bit64Only) const
+{
+    // Constants for CUDA build
+    const string itemGroup = "\r\n  <ItemGroup>";
+    const string itemGroupEnd = "\r\n  </ItemGroup>";
+    const string includeClose = "\">";
+    const string includeEnd = "\" />";
+    const string typeInclude = "\r\n    <CustomBuild Include=\"";
+    const string typeIncludeEnd = "\r\n    </CustomBuild>";
+    const string filterSource = "\r\n      <Filter>Source Files";
+    const string filterEnd = "</Filter>";
+    const string excludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string excludeConfigPlatform = "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+    const string excludeConfigEnd = "'\">true</ExcludedFromBuild>";
+    const string buildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
+    const string buildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
+        "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
+
+    if (fileList.size() > 0) {
+        string cudaFiles = itemGroup;
+        string cudaFilesFilt = itemGroup;
+        string cudaFilesTemp, cudaFilesFiltTemp;
+
+        for (const auto& i : fileList) {
+            // CUDA custom build entry
+            cudaFilesTemp = typeInclude;
+            cudaFilesFiltTemp = typeInclude;
+
+            // Add the fileName
+            string file = i;
+            replace(file.begin(), file.end(), '/', '\\');
+            cudaFilesTemp += file;
+            cudaFilesFiltTemp += file;
+
+            // Get object name without path or extension for generated .c file
+            uint pos = i.rfind('/') + 1;
+            string objectName = i.substr(pos);
+            uint pos2 = objectName.rfind('.');
+            objectName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + objectName + ".ptx.c";
+
+            // Add the filters Filter
+            string sourceDir;
+            m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, sourceDir);
+            pos = i.rfind(sourceDir);
+            pos = (pos == string::npos) ? 0 : pos + sourceDir.length();
+            cudaFilesFiltTemp += includeClose;
+            cudaFilesFiltTemp += filterSource;
+            uint folderLength = i.rfind('/') - pos;
+            if (static_cast<int>(folderLength) != -1) {
+                string folderName = file.substr(pos, folderLength);
+                folderName = '\\' + folderName;
+                foundFilters.insert("Source Files" + folderName);
+                cudaFilesFiltTemp += folderName;
+            }
+            cudaFilesFiltTemp += filterEnd;
+            cudaFilesFiltTemp += typeIncludeEnd;
+
+            // Add CUDA compilation commands
+            cudaFilesTemp += includeClose;
+            
+            // CUDA compilation command: .cu -> .ptx -> .c
+            cudaFilesTemp += "\r\n      <Command>\"%CUDA_PATH%\\bin\\nvcc\" -gencode arch=compute_60,code=sm_60 -O2 -m64 -ptx -c -o \"$(IntDir)\\" + objectName + ".ptx\" \"%(FullPath)\" &amp;&amp; \"$(ProjectDir)bin2c.exe\" \"$(IntDir)\\" + objectName + ".ptx\" \"" + outputCFile + "\" " + objectName + "_ptx</Command>";
+            cudaFilesTemp += "\r\n      <Outputs>" + outputCFile + "</Outputs>";
+            cudaFilesTemp += "\r\n      <Message>Compiling CUDA file %(Filename)%(Extension)</Message>";
+
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cudaFilesTemp += excludeConfig;
+                    cudaFilesTemp += buildConfig[j];
+                    cudaFilesTemp += excludeConfigEnd;
+                }
+            } else if (bit32Only || bit64Only) {
+                cudaFilesTemp += excludeConfigPlatform;
+                if (bit32Only) {
+                    cudaFilesTemp += "x64";
+                } else {
+                    cudaFilesTemp += "Win32";
+                }
+                cudaFilesTemp += excludeConfigEnd;
+            }
+
+            cudaFilesTemp += typeIncludeEnd;
+
+            // Add to output
+            cudaFiles += cudaFilesTemp;
+            cudaFilesFilt += cudaFilesFiltTemp;
+        }
+
+        cudaFiles += itemGroupEnd;
+        cudaFilesFilt += itemGroupEnd;
+
+        // Add generated .c files for compilation with explicit dependencies
+        string cFiles = itemGroup;
+        string cFilesFilt = itemGroup;
+        for (const auto& i : fileList) {
+            uint pos = i.rfind('/') + 1;
+            string objectName = i.substr(pos);
+            uint pos2 = objectName.rfind('.');
+            objectName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + objectName + ".ptx.c";
+            string origCuFile = i;
+            replace(origCuFile.begin(), origCuFile.end(), '/', '\\');
+
+            // ClCompile entry with explicit dependency
+            cFiles += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFiles += "\r\n      <DependsOn>" + origCuFile + "</DependsOn>";
+            
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='" + string(buildConfig[j]) + "'\">" + "true</ExcludedFromBuild>";
+                }
+            } else if (bit32Only || bit64Only) {
+                cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+                if (bit32Only) {
+                    cFiles += "x64";
+                } else {
+                    cFiles += "Win32";
+                }
+                cFiles += "'\">" + string("true</ExcludedFromBuild>");
+            }
+            
+            cFiles += "\r\n    </ClCompile>";
+
+            // Filter entry for generated .c file
+            cFilesFilt += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFilesFilt += "\r\n      <Filter>Source Files\\Generated</Filter>";
+            cFilesFilt += "\r\n    </ClCompile>";
+        }
+        cFiles += itemGroupEnd;
+        cFilesFilt += itemGroupEnd;
+
+        // Add the Generated filter
+        foundFilters.insert("Source Files\\Generated");
+
+        // After </ItemGroup> add the item groups for CUDA files
+        string endTag = "</ItemGroup>";
+        uint findPos = projectTemplate.rfind(endTag);
+        findPos += endTag.length();
+        uint findPosFilt = filterTemplate.rfind(endTag);
+        findPosFilt += endTag.length();
+
+        // Insert into output file
+        projectTemplate.insert(findPos, cudaFiles + cFiles);
+        filterTemplate.insert(findPosFilt, cudaFilesFilt + cFilesFilt);
+    }
+}
+
+void ProjectGenerator::outputResourceSourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+    StaticList& foundObjects, set<string>& foundFilters, bool staticOnly, bool sharedOnly, bool bit32Only, bool bit64Only) const
+{
+    // Constants for resource build
+    const string itemGroup = "\r\n  <ItemGroup>";
+    const string itemGroupEnd = "\r\n  </ItemGroup>";
+    const string includeClose = "\">";
+    const string includeEnd = "\" />";
+    const string typeInclude = "\r\n    <CustomBuild Include=\"";
+    const string typeIncludeEnd = "\r\n    </CustomBuild>";
+    const string filterSource = "\r\n      <Filter>Source Files";
+    const string filterEnd = "</Filter>";
+    const string excludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string excludeConfigPlatform = "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+    const string excludeConfigEnd = "'\">true</ExcludedFromBuild>";
+    const string buildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
+    const string buildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
+        "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
+
+    if (fileList.size() > 0) {
+        string resourceFiles = itemGroup;
+        string resourceFilesFilt = itemGroup;
+        string resourceFilesTemp, resourceFilesFiltTemp;
+
+        for (const auto& i : fileList) {
+            // Resource custom build entry
+            resourceFilesTemp = typeInclude;
+            resourceFilesFiltTemp = typeInclude;
+
+            // Add the fileName with full project-relative path
+            string file = i;
+            string fullPath;
+            if (findSourceFile(file.substr(0, file.rfind('.')), file.substr(file.rfind('.')), fullPath)) {
+                m_configHelper.makeFileProjectRelative(fullPath, file);
+            }
+            replace(file.begin(), file.end(), '/', '\\');
+            resourceFilesTemp += file;
+            resourceFilesFiltTemp += file;
+
+            // Get resource name without path or extension for generated .c file
+            uint pos = i.rfind('/') + 1;
+            string resourceName = i.substr(pos);
+            uint pos2 = resourceName.rfind('.');
+            string extension = resourceName.substr(pos2);
+            resourceName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + resourceName + extension + ".c";
+
+            // Add the filters Filter
+            string sourceDir;
+            m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, sourceDir);
+            pos = i.rfind(sourceDir);
+            pos = (pos == string::npos) ? 0 : pos + sourceDir.length();
+            resourceFilesFiltTemp += includeClose;
+            resourceFilesFiltTemp += filterSource;
+            uint folderLength = i.rfind('/') - pos;
+            if (static_cast<int>(folderLength) != -1) {
+                string folderName = file.substr(pos, folderLength);
+                folderName = '\\' + folderName;
+                foundFilters.insert("Source Files" + folderName);
+                resourceFilesFiltTemp += folderName;
+            }
+            resourceFilesFiltTemp += filterEnd;
+            resourceFilesFiltTemp += typeIncludeEnd;
+
+            // Add resource compilation commands
+            resourceFilesTemp += includeClose;
+            
+            if (extension == ".css") {
+                // CSS processing: minify then convert to C array
+                string minFile = "$(IntDir)\\" + resourceName + ".css.min";
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_css";
+                
+                resourceFilesTemp += "\r\n      <Command>powershell -Command \"(Get-Content '%(FullPath)' -Raw) -replace '/\\*.*?\\*/', '' -replace '\\r?\\n', ' ' -replace '\\s+', ' ' -replace '^\\s+|\\s+$', '' | Out-File '" + minFile + "' -NoNewline -Encoding ASCII\" &amp;&amp; \"$(ProjectDir)bin2c.exe\" \"" + minFile + "\" \"" + outputCFile + "\" " + varName + "</Command>";
+            } else if (extension == ".html") {
+                // HTML processing: direct conversion to C array
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_html";
+                
+                resourceFilesTemp += "\r\n      <Command>\"$(ProjectDir)bin2c.exe\" \"%(FullPath)\" \"" + outputCFile + "\" " + varName + "</Command>";
+            } else {
+                // Generic resource processing
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_" + extension.substr(1); // Remove the dot from extension
+                
+                resourceFilesTemp += "\r\n      <Command>\"$(ProjectDir)bin2c.exe\" \"%(FullPath)\" \"" + outputCFile + "\" " + varName + "</Command>";
+            }
+            
+            resourceFilesTemp += "\r\n      <Outputs>" + outputCFile + "</Outputs>";
+            resourceFilesTemp += "\r\n      <Message>Converting resource file %(Filename)%(Extension)</Message>";
+
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    resourceFilesTemp += excludeConfig;
+                    resourceFilesTemp += buildConfig[j];
+                    resourceFilesTemp += excludeConfigEnd;
+                }
+            } else if (bit32Only || bit64Only) {
+                resourceFilesTemp += excludeConfigPlatform;
+                if (bit32Only) {
+                    resourceFilesTemp += "x64";
+                } else {
+                    resourceFilesTemp += "Win32";
+                }
+                resourceFilesTemp += excludeConfigEnd;
+            }
+
+            resourceFilesTemp += typeIncludeEnd;
+
+            // Add to output
+            resourceFiles += resourceFilesTemp;
+            resourceFilesFilt += resourceFilesFiltTemp;
+        }
+
+        resourceFiles += itemGroupEnd;
+        resourceFilesFilt += itemGroupEnd;
+
+        // Add generated .c files for compilation with explicit dependencies
+        string cFiles = itemGroup;
+        string cFilesFilt = itemGroup;
+        for (const auto& i : fileList) {
+            uint pos = i.rfind('/') + 1;
+            string resourceName = i.substr(pos);
+            uint pos2 = resourceName.rfind('.');
+            string extension = resourceName.substr(pos2);
+            resourceName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + resourceName + extension + ".c";
+            string origResourceFile = i;
+            replace(origResourceFile.begin(), origResourceFile.end(), '/', '\\');
+
+            // ClCompile entry with explicit dependency
+            cFiles += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFiles += "\r\n      <DependsOn>" + origResourceFile + "</DependsOn>";
+            
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='" + string(buildConfig[j]) + "'\">" + "true</ExcludedFromBuild>";
+                }
+            } else if (bit32Only || bit64Only) {
+                cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+                if (bit32Only) {
+                    cFiles += "x64";
+                } else {
+                    cFiles += "Win32";
+                }
+                cFiles += "'\">" + string("true</ExcludedFromBuild>");
+            }
+            
+            cFiles += "\r\n    </ClCompile>";
+
+            // Filter entry for generated .c file
+            cFilesFilt += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFilesFilt += "\r\n      <Filter>Source Files\\Generated</Filter>";
+            cFilesFilt += "\r\n    </ClCompile>";
+        }
+        cFiles += itemGroupEnd;
+        cFilesFilt += itemGroupEnd;
+
+        // Add the Generated filter
+        foundFilters.insert("Source Files\\Generated");
+
+        // After </ItemGroup> add the item groups for resource files
+        string endTag = "</ItemGroup>";
+        uint findPos = projectTemplate.rfind(endTag);
+        findPos += endTag.length();
+        uint findPosFilt = filterTemplate.rfind(endTag);
+        findPosFilt += endTag.length();
+
+        // Insert into output file
+        projectTemplate.insert(findPos, resourceFiles + cFiles);
+        filterTemplate.insert(findPosFilt, resourceFilesFilt + cFilesFilt);
+    }
+}
+
 void ProjectGenerator::outputCUDATools(string& projectTemplate) const
 {
     if (m_configHelper.isCUDAEnabled() && (m_includesCU.size() > 0)) {
-        // TODO: Add cuda tools
+        // Copy bin2c.exe to project directory for CUDA compilation
+        string bin2cContent;
+        if (!loadFromResourceFile(BIN2C_EXE_ID, bin2cContent)) {
+            outputError("Failed to load bin2c.exe from resources");
+            return;
+        }
+        
+        string bin2cPath = m_configHelper.m_solutionDirectory + "bin2c.exe";
+        if (!writeToFile(bin2cPath, bin2cContent, true)) {
+            outputError("Failed to copy bin2c.exe to project directory");
+            return;
+        }
+        
+        // Add CUDA custom build targets for each .cu file
+        // This will be handled in the modified outputSourceFiles function
+        // The custom build rules will be added per-file rather than as global tools
     }
 }
 

@@ -445,6 +445,38 @@ private:
      */
     void outputCUDATools(string& projectTemplate) const;
 
+    /**
+     * Output CUDA source files with custom build steps.
+     * @param [in,out] fileList         The list of CUDA files to process.
+     * @param [in,out] projectTemplate  The project template.
+     * @param [in,out] filterTemplate   The filter template.
+     * @param [in,out] foundObjects     The list of found object files.
+     * @param [in,out] foundFilters     The set of found filters.
+     * @param          staticOnly       True to only include in static builds.
+     * @param          sharedOnly       True to only include in shared builds.
+     * @param          bit32Only        True to only include in 32-bit builds.
+     * @param          bit64Only        True to only include in 64-bit builds.
+     */
+    void outputCUDASourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+        StaticList& foundObjects, set<string>& foundFilters, bool staticOnly = false, bool sharedOnly = false, 
+        bool bit32Only = false, bool bit64Only = false) const;
+
+    /**
+     * Output resource source files (HTML/CSS) with custom build steps.
+     * @param [in,out] fileList         The list of resource files to process.
+     * @param [in,out] projectTemplate  The project template.
+     * @param [in,out] filterTemplate   The filter template.
+     * @param [in,out] foundObjects     The list of found object files.
+     * @param [in,out] foundFilters     The set of found filters.
+     * @param          staticOnly       True to only include in static builds.
+     * @param          sharedOnly       True to only include in shared builds.
+     * @param          bit32Only        True to only include in 32-bit builds.
+     * @param          bit64Only        True to only include in 64-bit builds.
+     */
+    void outputResourceSourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+        StaticList& foundObjects, set<string>& foundFilters, bool staticOnly = false, bool sharedOnly = false, 
+        bool bit32Only = false, bool bit64Only = false) const;
+
     bool outputDependencyLibs(string& projectTemplate, bool winrt, bool program);
 
     /**

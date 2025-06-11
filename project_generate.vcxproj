@@ -38,6 +38,9 @@
   <ItemGroup>
     <ResourceCompile Include="source\Templates.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="bin2c.exe" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FA1D2C31-D809-4021-9DE4-7552704175EE}</ProjectGuid>
     <RootNamespace>ffmpeg_generate</RootNamespace>
