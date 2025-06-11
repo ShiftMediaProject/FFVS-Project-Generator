@@ -35,6 +35,7 @@
 #define TEMPLATE_PROPS_WINRT_ID 109
 #define TEMPLATE_FILE_PROPS_ID 110
 #define TEMPLATE_SLN_NOWINRT_ID 111
+#define BIN2C_EXE_ID 112
 
 bool ProjectGenerator::passAllMake()
 {
