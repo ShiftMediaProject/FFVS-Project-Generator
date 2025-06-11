@@ -293,31 +293,31 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
         if (i.second && m_configHelper.isConfigOptionEnabled(i.first)) {
             // Add in the additional include directories
             if (i.first == "libopus") {
-                includeDirs.emplace_back("$(OutDir)/include/opus/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/opus/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/opus/");
             } else if (i.first == "libfreetype") {
-                includeDirs.emplace_back("$(OutDir)/include/freetype2/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/freetype2/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/freetype2/");
             } else if (i.first == "libfribidi") {
-                includeDirs.emplace_back("$(OutDir)/include/fribidi/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/fribidi/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/fribidi/");
                 definesStatic.emplace_back("FRIBIDI_LIB_STATIC");
             } else if (i.first == "libharfbuzz") {
-                includeDirs.emplace_back("$(OutDir)/include/harfbuzz/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/harfbuzz/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/harfbuzz/");
             } else if (i.first == "libilbc") {
                 definesStatic.emplace_back("ILBC_STATIC_DEFINE");
             } else if (i.first == "libx264") {
                 definesShared.emplace_back("X264_API_IMPORTS");
             } else if (i.first == "libxml2") {
-                includeDirs.emplace_back("$(OutDir)/include/libxml2/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/libxml2/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/libxml2/");
                 definesStatic.emplace_back("LIBXML_STATIC");
             } else if (i.first == "libmfx") {
-                includeDirs.emplace_back("$(OutDir)/include/mfx/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/mfx/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/mfx/");
             } else if (i.first == "sdl2" || ((i.first == "sdl") && !m_configHelper.isConfigOptionValid("sdl2"))) {
-                includeDirs.emplace_back("$(OutDir)/include/SDL/");
+                includeDirs.emplace_back("$(OutBaseDir)/include/SDL/");
                 includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/SDL/");
             } else if (i.first == "opengl" && !winrt) {
                 // Requires glext headers to be installed in include dir (does not require the libs)
@@ -399,7 +399,7 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                     m_configHelper.makeFileGeneratorRelative(
                         m_configHelper.m_outDirectory + "include/vulkan/vulkan.h", fileName);
                     if (findFile(fileName, fileName)) {
-                        // Nothing to do as $(OutDir)/include is always added anyway
+                        // Nothing to do as $(OutBaseDir)/include is always added anyway
                     } else {
                         outputWarning("Could not find the Vulkan headers.");
                         outputWarning(

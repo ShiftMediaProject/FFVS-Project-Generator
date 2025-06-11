@@ -53,6 +53,10 @@ bool ProjectGenerator::runMSVC(
         if (findPos2 != string::npos) {
             i.replace(findPos2, 9, outDir);
         }
+        findPos2 = i.find("$(OutBaseDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 13, outDir);
+        }
         findPos2 = i.find("$(ProjectDir)");
         if (findPos2 != string::npos) {
             i.replace(findPos2, 13, projectDir);
