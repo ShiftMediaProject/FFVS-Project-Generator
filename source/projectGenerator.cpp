@@ -1050,16 +1050,15 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output CUDA files
     if (!m_includesCU.empty()) {
         if (m_configHelper.isCUDAEnabled()) {
-            // outputSourceFileType(
-            //    m_includesCU, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
-            //    true);
-            /*for (auto& i : m_includesConditionalCU) {
+            outputCUDASourceFiles(m_includesCU, projectTemplate, filterTemplate, foundObjects, foundFilters);
+            
+            // Process conditional CUDA files
+            for (auto& i : m_includesConditionalCU) {
                 fileList.clear();
                 fileList.emplace_back(i.first);
-                outputSourceFileType(fileList, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects,
-                    foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
-            }*/
-            outputError("CUDA files detected in project. CUDA compilation is not currently supported");
+                outputCUDASourceFiles(fileList, projectTemplate, filterTemplate, foundObjects, foundFilters, 
+                    i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
+            }
         } else {
             outputError("CUDA files found in project but CUDA is disabled");
         }
@@ -1632,10 +1631,194 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     }
 }
 
+void ProjectGenerator::outputCUDASourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+    StaticList& foundObjects, set<string>& foundFilters, bool staticOnly, bool sharedOnly, bool bit32Only, bool bit64Only) const
+{
+    // Constants for CUDA build
+    const string itemGroup = "\r\n  <ItemGroup>";
+    const string itemGroupEnd = "\r\n  </ItemGroup>";
+    const string includeClose = "\">";
+    const string includeEnd = "\" />";
+    const string typeInclude = "\r\n    <CustomBuild Include=\"";
+    const string typeIncludeEnd = "\r\n    </CustomBuild>";
+    const string filterSource = "\r\n      <Filter>Source Files";
+    const string filterEnd = "</Filter>";
+    const string excludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string excludeConfigPlatform = "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+    const string excludeConfigEnd = "'\">true</ExcludedFromBuild>";
+    const string buildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
+    const string buildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
+        "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
+
+    if (fileList.size() > 0) {
+        string cudaFiles = itemGroup;
+        string cudaFilesFilt = itemGroup;
+        string cudaFilesTemp, cudaFilesFiltTemp;
+
+        for (const auto& i : fileList) {
+            // CUDA custom build entry
+            cudaFilesTemp = typeInclude;
+            cudaFilesFiltTemp = typeInclude;
+
+            // Add the fileName
+            string file = i;
+            replace(file.begin(), file.end(), '/', '\\');
+            cudaFilesTemp += file;
+            cudaFilesFiltTemp += file;
+
+            // Get object name without path or extension for generated .c file
+            uint pos = i.rfind('/') + 1;
+            string objectName = i.substr(pos);
+            uint pos2 = objectName.rfind('.');
+            objectName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + objectName + ".ptx.c";
+
+            // Add the filters Filter
+            string sourceDir;
+            m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, sourceDir);
+            pos = i.rfind(sourceDir);
+            pos = (pos == string::npos) ? 0 : pos + sourceDir.length();
+            cudaFilesFiltTemp += includeClose;
+            cudaFilesFiltTemp += filterSource;
+            uint folderLength = i.rfind('/') - pos;
+            if (static_cast<int>(folderLength) != -1) {
+                string folderName = file.substr(pos, folderLength);
+                folderName = '\\' + folderName;
+                foundFilters.insert("Source Files" + folderName);
+                cudaFilesFiltTemp += folderName;
+            }
+            cudaFilesFiltTemp += filterEnd;
+            cudaFilesFiltTemp += typeIncludeEnd;
+
+            // Add CUDA compilation commands
+            cudaFilesTemp += includeClose;
+            
+            // CUDA compilation command: .cu -> .ptx -> .c
+            cudaFilesTemp += "\r\n      <Command>\"%CUDA_PATH%\\bin\\nvcc\" -gencode arch=compute_60,code=sm_60 -O2 -m64 -ptx -c -o \"$(IntDir)\\" + objectName + ".ptx\" \"%(FullPath)\" &amp;&amp; \"$(ProjectDir)bin2c.exe\" \"$(IntDir)\\" + objectName + ".ptx\" \"" + outputCFile + "\" " + objectName + "_ptx</Command>";
+            cudaFilesTemp += "\r\n      <Outputs>" + outputCFile + "</Outputs>";
+            cudaFilesTemp += "\r\n      <Message>Compiling CUDA file %(Filename)%(Extension)</Message>";
+
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cudaFilesTemp += excludeConfig;
+                    cudaFilesTemp += buildConfig[j];
+                    cudaFilesTemp += excludeConfigEnd;
+                }
+            } else if (bit32Only || bit64Only) {
+                cudaFilesTemp += excludeConfigPlatform;
+                if (bit32Only) {
+                    cudaFilesTemp += "x64";
+                } else {
+                    cudaFilesTemp += "Win32";
+                }
+                cudaFilesTemp += excludeConfigEnd;
+            }
+
+            cudaFilesTemp += typeIncludeEnd;
+
+            // Add to output
+            cudaFiles += cudaFilesTemp;
+            cudaFilesFilt += cudaFilesFiltTemp;
+        }
+
+        cudaFiles += itemGroupEnd;
+        cudaFilesFilt += itemGroupEnd;
+
+        // Add generated .c files for compilation with explicit dependencies
+        string cFiles = itemGroup;
+        string cFilesFilt = itemGroup;
+        for (const auto& i : fileList) {
+            uint pos = i.rfind('/') + 1;
+            string objectName = i.substr(pos);
+            uint pos2 = objectName.rfind('.');
+            objectName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + objectName + ".ptx.c";
+            string origCuFile = i;
+            replace(origCuFile.begin(), origCuFile.end(), '/', '\\');
+
+            // ClCompile entry with explicit dependency
+            cFiles += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFiles += "\r\n      <DependsOn>" + origCuFile + "</DependsOn>";
+            
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='" + string(buildConfig[j]) + "'\">" + "true</ExcludedFromBuild>";
+                }
+            } else if (bit32Only || bit64Only) {
+                cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+                if (bit32Only) {
+                    cFiles += "x64";
+                } else {
+                    cFiles += "Win32";
+                }
+                cFiles += "'\">" + string("true</ExcludedFromBuild>");
+            }
+            
+            cFiles += "\r\n    </ClCompile>";
+
+            // Filter entry for generated .c file
+            cFilesFilt += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFilesFilt += "\r\n      <Filter>Source Files\\Generated</Filter>";
+            cFilesFilt += "\r\n    </ClCompile>";
+        }
+        cFiles += itemGroupEnd;
+        cFilesFilt += itemGroupEnd;
+
+        // Add the Generated filter
+        foundFilters.insert("Source Files\\Generated");
+
+        // After </ItemGroup> add the item groups for CUDA files
+        string endTag = "</ItemGroup>";
+        uint findPos = projectTemplate.rfind(endTag);
+        findPos += endTag.length();
+        uint findPosFilt = filterTemplate.rfind(endTag);
+        findPosFilt += endTag.length();
+
+        // Insert into output file
+        projectTemplate.insert(findPos, cudaFiles + cFiles);
+        filterTemplate.insert(findPosFilt, cudaFilesFilt + cFilesFilt);
+    }
+}
+
 void ProjectGenerator::outputCUDATools(string& projectTemplate) const
 {
     if (m_configHelper.isCUDAEnabled() && (m_includesCU.size() > 0)) {
-        // TODO: Add cuda tools
+        // Copy bin2c.exe to project directory for CUDA compilation
+        string bin2cContent;
+        if (!loadFromResourceFile(BIN2C_EXE_ID, bin2cContent)) {
+            outputError("Failed to load bin2c.exe from resources");
+            return;
+        }
+        
+        string bin2cPath = m_configHelper.m_solutionDirectory + "bin2c.exe";
+        if (!writeToFile(bin2cPath, bin2cContent, true)) {
+            outputError("Failed to copy bin2c.exe to project directory");
+            return;
+        }
+        
+        // Add CUDA custom build targets for each .cu file
+        // This will be handled in the modified outputSourceFiles function
+        // The custom build rules will be added per-file rather than as global tools
     }
 }
 
