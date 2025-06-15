@@ -35,13 +35,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup>
-    <OutBaseDir>$(SolutionDir)..\..\msvc\</OutBaseDir>
+    <OutBaseDir>template_outdir</OutBaseDir>
     <OutDir>$(OutBaseDir)bin\$(Platform)\</OutDir>
-    <IntDir>$(SolutionDir)obj\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
-    <TargetName>$(MSBuildProjectName)</TargetName>
-    <TargetName Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectName)d</TargetName>
-    <TargetName Condition="'$(Configuration)'=='DebugDLL'">$(MSBuildProjectName)d</TargetName>
-    <LocalDebuggerWorkingDirectory>$(SolutionDir)..\..\msvc\bin\$(Platform)\</LocalDebuggerWorkingDirectory>
+    <IntDir>$(ProjectDir)obj\$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+    <TargetName>template_in</TargetName>
+    <TargetName Condition="'$(Configuration)'=='Debug'">template_ind</TargetName>
+    <TargetName Condition="'$(Configuration)'=='DebugDLL'">template_ind</TargetName>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4081C77E-F1F7-49FA-9BD8-A4D267C83716}</ProjectGuid>
