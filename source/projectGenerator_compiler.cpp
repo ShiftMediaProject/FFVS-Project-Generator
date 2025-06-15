@@ -305,28 +305,60 @@ bool ProjectGenerator::runGCC(
     // Create a test file to read in definitions
     string outDir = m_configHelper.m_outDirectory;
     m_configHelper.makeFileGeneratorRelative(outDir, outDir);
+    string projectDir = m_configHelper.m_solutionDirectory;
+    m_configHelper.makeFileGeneratorRelative(projectDir, projectDir);
     vector<string> includeDirs2 = includeDirs;
     includeDirs2.insert(includeDirs2.begin(), outDir + "include/");
     includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_solutionDirectory);
     includeDirs2.insert(includeDirs2.begin(), m_configHelper.m_rootDirectory);
     string extraCl;
     for (auto& i : includeDirs2) {
-        uint uiFindPos2 = i.find("$(OutDir)");
-        if (uiFindPos2 != string::npos) {
-            i.replace(uiFindPos2, 9, outDir);
+        uint findPos2 = i.find("$(OutDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 9, outDir);
         }
-        uiFindPos2 = i.find("$(");
-        if (uiFindPos2 != string::npos) {
-            i.replace(uiFindPos2, 2, "%");
+        findPos2 = i.find("$(OutBaseDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 13, outDir);
         }
-        uiFindPos2 = i.find(')');
-        if (uiFindPos2 != string::npos) {
-            i.replace(uiFindPos2, 1, "%");
+        findPos2 = i.find("$(ProjectDir)");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 13, projectDir);
+        }
+        findPos2 = i.find("$(");
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 2, "%");
+        }
+        findPos2 = i.find(')');
+        if (findPos2 != string::npos) {
+            i.replace(findPos2, 1, "%");
         }
         if (i.length() == 0) {
             i = "./";
-        } else if (i.find_first_of("./%") != 0) {
-            i = "./" + i;
+        } else if ((i.find(':') == string::npos) && (i.find_first_of("./%") != 0)) {
+            i.insert(0, "./");
+        }
+        // Clean duplicate '//'
+        findPos2 = i.find("//");
+        while (findPos2 != string::npos) {
+            i.erase(findPos2, 1);
+            // get next
+            findPos2 = i.find("//");
+        }
+        // Remove ../ not at start of path
+        findPos2 = i.find("/../");
+        while (findPos2 != string::npos) {
+            // Get the previous '/'
+            uint findPos3 = i.rfind('/', findPos2 - 1);
+            findPos3 = (findPos3 != string::npos) ? findPos3 : 0;
+            if (i.find_first_not_of('.', findPos3 + 1) < findPos2) {
+                i.erase(findPos3, findPos2 - findPos3 + 3);
+                // get next
+                findPos2 = i.find("/../", findPos3);
+            } else {
+                // get next
+                findPos2 = i.find("/../", findPos2 + 1);
+            }
         }
         extraCl += " /I\"" + i + '\"';
     }
