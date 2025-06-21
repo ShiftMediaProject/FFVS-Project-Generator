@@ -28,3 +28,4 @@
 [Bb]in/*
 !smp_*
 *Caches/
+!bin2c.exe
