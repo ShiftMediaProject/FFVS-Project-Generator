@@ -367,6 +367,8 @@ bool ConfigGenerator::changeConfig(const string& option)
         outputLine("  --dce-only               do not output a project and only generate missing DCE files");
         outputLine(
             "  --use-yasm               use YASM instead of the default NASM (this is not advised as it does not support newer instructions)");
+        outputLine(
+            "  --tesseract-name=NAME    set the base name for libtesseract (e.g. tesseract55) [tesseract]");
         // Add in reserved values
         vector<string> reservedItems;
         buildReservedValues(reservedItems);
@@ -450,6 +452,18 @@ bool ConfigGenerator::changeConfig(const string& option)
     } else if (option == "--use-yasm") {
         // This has no parameters and just sets internal value
         m_useNASM = false;
+    } else if (option.find("--tesseract-name") == 0) {
+        // Check for correct command syntax
+        if (option.at(16) != '=') {
+            outputError("Incorrect tesseract-name syntax (" + option + ")");
+            outputError("Expected syntax (--tesseract-name=NAME)", false);
+            return false;
+        }
+        m_tesseractName = option.substr(17);
+        if (m_tesseractName.empty()) {
+            outputError("Empty tesseract name specified");
+            return false;
+        }
     } else if (option.find("--use-existing-config") == 0) {
         // A input config file has been specified
         m_usingExistingConfig = true;

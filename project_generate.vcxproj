@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -39,15 +39,37 @@
     <ResourceCompile Include="source\Templates.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="resources\bin2c.exe" />
+    <None Include="resources\cuda_bin2c.props" />
+    <None Include="resources\cuda_bin2c.targets" />
+    <None Include="resources\opencl_source2c.props" />
+    <None Include="resources\opencl_source2c.targets" />
+    <None Include="resources\source2c.exe" />
+    <None Include="resources\spirv_source2c.props" />
+    <None Include="resources\spirv_source2c.targets" />
+    <None Include="templates\smp_common.props" />
     <None Include="templates\smp_deps.props" />
     <None Include="templates\smp_winrt_deps.props" />
+    <None Include="templates\templateprogram_in.vcxproj" />
+    <None Include="templates\templateprogram_in.vcxproj.filters" />
     <None Include="templates\template_files.props" />
+    <None Include="templates\template_in.sln" />
+    <None Include="templates\template_in.vcxproj" />
+    <None Include="templates\template_in.vcxproj.filters" />
+    <None Include="templates\template_in_winrt.sln" />
+    <None Include="templates\template_in_winrt.vcxproj" />
     <None Include="templates\template_with_latest_sdk.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="resources\cuda_bin2c.xml" />
+    <Xml Include="resources\opencl_source2c.xml" />
+    <Xml Include="resources\spirv_source2c.xml" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FA1D2C31-D809-4021-9DE4-7552704175EE}</ProjectGuid>
     <RootNamespace>ffmpeg_generate</RootNamespace>
     <ProjectName>project_generate</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -58,6 +80,7 @@
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '14.0'">v140</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '12.0'">v120</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -67,6 +90,7 @@
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '14.0'">v140</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '12.0'">v120</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -77,6 +101,7 @@
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '14.0'">v140</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '12.0'">v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -87,6 +112,7 @@
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '14.0'">v140</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)' == '12.0'">v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

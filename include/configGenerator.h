@@ -72,6 +72,7 @@ private:
     DefaultValuesList m_replaceList;
     DefaultValuesList m_replaceListASM;
     bool m_useNASM{true};
+    string m_tesseractName{"tesseract"};
     ConfigList m_cachedConfigLists;
 
 public:

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName Include="CudaBin2C">
+      <Targets>SelectCudaBin2C</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+
+  <Target Name="SelectCudaBin2C" BeforeTargets="SelectCustomBuild;ComputeCustomBuildOutput">
+
+    <ItemGroup>
+      <CudaBin2C Update="@(CudaBin2C)">
+        <Inputs>%(CudaBin2C.FullPath)</Inputs>
+        <AdditionalInputs>%(CudaBin2C.AdditionalInputs);$(MSBuildProjectFile)</AdditionalInputs>
+
+        <Message>Exec CudaBin2C: %(CudaBin2C.FileName)</Message>
+        <!--<Command>"%CUDA_PATH%\bin\nvcc" -gencode arch=compute_60,code=sm_60 -O2 -m64 -ptx -c -o "$(IntDir)%(CudaBin2C.Filename).ptx" "%(CudaBin2C.FullPath)" &amp;&amp; "$(ProjectDir)bin2c.exe" "$(IntDir)%(CudaBin2C.Filename).ptx" "%(CudaBin2C.Outputs)" %(CudaBin2C.Filename)_ptx</Command>-->
+      </CudaBin2C>
+    </ItemGroup>
+
+    <ItemGroup>
+      <CustomBuild Include="@(CudaBin2C)">
+      </CustomBuild>
+    </ItemGroup>
+  </Target>
+</Project>

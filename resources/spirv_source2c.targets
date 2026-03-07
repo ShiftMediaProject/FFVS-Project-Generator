@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName Include="SPIRVSource2C">
+      <Targets>SelectSPIRVSource2C</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+
+  <Target Name="SelectSPIRVSource2C" BeforeTargets="SelectCustomBuild;ComputeCustomBuildOutput">
+
+    <ItemGroup>
+      <SPIRVSource2C Update="@(SPIRVSource2C)">
+        <Inputs>%(SPIRVSource2C.FullPath)</Inputs>
+        <AdditionalInputs>%(SPIRVSource2C.AdditionalInputs);$(MSBuildProjectFile)</AdditionalInputs>
+
+        <Message>Exec SPIRVSource2C: %(SPIRVSource2C.FileName)</Message>
+        <!--<Command>"$(ProjectDir)source2c.exe" "%(SPIRVSource2C.FullPath)" "%(SPIRVSource2C.Outputs)"</Command>-->
+      </SPIRVSource2C>
+    </ItemGroup>
+
+    <ItemGroup>
+      <CustomBuild Include="@(SPIRVSource2C)">
+      </CustomBuild>
+    </ItemGroup>
+  </Target>
+</Project>

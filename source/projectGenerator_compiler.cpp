@@ -207,14 +207,14 @@ popd\n";
                     }
                 }
             }
-            launchBat += "cl.exe ";
-            launchBat += extraCl + extraExtraCl +
+            string clCommand = "cl.exe ";
+            clCommand += extraCl + extraExtraCl +
                 R"( /D"_DEBUG" /D"WIN32" /D"_WINDOWS" /D"HAVE_AV_CONFIG_H" /D"_USE_MATH_DEFINES" /D"_UCRT_NOISY_NAN" )" + runCommands +
                 " /c /MP /w /nologo /utf-8";
             for (const auto& file : compileFiles) {
-                launchBat += " \"" + file + "\"";
+                clCommand += " \"" + file + "\"";
             }
-            launchBat += " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
+            launchBat += clCommand + " > ffvs_log.txt 2>&1\nif %errorlevel% neq 0 goto exitFail\n";
         }
         if (runType == 1) {
             launchBat += "move *.i " + dirName + "/ >nul 2>&1\n";

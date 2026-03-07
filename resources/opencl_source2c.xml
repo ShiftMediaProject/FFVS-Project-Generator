@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="clr-namespace:Microsoft.Build.Framework.XamlTypes;assembly=Microsoft.Build.Framework"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                          xmlns:transformCallback="Microsoft.Cpp.Dev10.ConvertedRecipeDefinition">
+  <Rule
+    Name="OpenCLSource2C"
+    PageTemplate="tool"
+    DisplayName="OpenCL Source to C String"
+    Order="200">
+    <Rule.DataSource>
+      <DataSource Persistence="ProjectFile" ItemType="OpenCLSource2C" />
+    </Rule.DataSource>
+    <Rule.Categories>
+      <Category Name="General" DisplayName="General" Description="General" />
+    </Rule.Categories>
+    <StringProperty Name="Command" Category="General" DisplayName="Command Line" Description="Specifies a command line for the custom build tool." F1Keyword="VC.Project.VCCustomBuildTool.Command" >
+      <StringProperty.ValueEditors>
+        <ValueEditor EditorType="DefaultCommandPropertyEditor" DisplayName="&lt;Edit...&gt;"/>
+      </StringProperty.ValueEditors>
+    </StringProperty>
+    <StringListProperty Name="Outputs" Category="General" DisplayName="Outputs" Description="Specifies the output files the custom build tool generates." F1Keyword="VC.Project.VCCustomBuildTool.Outputs" />
+    <StringListProperty Name="AdditionalInputs" Category="General" DisplayName="Additional Dependencies" Description="Specifies any additional input files to use for the custom build tool." F1Keyword="VC.Project.VCCustomBuildTool.AdditionalInputs" />
+    <BoolProperty Name="LinkObjects" Category="General" DisplayName="Link Objects" F1Keyword="VC.Project.VCCustomBuildTool.LinkObjects"
+                        Description="Specify whether the Inputs and outputs files with specific extensions (.obj, .lib, .res, .rsc) are passed to the linker.">
+    </BoolProperty>
+    <DynamicEnumProperty Name="OutputItemType" DisplayName="Add Outputs to Item Type" Category="General"
+                         Description="Specifies Item type to add output files to so they become sources for other build tools."
+                         EnumProvider="ItemTypes"
+                         F1Keyword="VC.Project.VCCustomBuildTool.OutputsItemType">
+    </DynamicEnumProperty>
+
+    <BoolProperty Name="BuildInParallel" Category="General" DisplayName="Build In Parallel" F1Keyword="VC.Project.VCCustomBuildTool.BuildInParallel"
+                        Description="Specifies that this item can be built in parallel with other custom build tool items.">
+    </BoolProperty>
+    <IntProperty Name="MaxProcesses" Category="General" DisplayName="Maximum Processes" F1Keyword="VC.Project.VCCustomBuildTool.MaxProcesses"
+                 Description="Maximum number of CPU cores to use for parallel build. A value of 0 utilizes all available processors.">
+    </IntProperty>
+    <IntProperty Name="MaxItemsInBatch" Category="General" DisplayName="Maximum Batch Size" F1Keyword="VC.Project.VCCustomBuildTool.MaxProcesses"
+                 Description="Maximum number of items to execute together during parallel build. A value of 0 divides items evenly into parallel batches. A value of 1 disables batching. Larger batches will improve performance if the custom build tool processes items quickly.">
+    </IntProperty>
+  </Rule>
+  <ItemType
+    Name="OpenCLSource2C"
+    DisplayName="OpenCL Source to C String" />
+  <FileExtension
+    Name="*.cl"
+    ContentType="OpenCLSource2C" />
+  <ContentType
+    Name="OpenCLSource2C"
+    DisplayName="OpenCL Source to C String"
+    ItemType="OpenCLSource2C" />
+</ProjectSchemaDefinitions>

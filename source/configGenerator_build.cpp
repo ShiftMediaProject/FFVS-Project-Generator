@@ -427,9 +427,22 @@ bool ConfigGenerator::buildAutoDetectValues()
                             enable = true;
                         }
                     }
-                } else if (i == "libglslang" || i == " libshaderc" || i == "spirv_compiler") {
+                } else if (i == "libglslang") {
                     // Not currently supported
                     enable = false;
+                } else if (i == "libshaderc") {
+                    enable = false;
+                    if (findEnvironmentVariable("VULKAN_SDK")) {
+                        enable = true;
+                    } else {
+                        makeFileGeneratorRelative(m_outDirectory + "include/shaderc/shaderc.h", sFileName);
+                        enable = findFile(sFileName, sFileName);
+                    }
+                } else if (i == "spirv_compiler") {
+                    enable = isConfigOptionEnabled("libshaderc") || isConfigOptionEnabled("libglslang");
+                } else if (i == "libplacebo") {
+                    makeFileGeneratorRelative(m_outDirectory + "include/libplacebo/config.h", sFileName);
+                    enable = findFile(sFileName, sFileName);
                 } else if (i == "w32threads") {
                     enable = true;
                 } else if (i == "xlib") {
@@ -1142,7 +1155,8 @@ void ConfigGenerator::buildAdditionalDependencies(DependencyList& additionalDepe
     additionalDependencies["NV_ENC_PIC_PARAMS_AV1"] = bNvenc;
     const auto spirv = getConfigOption("spirv_compiler");
     if ((spirv == m_configValues.end())) {
-        additionalDependencies["spirv_compiler"] = false;
+        additionalDependencies["spirv_compiler"] =
+            isConfigOptionEnabled("libshaderc") || isConfigOptionEnabled("libglslang");
     }
 }
 

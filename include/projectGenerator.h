@@ -71,6 +71,7 @@ private:
     StaticList m_subDirs;
 
     map<string, StaticList> m_projectLibs;
+    bool m_addCustomTesseract{false};
 
     const string m_tempDirectory = "FFVSTemp/";
 
@@ -433,6 +434,11 @@ private:
         bool program = false);
 
     /**
+     * Comment out preprocessor directives inside macro arguments that MSVC cannot handle.
+     */
+    void sanitizeSourceFiles();
+
+    /**
      * Output asm tools to project template.
      * @remark Either yasm or nasm tools will be used based on current configuration.
      * @param [in,out] projectTemplate The project template.
@@ -444,6 +450,38 @@ private:
      * @param [in,out] projectTemplate The project template.
      */
     void outputCUDATools(string& projectTemplate) const;
+
+    /**
+     * Output OpenCL source2c build customization to project template.
+     * @remark Copies source2c.exe and opencl_source2c .props/.targets/.xml to the output directory
+     *         and adds the ExtensionSettings/ExtensionTargets import groups.
+     * @param [in,out] projectTemplate The project template.
+     */
+    void outputOpenCLTools(string& projectTemplate) const;
+
+    /**
+     * Output SPIRV source2c build customization to project template.
+     * @remark Copies source2c.exe and spirv_source2c .props/.targets/.xml to the output directory
+     *         and adds the ExtensionSettings/ExtensionTargets import groups.
+     * @param [in,out] projectTemplate The project template.
+     */
+    void outputSPIRVTools(string& projectTemplate) const;
+
+    /**
+     * Output resource source files (HTML/CSS) with custom build steps.
+     * @param [in,out] fileList         The list of resource files to process.
+     * @param [in,out] projectTemplate  The project template.
+     * @param [in,out] filterTemplate   The filter template.
+     * @param [in,out] foundObjects     The list of found object files.
+     * @param [in,out] foundFilters     The set of found filters.
+     * @param          staticOnly       True to only include in static builds.
+     * @param          sharedOnly       True to only include in shared builds.
+     * @param          bit32Only        True to only include in 32-bit builds.
+     * @param          bit64Only        True to only include in 64-bit builds.
+     */
+    void outputResourceSourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate, 
+        StaticList& foundObjects, set<string>& foundFilters, bool staticOnly = false, bool sharedOnly = false, 
+        bool bit32Only = false, bool bit64Only = false) const;
 
     bool outputDependencyLibs(string& projectTemplate, bool winrt, bool program);
 

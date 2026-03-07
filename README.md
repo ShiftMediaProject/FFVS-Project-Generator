@@ -6,6 +6,31 @@ FFVS-Project-Generator
 [![GitHub issues](https://img.shields.io/github/issues/ShiftMediaProject/FFVS-Project-Generator.svg)](https://github.com/ShiftMediaProject/FFVS-Project-Generator/issues)
 [![license](https://img.shields.io/github/license/ShiftMediaProject/FFVS-Project-Generator.svg)](https://github.com/ShiftMediaProject/FFVS-Project-Generator)
 [![donate](https://img.shields.io/badge/donate-link-brightgreen.svg)](https://shiftmediaproject.github.io/8-donate/)
+
+## Major Update - Supports FFmpeg 8.x and beyond
+
+**Changes**
+
+- **Adds support for compilations of fftools/resources via bin2c.exe**  
+  (supersedes #83)
+- **Adds a `smp_common.props` file**  
+  This is imported by all projects and allows to apply changes easily and in a persistent way - i.e. your modifications do not get lost when regenerating the projects
+- **Adds support for libvpl (OneVPL)**  
+  This is the new dispatcher for Intel QSV hardware acceleration, which replaces libmfx
+- **Adds support for shaderc dependency**
+- **Adds support for shader (.comp) file conversion to C strings**
+- **Adds support for OpenCL (.cl) file conversion to C strings**
+- **Adds support for CUDA PTX compile via NVCC and conversion to C strings**
+  (supersedes #82)
+- **New option to specify a custom tesseract library name**  
+  (tesseract library naming is messy)
+- **Detect artifacts from configure in the ffmpeg tree**  
+  The generator doesn't work properly when configure has been run in the FFmpeg source dir.  
+  Added detection for this case and warning will be shown
+- **Adds support for Vulkan (filters) and libplacebo**  
+  A repo will be provided with an adapted libplacebo which can be compiled on Windows without MSYS2
+
+
 ## About
 
 The FFmpeg VS Project Generator is a standalone program that can be used to create a custom Visual Studio project within a FFmpeg source code distribution. This program allows for the created Visual Studio project to be customised using virtually any of the options supported by FFmpegs default configure script. This allows for selecting which dependency libraries and codec/format support should be built into the created project file. With the output project FFmpeg libraries and programs can be built and debugged directly within Visual Studio.

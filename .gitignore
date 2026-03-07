@@ -28,3 +28,11 @@
 [Bb]in/*
 !smp_*
 *Caches/
+!bin2c.exe
+!source2c.exe
+!opencl_source2c.props
+!opencl_source2c.targets
+!opencl_source2c.xml
+!cuda_bin2c.props
+!cuda_bin2c.targets
+!cuda_bin2c.xml

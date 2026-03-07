@@ -73,6 +73,10 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
     if (m_projectName == "libavformat" && !winrt) {
         addLibs.emplace_back("ws2_32"); // Add the additional required libs
     }
+    // libplacebo statically links into libavfilter which requires vulkan-1 at link time
+    if (m_configHelper.isConfigOptionEnabled("libplacebo") && !winrt) {
+        addLibs.emplace_back("vulkan-1");
+    }
 
     // Determine only those dependencies that are valid for current project
     map<string, bool> projectDeps;
@@ -207,6 +211,14 @@ void ProjectGenerator::buildDependencies(StaticList& libs, StaticList& addLibs, 
                 addLibs.emplace_back("Advapi32"); // Add the additional required libs
             } else if (i == "vulkan") {
                 // Doesn't need any additional libs
+            } else if (i == "libshaderc") {
+                // Handled separately in outputDependencyLibs (different static/DLL lib names)
+            } else if (i == "spirv_compiler") {
+                // Meta-dependency satisfied by libshaderc or libglslang, no additional libs needed
+            } else if (i == "libplacebo") {
+                lib = "libplacebo";
+            } else if (i == "libtesseract" && m_configHelper.m_tesseractName != "tesseract") {
+                m_addCustomTesseract = true;
             } else {
                 // By default just use the lib name and prefix with lib if not already
                 if (i.find("lib") == 0) {
@@ -281,6 +293,21 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
     // Add subdirectory include dirs (m_subDirs cannot be used as it creates clashes with identically named files)
     if (!m_subDirs.empty()) {
         includeDirs.push_back(projRoot + m_projectName + '/');
+    }
+
+    // libplacebo requires Vulkan SDK include and lib dirs for all projects that link against it
+    if (m_configHelper.isConfigOptionEnabled("libplacebo") && !winrt) {
+        definesStatic.emplace_back("PL_STATIC");
+        definesShared.emplace_back("PL_STATIC");
+        if (findEnvironmentVariable("VULKAN_SDK")) {
+            if (find(includeDirs.begin(), includeDirs.end(), "$(VULKAN_SDK)/include/") == includeDirs.end()) {
+                includeDirs.emplace_back("$(VULKAN_SDK)/include/");
+            }
+            if (find(lib32Dirs.begin(), lib32Dirs.end(), "$(VULKAN_SDK)/Lib32") == lib32Dirs.end()) {
+                lib32Dirs.emplace_back("$(VULKAN_SDK)/Lib32");
+                lib64Dirs.emplace_back("$(VULKAN_SDK)/Lib");
+            }
+        }
     }
 
     // Determine only those dependencies that are valid for current project
@@ -396,7 +423,10 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                 }
             } else if (i.first == "vulkan" && !winrt) {
                 if (findEnvironmentVariable("VULKAN_SDK")) {
-                    includeDirs.emplace_back("$(VULKAN_SDK)/include/");
+                    if (find(includeDirs.begin(), includeDirs.end(), "$(VULKAN_SDK)/include/") ==
+                        includeDirs.end()) {
+                        includeDirs.emplace_back("$(VULKAN_SDK)/include/");
+                    }
                 } else {
                     string fileName;
                     m_configHelper.makeFileGeneratorRelative(
@@ -410,6 +440,27 @@ void ProjectGenerator::buildDependencyValues(StaticList& includeDirs, StaticList
                             false);
                         outputWarning("Vulkan requires the Vulkan headers to be available in the include path.", false);
                     }
+                }
+            } else if (i.first == "libshaderc" && !winrt) {
+                if (findEnvironmentVariable("VULKAN_SDK")) {
+                    if (find(includeDirs.begin(), includeDirs.end(), "$(VULKAN_SDK)/include/") ==
+                        includeDirs.end()) {
+                        includeDirs.emplace_back("$(VULKAN_SDK)/include/");
+                    }
+                    lib32Dirs.emplace_back("$(VULKAN_SDK)/Lib32");
+                    lib64Dirs.emplace_back("$(VULKAN_SDK)/Lib");
+                } else {
+                    outputWarning("Could not find the Vulkan SDK environment variable.");
+                    outputWarning(
+                        "Either the Vulkan SDK is not installed or the environment variable is missing.", false);
+                    outputWarning("libshaderc requires the Vulkan SDK to be installed.", false);
+                }
+            } else if (i.first == "libplacebo" && !winrt) {
+                includeDirs.emplace_back("$(OutBaseDir)/include/");
+                includeDirs.emplace_back("$(ProjectDir)/../../prebuilt/include/");
+                if (findEnvironmentVariable("VULKAN_SDK")) {
+                    lib32Dirs.emplace_back("$(VULKAN_SDK)/Lib32");
+                    lib64Dirs.emplace_back("$(VULKAN_SDK)/Lib");
                 }
             }
         }
@@ -539,6 +590,9 @@ void ProjectGenerator::buildProjectDependencies(map<string, bool>& projectDeps) 
     projectDeps["libzimg"] = (m_projectName == "libavfilter");
     projectDeps["libzmq"] = (m_projectName == "libavfilter") || (m_projectName == "libavformat");
     projectDeps["libzvbi"] = (m_projectName == "libavcodec");
+    projectDeps["libshaderc"] = (m_projectName == "libavfilter");
+    projectDeps["libplacebo"] = (m_projectName == "libavfilter");
+    projectDeps["spirv_compiler"] = (m_projectName == "libavfilter");
     projectDeps["lzma"] = (m_projectName == "libavcodec");
     projectDeps["mediafoundation"] = (m_projectName == "libavcodec");
     projectDeps["nvdec"] = (m_projectName == "libavcodec");

@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ImportGroup Label="PropertySheets">
     <Import Project="smp_deps.props" />
+    <Import Project="smp_common.props" />
     <Import Project="template_in_files.props" />
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

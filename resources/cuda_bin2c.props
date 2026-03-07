@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <CudaBin2C>
+      <Outputs>$(IntDir)%(Filename).ptx.c</Outputs>
+      <TreatOutputAsContent>false</TreatOutputAsContent>
+      <TrackerLogDirectory>$(TLogLocation)</TrackerLogDirectory>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <VerifyInputsAndOutputsExist>true</VerifyInputsAndOutputsExist>
+
+      <LinkObjects     Condition="'%(CudaBin2C.LinkObjects)'     == ''">true</LinkObjects>
+      <OutputItemType  Condition="'%(CudaBin2C.OutputItemType)'  == ''">ClCompile</OutputItemType>
+      <BuildInParallel Condition="'%(CudaBin2C.BuildInParallel)' == ''">true</BuildInParallel>
+      <MaxProcesses    Condition="'%(CudaBin2C.MaxProcesses)'    == ''">0</MaxProcesses>
+      <MaxItemsInBatch Condition="'%(CudaBin2C.MaxItemsInBatch)' == ''">1</MaxItemsInBatch>
+      <Command         Condition="'%(CudaBin2C.Command)'         == ''">"%CUDA_PATH%\bin\nvcc" -gencode arch=compute_60,code=sm_60 -O2 -m64 -ptx -c -o "$(IntDir)%(Filename).ptx" "%(FullPath)" &amp;&amp; "$(ProjectDir)bin2c.exe" "$(IntDir)%(Filename).ptx" "%(Outputs)" %(Filename)_ptx</Command>
+    </CudaBin2C>
+  </ItemDefinitionGroup>
+</Project>

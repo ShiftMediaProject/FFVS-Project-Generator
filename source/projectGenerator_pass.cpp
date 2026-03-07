@@ -525,6 +525,17 @@ bool ProjectGenerator::passMake()
                             return false;
                         }
                     }
+                } else if (m_inLine.substr(0, 11) == "OBJS-resman") {
+                    // Find position after "+="
+                    uint startPos = m_inLine.find("+=");
+                    if (startPos != string::npos) {
+                        startPos += 2; // Skip past "+="
+                        // Found resource manager objects - store for later resolution
+                        if (!passStaticInclude(startPos, m_unknowns["OBJS-resman"])) {
+                            m_inputFile.close();
+                            return false;
+                        }
+                    }
                 } else if (m_inLine.substr(0, 7) == "HEADERS") {
                     // Found some headers
                     if (m_inLine.at(7) == '-') {
@@ -681,7 +692,7 @@ bool ProjectGenerator::passMake()
                     }
                     makeFiles.push_back(newMake);
                     // Add to internal list of known subdirectories
-                    const uint rootPos = newMake.find(m_configHelper.m_rootDirectory); 
+                    const uint rootPos = newMake.find(m_configHelper.m_rootDirectory);
                     if (rootPos != string::npos) {
                         newMake.erase(rootPos, m_configHelper.m_rootDirectory.length());
                     }
@@ -720,6 +731,8 @@ bool ProjectGenerator::passMake()
 bool ProjectGenerator::passProgramMake()
 {
     uint checks = 2;
+    vector<string> makeFiles; // Track additional includes
+
     while (checks >= 1) {
         // Open the input Makefile
         string makeFile = m_projectDir + "MakeFile";
@@ -810,9 +823,133 @@ bool ProjectGenerator::passProgramMake()
                         return false;
                     }
                 }
+            } else if (m_inLine.substr(0, 11) == "OBJS-resman") {
+                // Find position after "+="
+                uint startPos = m_inLine.find("+=");
+                if (startPos != string::npos) {
+                    startPos += 2; // Skip past "+="
+                    // Found resource manager objects - store for later resolution
+                    if (!passStaticInclude(startPos, m_unknowns["OBJS-resman"])) {
+                        m_inputFile.close();
+                        return false;
+                    }
+                }
+            } else if (m_inLine.substr(0, 7) == "include" || m_inLine.substr(0, 8) == "-include") {
+                // Need to append the included file to makefile list
+                uint startPos = m_inLine.find_first_not_of(" \t", 7 + (m_inLine[0] == '-' ? 1 : 0));
+                uint endPos = m_inLine.find_first_of(" \t\n\r", startPos + 1);
+                endPos = (endPos == string::npos) ? endPos : endPos - startPos;
+                string newMake = m_inLine.substr(startPos, endPos);
+
+                // Check if this include contains function parameters (like $(1), $(2), etc.) and skip it
+                if (newMake.find("$(1)") != string::npos || newMake.find("$(2)") != string::npos ||
+                    newMake.find("$(3)") != string::npos || newMake.find("$(prog)") != string::npos ||
+                    newMake.find("$(P)") != string::npos) {
+                    continue; // Skip this include as it's part of a Make function definition
+                }
+
+                // Perform token substitution
+                startPos = newMake.find('$');
+                while (startPos != string::npos) {
+                    endPos = newMake.find(')', startPos + 1);
+                    if (endPos == string::npos) {
+                        outputError("Invalid token in include (" + newMake + ")");
+                        return false;
+                    }
+                    ++endPos;
+                    string token = newMake.substr(startPos, endPos - startPos);
+                    if (token == "$(SRC_PATH)") {
+                        newMake.replace(startPos, endPos - startPos, m_configHelper.m_rootDirectory);
+                    } else if (token == "$(ARCH)") {
+                        newMake.replace(startPos, endPos - startPos, "x86");
+                    } else {
+                        outputError("Unknown token in include (" + token + ")");
+                        return false;
+                    }
+                    startPos = newMake.find('$', startPos);
+                }
+
+                makeFiles.push_back(newMake);
             }
         }
         m_inputFile.close();
+
+        // Process any included makefiles
+        while (!makeFiles.empty()) {
+            const string includedMakeFile = makeFiles.back();
+            makeFiles.pop_back();
+            outputLine("  Generating from Makefile (" + includedMakeFile + ")...");
+
+            // Open the included Makefile
+            ifstream includedFile(includedMakeFile);
+            if (includedFile.is_open()) {
+                string includedLine;
+                while (getline(includedFile, includedLine)) {
+                    // Process OBJS-resman lines in included files
+                    if (includedLine.length() >= 11 && includedLine.substr(0, 11) == "OBJS-resman") {
+                        // Only process OBJS-resman for ffmpeg project
+                        if (m_projectName == "ffmpeg") {
+                            // Handle multi-line declarations directly here instead of using passStaticInclude
+                            // to avoid file context mismatch
+                            string fullLine = includedLine;
+
+                            // Read continuation lines from the included file
+                            while (fullLine.back() == '\\') {
+                                string nextLine;
+                                if (getline(includedFile, nextLine)) {
+                                    fullLine += " " + nextLine; // Append with space
+                                } else {
+                                    break; // No more lines
+                                }
+                            }
+
+                            // Now parse the complete line manually
+                            uint startPos = fullLine.find("+=");
+                            if (startPos != string::npos) {
+                                startPos += 2; // Skip past "+="
+
+                                // Parse files from the line
+                                uint pos = fullLine.find_first_not_of("+=: \t", startPos);
+                                while (pos != string::npos && pos < fullLine.length()) {
+                                    // Skip backslashes and whitespace
+                                    if (fullLine[pos] == '\\' || fullLine[pos] == ' ' || fullLine[pos] == '\t') {
+                                        pos = fullLine.find_first_not_of(" \t\\", pos + 1);
+                                        continue;
+                                    }
+
+                                    // Find end of current file
+                                    uint endPos = fullLine.find_first_of(" \t\\", pos);
+                                    if (endPos == string::npos) {
+                                        endPos = fullLine.length();
+                                    }
+
+                                    string file = fullLine.substr(pos, endPos - pos);
+                                    if (!file.empty() && file != "+=" && file != "OBJS-resman") {
+                                        // Special handling for resman.o - convert to resman since it's a real source file
+                                        if (file == "fftools/resources/resman.o") {
+                                            string sourceFile = "fftools/resources/resman";
+                                            m_includes.push_back(sourceFile);
+                                            outputInfo("Found Static: '" + sourceFile + ".c' (converted from resman.o)");
+                                        }
+
+                                        // Store in unknowns for $(OBJS-resman) resolution
+                                        // These are object files that will be resolved when $(OBJS-resman) is encountered
+                                        m_unknowns["OBJS-resman"].push_back(file);
+                                        outputInfo("Found Static: '" + file + "' (stored for $(OBJS-resman) resolution)");
+                                    }
+
+                                    pos = fullLine.find_first_not_of(" \t\\", endPos);
+                                }
+                            }
+                        }
+                    }
+                }
+                includedFile.close();
+            } else {
+                outputInfo("Could not open included MakeFile (" + includedMakeFile + ")");
+            }
+        }
+
         if (checks == 2) {
             string ignored;
             const string makeFolder = "fftools/";
@@ -829,9 +966,15 @@ bool ProjectGenerator::passProgramMake()
         uint uiPos;
         for (auto i = m_includes.begin(); i < m_includes.end(); ++i) {
             if ((uiPos = i->find(makeFolder)) != string::npos) {
-                i->erase(uiPos, makeFolder.length());
+                // Don't strip fftools/ prefix from resman as it's a real source file in that location
+                if (*i != "fftools/resources/resman") {
+                    i->erase(uiPos, makeFolder.length());
+                } else {
+                    // Keep full path for resman.c
+                }
             }
         }
+
         --checks;
     }
 

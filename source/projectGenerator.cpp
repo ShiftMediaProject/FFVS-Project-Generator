@@ -35,6 +35,18 @@
 #define TEMPLATE_PROPS_WINRT_ID 109
 #define TEMPLATE_FILE_PROPS_ID 110
 #define TEMPLATE_SLN_NOWINRT_ID 111
+#define BIN2C_EXE_ID 112
+#define SOURCE2C_EXE_ID 113
+#define OPENCL_SOURCE2C_PROPS_ID 114
+#define OPENCL_SOURCE2C_TARGETS_ID 115
+#define OPENCL_SOURCE2C_XML_ID 116
+#define CUDA_BIN2C_PROPS_ID 117
+#define CUDA_BIN2C_TARGETS_ID 118
+#define CUDA_BIN2C_XML_ID 119
+#define TEMPLATE_COMMON_PROPS_ID 120
+#define SPIRV_SOURCE2C_PROPS_ID 121
+#define SPIRV_SOURCE2C_TARGETS_ID 122
+#define SPIRV_SOURCE2C_XML_ID 123
 
 bool ProjectGenerator::passAllMake()
 {
@@ -73,6 +85,16 @@ bool ProjectGenerator::passAllMake()
     }
     outPropsFile = m_configHelper.m_solutionDirectory + "smp_winrt_deps.props";
     if (!writeToFile(outPropsFile, propsFileWinRT, true)) {
+        return false;
+    }
+
+    // Copy common props file to output directory
+    string commonPropsFile;
+    if (!loadFromResourceFile(TEMPLATE_COMMON_PROPS_ID, commonPropsFile)) {
+        return false;
+    }
+    outPropsFile = m_configHelper.m_solutionDirectory + "smp_common.props";
+    if (!writeToFile(outPropsFile, commonPropsFile, true)) {
         return false;
     }
 
@@ -200,6 +222,75 @@ void ProjectGenerator::errorFunc(const bool cleanupFiles)
     exit(1);
 }
 
+void ProjectGenerator::sanitizeSourceFiles()
+{
+    if (!m_configHelper.isConfigOptionEnabled("libplacebo")) {
+        return;
+    }
+    for (const auto& file : m_includesC) {
+        if (file.find("vf_libplacebo.c") == string::npos) {
+            continue;
+        }
+        string fullPath = file;
+        m_configHelper.makeFileGeneratorRelative(fullPath, fullPath);
+        string contents;
+        if (!loadFromFile(fullPath, contents, false, false)) {
+            continue;
+        }
+        if (contents.find("#if PL_API_VER") == string::npos) {
+            continue;
+        }
+        // Split into lines
+        vector<string> lines;
+        size_t pos = 0;
+        while (pos < contents.size()) {
+            size_t eol = contents.find('\n', pos);
+            if (eol == string::npos) eol = contents.size();
+            lines.push_back(contents.substr(pos, eol - pos));
+            pos = eol + 1;
+        }
+        // Track parenthesis nesting; comment out #if PL_API_VER / #endif inside macro args
+        int parenDepth = 0;
+        int skipEndifCount = 0;
+        bool modified = false;
+        for (auto& line : lines) {
+            string trimmed = line;
+            size_t firstNonWS = trimmed.find_first_not_of(" \t\r");
+            if (firstNonWS != string::npos) trimmed = trimmed.substr(firstNonWS);
+            if (parenDepth > 0 && trimmed.find("#if PL_API_VER") == 0 &&
+                line.find("////") == string::npos) {
+                line = "////" + line;
+                skipEndifCount++;
+                modified = true;
+            } else if (skipEndifCount > 0 && (trimmed == "#endif" || trimmed == "#endif\r") &&
+                line.find("////") == string::npos) {
+                line = "////" + line;
+                skipEndifCount--;
+                modified = true;
+            } else {
+                if (trimmed.empty() || trimmed[0] != '#') {
+                    bool inString = false;
+                    for (char c : line) {
+                        if (c == '"') inString = !inString;
+                        if (!inString) {
+                            if (c == '(') parenDepth++;
+                            else if (c == ')') parenDepth--;
+                        }
+                    }
+                }
+            }
+        }
+        if (modified) {
+            string result;
+            for (size_t i = 0; i < lines.size(); i++) {
+                result += lines[i];
+                if (i + 1 < lines.size()) result += '\n';
+            }
+            writeToFile(fullPath, result);
+        }
+    }
+}
+
 bool ProjectGenerator::outputProject()
 {
     // Check all files are correctly located
@@ -214,6 +305,9 @@ bool ProjectGenerator::outputProject()
     StaticList definesShared;
     StaticList definesStatic;
     buildDependencyValues(includeDirs, lib32Dirs, lib64Dirs, definesShared, definesStatic, false);
+
+    // Comment out #if/#endif inside macro arguments that MSVC cannot handle
+    sanitizeSourceFiles();
 
     // Create missing definitions of functions removed by DCE
     if (!outputProjectDCE(includeDirs)) {
@@ -290,6 +384,14 @@ bool ProjectGenerator::outputProject()
     // Add CUDA requirements
     outputCUDATools(projectFile);
     outputCUDATools(projectFileWinRT);
+
+    // Add OpenCL requirements
+    outputOpenCLTools(projectFile);
+    outputOpenCLTools(projectFileWinRT);
+
+    // Add SPIRV requirements
+    outputSPIRVTools(projectFile);
+    outputSPIRVTools(projectFileWinRT);
 
     // Add the dependency libraries
     if (!outputDependencyLibs(projectFile, false, false)) {
@@ -392,6 +494,12 @@ bool ProjectGenerator::outputProgramProject(const string& destinationFile, const
 
     // Add CUDA requirements
     outputCUDATools(programFile);
+
+    // Add OpenCL requirements
+    outputOpenCLTools(programFile);
+
+    // Add SPIRV requirements
+    outputSPIRVTools(programFile);
 
     // Add the dependency libraries
     if (!outputDependencyLibs(programFile, false, true)) {
@@ -1065,16 +1173,16 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output CUDA files
     if (!m_includesCU.empty()) {
         if (m_configHelper.isCUDAEnabled()) {
-            // outputSourceFileType(
-            //    m_includesCU, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
-            //    true);
-            /*for (auto& i : m_includesConditionalCU) {
+            outputSourceFileType(
+                m_includesCU, "CudaBin2C", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
+                false);
+            for (auto& i : m_includesConditionalCU) {
                 fileList.clear();
                 fileList.emplace_back(i.first);
-                outputSourceFileType(fileList, "CudaCompile", "Source", projectTemplate, filterTemplate, foundObjects,
-                    foundFilters, true, i.second.isStatic, i.second.isShared, i.second.is32, i.second.is64);
-            }*/
-            outputError("CUDA files detected in project. CUDA compilation is not currently supported");
+                outputSourceFileType(fileList, "CudaBin2C", "Source", projectTemplate, filterTemplate,
+                    foundObjects, foundFilters, false, i.second.isStatic, i.second.isShared, i.second.is32,
+                    i.second.is64);
+            }
         } else {
             outputError("CUDA files found in project but CUDA is disabled");
         }
@@ -1083,9 +1191,16 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output CL files
     if (!m_includesCL.empty()) {
         if (m_configHelper.isOpenCLEnabled()) {
-            // TODO: Embed source file as c file (ffmpeg uses tools/source2c for this)
-            outputError(
-                "OpenCL shader files detected in project. OpenCL shader compilation is not currently supported");
+            outputSourceFileType(
+                m_includesCL, "OpenCLSource2C", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
+                false);
+            for (auto& i : m_includesConditionalCL) {
+                fileList.clear();
+                fileList.emplace_back(i.first);
+                outputSourceFileType(fileList, "OpenCLSource2C", "Source", projectTemplate, filterTemplate,
+                    foundObjects, foundFilters, false, i.second.isStatic, i.second.isShared, i.second.is32,
+                    i.second.is64);
+            }
         } else {
             outputError("OpenCL shader files found in project but opencl is disabled");
         }
@@ -1094,10 +1209,52 @@ void ProjectGenerator::outputSourceFiles(string& projectTemplate, string& filter
     // Output COMP files
     if (!m_includesCOMP.empty()) {
         if (m_configHelper.isSPIRVEnabled()) {
-            // TODO: Embed source file as c file (ffmpeg uses tools/source2c for this)
-            outputError("SPIRV shader files detected in project. Compute shader compilation is not currently supported");
+            outputSourceFileType(
+                m_includesCOMP, "SPIRVSource2C", "Source", projectTemplate, filterTemplate, foundObjects, foundFilters,
+                false);
+            for (auto& i : m_includesConditionalCOMP) {
+                fileList.clear();
+                fileList.emplace_back(i.first);
+                outputSourceFileType(fileList, "SPIRVSource2C", "Source", projectTemplate, filterTemplate,
+                    foundObjects, foundFilters, false, i.second.isStatic, i.second.isShared, i.second.is32,
+                    i.second.is64);
+            }
         } else {
             outputError("SPIRV shader files found in project but spirv is disabled");
+        }
+    }
+
+    // Process resource files (HTML/CSS) from OBJS-resman
+    StaticList resourceFiles;
+    auto resmanIt = m_unknowns.find("OBJS-resman");
+    if (resmanIt != m_unknowns.end()) {
+        for (const auto& resFile : resmanIt->second) {
+            // Convert .o extension back to source file
+            string sourceFile = resFile;
+            if (sourceFile.length() > 2 && sourceFile.substr(sourceFile.length() - 2) == ".o") {
+                sourceFile = sourceFile.substr(0, sourceFile.length() - 2);
+                // Check if this is a resource file we can process
+                if (sourceFile.find(".html") != string::npos || sourceFile.find(".css") != string::npos) {
+                    resourceFiles.push_back(sourceFile);
+                    
+                    // Copy bin2c.exe if needed for resource processing
+                    static bool bin2cCopied = false;
+                    if (!bin2cCopied) {
+                        string bin2cContent;
+                        if (loadFromResourceFile(BIN2C_EXE_ID, bin2cContent)) {
+                            string bin2cPath = m_configHelper.m_solutionDirectory + "bin2c.exe";
+                            if (writeToFile(bin2cPath, bin2cContent, true)) {
+                                bin2cCopied = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Process resource files if any were found
+        if (!resourceFiles.empty()) {
+            outputResourceSourceFiles(resourceFiles, projectTemplate, filterTemplate, foundObjects, foundFilters);
         }
     }
 
@@ -1647,10 +1804,422 @@ void ProjectGenerator::outputASMTools(string& projectTemplate) const
     }
 }
 
+void ProjectGenerator::outputResourceSourceFiles(StaticList& fileList, string& projectTemplate, string& filterTemplate,
+    StaticList& foundObjects, set<string>& foundFilters, bool staticOnly, bool sharedOnly, bool bit32Only, bool bit64Only) const
+{
+    // Constants for resource build
+    const string itemGroup = "\r\n  <ItemGroup>";
+    const string itemGroupEnd = "\r\n  </ItemGroup>";
+    const string includeClose = "\">";
+    const string includeEnd = "\" />";
+    const string typeInclude = "\r\n    <CustomBuild Include=\"";
+    const string typeIncludeEnd = "\r\n    </CustomBuild>";
+    const string filterSource = "\r\n      <Filter>Source Files";
+    const string filterEnd = "</Filter>";
+    const string excludeConfig = "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='";
+    const string excludeConfigPlatform = "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+    const string excludeConfigEnd = "'\">true</ExcludedFromBuild>";
+    const string buildConfigsStatic[] = {"Release", "Debug", "ReleaseWinRT", "DebugWinRT"};
+    const string buildConfigsShared[] = {"ReleaseDLL", "ReleaseDLLStaticDeps", "DebugDLL", "ReleaseDLLWinRT",
+        "ReleaseDLLWinRTStaticDeps", "DebugDLLWinRT"};
+
+    if (fileList.size() > 0) {
+        string resourceFiles = itemGroup;
+        string resourceFilesFilt = itemGroup;
+        string resourceFilesTemp, resourceFilesFiltTemp;
+
+        for (const auto& i : fileList) {
+            // Resource custom build entry
+            resourceFilesTemp = typeInclude;
+            resourceFilesFiltTemp = typeInclude;
+
+            // Add the fileName with full project-relative path
+            string file = i;
+            string fullPath;
+            if (findSourceFile(file.substr(0, file.rfind('.')), file.substr(file.rfind('.')), fullPath)) {
+                m_configHelper.makeFileProjectRelative(fullPath, file);
+            }
+            replace(file.begin(), file.end(), '/', '\\');
+            resourceFilesTemp += file;
+            resourceFilesFiltTemp += file;
+
+            // Get resource name without path or extension for generated .c file
+            uint pos = i.rfind('/') + 1;
+            string resourceName = i.substr(pos);
+            uint pos2 = resourceName.rfind('.');
+            string extension = resourceName.substr(pos2);
+            resourceName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + resourceName + extension + ".c";
+
+            // Add the filters Filter
+            string sourceDir;
+            m_configHelper.makeFileProjectRelative(m_configHelper.m_rootDirectory, sourceDir);
+            pos = i.rfind(sourceDir);
+            pos = (pos == string::npos) ? 0 : pos + sourceDir.length();
+            resourceFilesFiltTemp += includeClose;
+            resourceFilesFiltTemp += filterSource;
+            uint folderLength = i.rfind('/') - pos;
+            if (static_cast<int>(folderLength) != -1) {
+                string folderName = file.substr(pos, folderLength);
+                folderName = '\\' + folderName;
+                foundFilters.insert("Source Files" + folderName);
+                resourceFilesFiltTemp += folderName;
+            }
+            resourceFilesFiltTemp += filterEnd;
+            resourceFilesFiltTemp += typeIncludeEnd;
+
+            // Add resource compilation commands
+            resourceFilesTemp += includeClose;
+            
+            if (extension == ".css") {
+                // CSS processing: minify then convert to C array
+                string minFile = "$(IntDir)\\" + resourceName + ".css.min";
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_css";
+                
+                resourceFilesTemp += "\r\n      <Command>powershell -Command \"(Get-Content '%(FullPath)' -Raw) -replace '/\\*.*?\\*/', '' -replace '\\r?\\n', ' ' -replace '\\s+', ' ' -replace '^\\s+|\\s+$', '' | Out-File '" + minFile + "' -NoNewline -Encoding ASCII\" &amp;&amp; \"$(ProjectDir)bin2c.exe\" \"" + minFile + "\" \"" + outputCFile + "\" " + varName + "</Command>";
+            } else if (extension == ".html") {
+                // HTML processing: direct conversion to C array
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_html";
+                
+                resourceFilesTemp += "\r\n      <Command>\"$(ProjectDir)bin2c.exe\" \"%(FullPath)\" \"" + outputCFile + "\" " + varName + "</Command>";
+            } else {
+                // Generic resource processing
+                string varName = resourceName;
+                replace(varName.begin(), varName.end(), '.', '_');
+                varName += "_" + extension.substr(1); // Remove the dot from extension
+                
+                resourceFilesTemp += "\r\n      <Command>\"$(ProjectDir)bin2c.exe\" \"%(FullPath)\" \"" + outputCFile + "\" " + varName + "</Command>";
+            }
+            
+            resourceFilesTemp += "\r\n      <Outputs>" + outputCFile + "</Outputs>";
+            resourceFilesTemp += "\r\n      <Message>Converting resource file %(Filename)%(Extension)</Message>";
+
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    resourceFilesTemp += excludeConfig;
+                    resourceFilesTemp += buildConfig[j];
+                    resourceFilesTemp += excludeConfigEnd;
+                }
+            } else if (bit32Only || bit64Only) {
+                resourceFilesTemp += excludeConfigPlatform;
+                if (bit32Only) {
+                    resourceFilesTemp += "x64";
+                } else {
+                    resourceFilesTemp += "Win32";
+                }
+                resourceFilesTemp += excludeConfigEnd;
+            }
+
+            resourceFilesTemp += typeIncludeEnd;
+
+            // Add to output
+            resourceFiles += resourceFilesTemp;
+            resourceFilesFilt += resourceFilesFiltTemp;
+        }
+
+        resourceFiles += itemGroupEnd;
+        resourceFilesFilt += itemGroupEnd;
+
+        // Add generated .c files for compilation with explicit dependencies
+        string cFiles = itemGroup;
+        string cFilesFilt = itemGroup;
+        for (const auto& i : fileList) {
+            uint pos = i.rfind('/') + 1;
+            string resourceName = i.substr(pos);
+            uint pos2 = resourceName.rfind('.');
+            string extension = resourceName.substr(pos2);
+            resourceName.resize(pos2);
+            string outputCFile = "$(IntDir)\\" + resourceName + extension + ".c";
+            string origResourceFile = i;
+            replace(origResourceFile.begin(), origResourceFile.end(), '/', '\\');
+
+            // ClCompile entry with explicit dependency
+            cFiles += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFiles += "\r\n      <DependsOn>" + origResourceFile + "</DependsOn>";
+            
+            // Check if this file should be disabled under certain configurations
+            if (staticOnly || sharedOnly) {
+                const string* buildConfig = nullptr;
+                uint configs = 0;
+                if (staticOnly) {
+                    buildConfig = buildConfigsShared;
+                    configs = sizeof(buildConfigsShared) / sizeof(buildConfigsShared[0]);
+                } else {
+                    buildConfig = buildConfigsStatic;
+                    configs = sizeof(buildConfigsStatic) / sizeof(buildConfigsStatic[0]);
+                }
+                for (uint j = 0; j < configs; j++) {
+                    cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Configuration)'=='" + string(buildConfig[j]) + "'\">" + "true</ExcludedFromBuild>";
+                }
+            } else if (bit32Only || bit64Only) {
+                cFiles += "\r\n      <ExcludedFromBuild Condition=\"'$(Platform)'=='";
+                if (bit32Only) {
+                    cFiles += "x64";
+                } else {
+                    cFiles += "Win32";
+                }
+                cFiles += "'\">" + string("true</ExcludedFromBuild>");
+            }
+            
+            cFiles += "\r\n    </ClCompile>";
+
+            // Filter entry for generated .c file
+            cFilesFilt += "\r\n    <ClCompile Include=\"" + outputCFile + "\">";
+            cFilesFilt += "\r\n      <Filter>Source Files\\Generated</Filter>";
+            cFilesFilt += "\r\n    </ClCompile>";
+        }
+        cFiles += itemGroupEnd;
+        cFilesFilt += itemGroupEnd;
+
+        // Add the Generated filter
+        foundFilters.insert("Source Files\\Generated");
+
+        // After </ItemGroup> add the item groups for resource files
+        string endTag = "</ItemGroup>";
+        uint findPos = projectTemplate.rfind(endTag);
+        findPos += endTag.length();
+        uint findPosFilt = filterTemplate.rfind(endTag);
+        findPosFilt += endTag.length();
+
+        // Insert into output file
+        projectTemplate.insert(findPos, resourceFiles + cFiles);
+        filterTemplate.insert(findPosFilt, resourceFilesFilt + cFilesFilt);
+    }
+}
+
 void ProjectGenerator::outputCUDATools(string& projectTemplate) const
 {
     if (m_configHelper.isCUDAEnabled() && (m_includesCU.size() > 0)) {
-        // TODO: Add cuda tools
+        // Copy bin2c.exe to project directory for CUDA compilation
+        string bin2cContent;
+        if (!loadFromResourceFile(BIN2C_EXE_ID, bin2cContent)) {
+            outputError("Failed to load bin2c.exe from resources");
+            return;
+        }
+        string bin2cPath = m_configHelper.m_solutionDirectory + "bin2c.exe";
+        if (!writeToFile(bin2cPath, bin2cContent, true)) {
+            outputError("Failed to copy bin2c.exe to project directory");
+            return;
+        }
+
+        // Copy cuda_bin2c.props to project directory
+        string propsContent;
+        if (!loadFromResourceFile(CUDA_BIN2C_PROPS_ID, propsContent)) {
+            outputError("Failed to load cuda_bin2c.props from resources");
+            return;
+        }
+        string propsPath = m_configHelper.m_solutionDirectory + "cuda_bin2c.props";
+        if (!writeToFile(propsPath, propsContent, true)) {
+            outputError("Failed to copy cuda_bin2c.props to project directory");
+            return;
+        }
+
+        // Copy cuda_bin2c.targets to project directory
+        string targetsContent;
+        if (!loadFromResourceFile(CUDA_BIN2C_TARGETS_ID, targetsContent)) {
+            outputError("Failed to load cuda_bin2c.targets from resources");
+            return;
+        }
+        string targetsPath = m_configHelper.m_solutionDirectory + "cuda_bin2c.targets";
+        if (!writeToFile(targetsPath, targetsContent, true)) {
+            outputError("Failed to copy cuda_bin2c.targets to project directory");
+            return;
+        }
+
+        // Copy cuda_bin2c.xml to project directory
+        string xmlContent;
+        if (!loadFromResourceFile(CUDA_BIN2C_XML_ID, xmlContent)) {
+            outputError("Failed to load cuda_bin2c.xml from resources");
+            return;
+        }
+        string xmlPath = m_configHelper.m_solutionDirectory + "cuda_bin2c.xml";
+        if (!writeToFile(xmlPath, xmlContent, true)) {
+            outputError("Failed to copy cuda_bin2c.xml to project directory");
+            return;
+        }
+
+        // Add CUDA build customisation imports
+        string propsCUDA = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"cuda_bin2c.props\" />\r\n\
+  </ImportGroup>";
+        string targetsCUDA = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"cuda_bin2c.targets\" />\r\n\
+  </ImportGroup>";
+
+        const string findProps = R"(</ImportGroup>)";
+        const string findTargets = R"(</ItemDefinitionGroup>)";
+
+        // Add cuda props import (after first </ImportGroup>)
+        uint findPos = projectTemplate.find(findProps) + findProps.length();
+        projectTemplate.insert(findPos, propsCUDA);
+        // Add cuda targets import (after last </ItemDefinitionGroup>)
+        findPos = projectTemplate.rfind(findTargets) + findTargets.length();
+        projectTemplate.insert(findPos, targetsCUDA);
+    }
+}
+
+void ProjectGenerator::outputOpenCLTools(string& projectTemplate) const
+{
+    if (m_configHelper.isOpenCLEnabled() && (m_includesCL.size() > 0)) {
+        // Copy source2c.exe to project directory
+        string source2cContent;
+        if (!loadFromResourceFile(SOURCE2C_EXE_ID, source2cContent)) {
+            outputError("Failed to load source2c.exe from resources");
+            return;
+        }
+        string source2cPath = m_configHelper.m_solutionDirectory + "source2c.exe";
+        if (!writeToFile(source2cPath, source2cContent, true)) {
+            outputError("Failed to copy source2c.exe to project directory");
+            return;
+        }
+
+        // Copy opencl_source2c.props to project directory
+        string propsContent;
+        if (!loadFromResourceFile(OPENCL_SOURCE2C_PROPS_ID, propsContent)) {
+            outputError("Failed to load opencl_source2c.props from resources");
+            return;
+        }
+        string propsPath = m_configHelper.m_solutionDirectory + "opencl_source2c.props";
+        if (!writeToFile(propsPath, propsContent, true)) {
+            outputError("Failed to copy opencl_source2c.props to project directory");
+            return;
+        }
+
+        // Copy opencl_source2c.targets to project directory
+        string targetsContent;
+        if (!loadFromResourceFile(OPENCL_SOURCE2C_TARGETS_ID, targetsContent)) {
+            outputError("Failed to load opencl_source2c.targets from resources");
+            return;
+        }
+        string targetsPath = m_configHelper.m_solutionDirectory + "opencl_source2c.targets";
+        if (!writeToFile(targetsPath, targetsContent, true)) {
+            outputError("Failed to copy opencl_source2c.targets to project directory");
+            return;
+        }
+
+        // Copy opencl_source2c.xml to project directory
+        string xmlContent;
+        if (!loadFromResourceFile(OPENCL_SOURCE2C_XML_ID, xmlContent)) {
+            outputError("Failed to load opencl_source2c.xml from resources");
+            return;
+        }
+        string xmlPath = m_configHelper.m_solutionDirectory + "opencl_source2c.xml";
+        if (!writeToFile(xmlPath, xmlContent, true)) {
+            outputError("Failed to copy opencl_source2c.xml to project directory");
+            return;
+        }
+
+        // Add OpenCL build customisation imports
+        string propsOpenCL = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"opencl_source2c.props\" />\r\n\
+  </ImportGroup>";
+        string targetsOpenCL = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"opencl_source2c.targets\" />\r\n\
+  </ImportGroup>";
+
+        const string findProps = R"(</ImportGroup>)";
+        const string findTargets = R"(</ItemDefinitionGroup>)";
+
+        // Add opencl props import (after first </ImportGroup>)
+        uint findPos = projectTemplate.find(findProps) + findProps.length();
+        projectTemplate.insert(findPos, propsOpenCL);
+        // Add opencl targets import (after last </ItemDefinitionGroup>)
+        findPos = projectTemplate.rfind(findTargets) + findTargets.length();
+        projectTemplate.insert(findPos, targetsOpenCL);
+    }
+}
+
+void ProjectGenerator::outputSPIRVTools(string& projectTemplate) const
+{
+    if (m_configHelper.isSPIRVEnabled() && (m_includesCOMP.size() > 0)) {
+        // Copy source2c.exe to project directory (may already exist from OpenCL)
+        string source2cPath = m_configHelper.m_solutionDirectory + "source2c.exe";
+        string source2cCheck;
+        if (!findFile(source2cPath, source2cCheck)) {
+            string source2cContent;
+            if (!loadFromResourceFile(SOURCE2C_EXE_ID, source2cContent)) {
+                outputError("Failed to load source2c.exe from resources");
+                return;
+            }
+            if (!writeToFile(source2cPath, source2cContent, true)) {
+                outputError("Failed to copy source2c.exe to project directory");
+                return;
+            }
+        }
+
+        // Copy spirv_source2c.props to project directory
+        string propsContent;
+        if (!loadFromResourceFile(SPIRV_SOURCE2C_PROPS_ID, propsContent)) {
+            outputError("Failed to load spirv_source2c.props from resources");
+            return;
+        }
+        string propsPath = m_configHelper.m_solutionDirectory + "spirv_source2c.props";
+        if (!writeToFile(propsPath, propsContent, true)) {
+            outputError("Failed to copy spirv_source2c.props to project directory");
+            return;
+        }
+
+        // Copy spirv_source2c.targets to project directory
+        string targetsContent;
+        if (!loadFromResourceFile(SPIRV_SOURCE2C_TARGETS_ID, targetsContent)) {
+            outputError("Failed to load spirv_source2c.targets from resources");
+            return;
+        }
+        string targetsPath = m_configHelper.m_solutionDirectory + "spirv_source2c.targets";
+        if (!writeToFile(targetsPath, targetsContent, true)) {
+            outputError("Failed to copy spirv_source2c.targets to project directory");
+            return;
+        }
+
+        // Copy spirv_source2c.xml to project directory
+        string xmlContent;
+        if (!loadFromResourceFile(SPIRV_SOURCE2C_XML_ID, xmlContent)) {
+            outputError("Failed to load spirv_source2c.xml from resources");
+            return;
+        }
+        string xmlPath = m_configHelper.m_solutionDirectory + "spirv_source2c.xml";
+        if (!writeToFile(xmlPath, xmlContent, true)) {
+            outputError("Failed to copy spirv_source2c.xml to project directory");
+            return;
+        }
+
+        // Add SPIRV build customisation imports
+        string propsSPIRV = "\r\n\
+  <ImportGroup Label=\"ExtensionSettings\">\r\n\
+    <Import Project=\"spirv_source2c.props\" />\r\n\
+  </ImportGroup>";
+        string targetsSPIRV = "\r\n\
+  <ImportGroup Label=\"ExtensionTargets\">\r\n\
+    <Import Project=\"spirv_source2c.targets\" />\r\n\
+  </ImportGroup>";
+
+        const string findProps = R"(</ImportGroup>)";
+        const string findTargets = R"(</ItemDefinitionGroup>)";
+
+        // Add spirv props import (after first </ImportGroup>)
+        uint findPos = projectTemplate.find(findProps) + findProps.length();
+        projectTemplate.insert(findPos, propsSPIRV);
+        // Add spirv targets import (after last </ItemDefinitionGroup>)
+        findPos = projectTemplate.rfind(findTargets) + findTargets.length();
+        projectTemplate.insert(findPos, targetsSPIRV);
     }
 }
 
@@ -1670,7 +2239,7 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
     StaticList addLibs, libs = m_libs;
     buildDependencies(libs, addLibs, winrt);
 
-    if ((libs.size() > 0) || (addLibs.size() > 0)) {
+    if ((libs.size() > 0) || (addLibs.size() > 0) || m_configHelper.isConfigOptionEnabled("libshaderc")) {
         // Create list of additional ffmpeg dependencies
         string addFFmpegLibs[4]; // debug, release, debugDll, releaseDll
         for (const auto& i : m_projectLibs[m_projectName]) {
@@ -1696,10 +2265,28 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
             addDeps[3] += (!winrt) ? ".lib;" : "_winrt.lib;";
         }
         // Create List of additional external dependencies
-        string addExternDeps;
+        // Uses same 4-way split as addDeps: debug, release, debugDll, releaseDll
+        string addExternDeps[4];
         for (const auto& i : addLibs) {
-            addExternDeps += i;
-            addExternDeps += ".lib;";
+            addExternDeps[0] += i + ".lib;";
+            addExternDeps[1] += i + ".lib;";
+            addExternDeps[2] += i + ".lib;";
+            addExternDeps[3] += i + ".lib;";
+        }
+        // Vulkan SDK libs with separate static/DLL names and debug variants
+        if (m_configHelper.isConfigOptionEnabled("libshaderc") &&
+            (m_projectName == "libavfilter")) {
+            addExternDeps[0] += "shaderc_combinedd.lib;";
+            addExternDeps[1] += "shaderc_combined.lib;";
+            addExternDeps[2] += "shaderc_sharedd.lib;";
+            addExternDeps[3] += "shaderc_shared.lib;";
+        }
+        // Add tesseract with custom name if specified via --tesseract-name
+        string addTesseractDebug, addTesseractRelease;
+        if (m_addCustomTesseract) {
+            m_addCustomTesseract = false;
+            addTesseractDebug = m_configHelper.m_tesseractName + "d.lib;";
+            addTesseractRelease = m_configHelper.m_tesseractName + ".lib;";
         }
         // Add to Additional Dependencies
         const string libLink2[2] = {"<Link>", "<Lib>"};
@@ -1750,7 +2337,8 @@ bool ProjectGenerator::outputDependencyLibs(string& projectTemplate, const bool 
                             addIndex += 2;
                         }
                         addString += addDeps[addIndex];
-                        addString += addExternDeps;
+                        addString += addExternDeps[addIndex];
+                        addString += (debugRelease == 0) ? addTesseractDebug : addTesseractRelease;
                         addString += "%(AdditionalDependencies)</AdditionalDependencies>";
                         projectTemplate.insert(findPos, addString);
                         findPos += addString.length();

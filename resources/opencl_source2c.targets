@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName Include="OpenCLSource2C">
+      <Targets>SelectOpenCLSource2C</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+
+  <Target Name="SelectOpenCLSource2C" BeforeTargets="SelectCustomBuild;ComputeCustomBuildOutput">
+
+    <ItemGroup>
+      <OpenCLSource2C Update="@(OpenCLSource2C)">
+        <Inputs>%(OpenCLSource2C.FullPath)</Inputs>
+        <AdditionalInputs>%(OpenCLSource2C.AdditionalInputs);$(MSBuildProjectFile)</AdditionalInputs>
+
+        <Message>Exec OpenCLSource2C: %(OpenCLSource2C.FileName)</Message>
+        <!--<Command>"$(ProjectDir)source2c.exe" "%(OpenCLSource2C.FullPath)" "%(OpenCLSource2C.Outputs)"</Command>-->
+      </OpenCLSource2C>
+    </ItemGroup>
+
+    <ItemGroup>
+      <CustomBuild Include="@(OpenCLSource2C)">
+      </CustomBuild>
+    </ItemGroup>
+  </Target>
+</Project>
